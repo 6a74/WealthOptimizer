@@ -10,19 +10,25 @@ def calculate_rmds(traditional, roth, interest_rate,
                    years_until_transition_to_pretax_contributions, current_age,
                    age_of_retirement, age_to_start_rmds, age_at_death,
                    roth_rollover_amount, income, yearly_income_raise,
-                   max_income, age_of_marriage):
-    """This function will print the state of each year depending on the inputs
-    provided until you die.
+                   max_income, age_of_marriage, debug=True):
+    """This function will print your state of finances for each year until you
+    die, depending on the inputs, of course!
     """
 
+    def debug_print(line):
+        if debug:
+            print(line)
+
     assert current_age < age_at_death
-    print(f"Settings: {traditional=:,.2f}, {roth=:,.2f}, {interest_rate=:.2f}, {yearly_contribution_traditional=:,.2f}")
-    print(f"          {yearly_contribution_roth=:,.2f}, {years_until_transition_to_pretax_contributions=}")
-    print(f"          {current_age=}, {age_of_retirement=} {age_to_start_rmds=}, {age_at_death=}, {roth_rollover_amount=:,.2f}")
-    print(f"          {income=:,.2f}, {yearly_income_raise=:.2f}, {max_income=:,.2f} {age_of_marriage=}")
-    print("")
+    debug_print(f"Settings: {traditional=:,.2f}, {roth=:,.2f}, {interest_rate=:.2f}, {yearly_contribution_traditional=:,.2f}")
+    debug_print(f"          {yearly_contribution_roth=:,.2f}, {years_until_transition_to_pretax_contributions=}")
+    debug_print(f"          {current_age=}, {age_of_retirement=} {age_to_start_rmds=}, {age_at_death=}, {roth_rollover_amount=:,.2f}")
+    debug_print(f"          {income=:,.2f}, {yearly_income_raise=:.2f}, {max_income=:,.2f} {age_of_marriage=}")
+    debug_print("")
 
     taxes = 0
+    taxable = 0
+    taxable_principal = 0
     total_contributions_traditional = 0
     total_contributions_roth = 0
     total_taxes = 0
@@ -41,18 +47,18 @@ def calculate_rmds(traditional, roth, interest_rate,
         #
         if year == years_until_transition_to_pretax_contributions:
             if current_age < age_of_retirement:
-                print("you're starting pretax contributions")
+                debug_print("you're starting pretax contributions")
 
         if current_age == age_to_start_rmds:
-            print("you have rmds now")
+            debug_print("you have rmds now")
 
         if current_age == age_of_retirement:
-            print("you're now retired, stopping contributions{}".format(
+            debug_print("you're now retired, stopping contributions{}".format(
                 ", doing roth rollovers" if roth_rollover_amount else ""
             ))
 
         if current_age == age_of_marriage:
-            print("you're now married")
+            debug_print("you're now married")
             married = True
 
         #
@@ -94,6 +100,8 @@ def calculate_rmds(traditional, roth, interest_rate,
         if current_age >= age_to_start_rmds:
             rmd = traditional/withdrawal_factors[current_age]
             traditional -= rmd
+            taxable_principal += rmd
+            taxable += rmd
             income = rmd
         else:
             rmd = 0
@@ -102,7 +110,7 @@ def calculate_rmds(traditional, roth, interest_rate,
         # How much taxes are we going to pay this year?
         #
         taxable_income = income - tax_deductions
-        assert taxable_income > 0
+        assert taxable_income >= 0
         taxes = calculate_taxes(taxable_income, married)
         total_taxes += taxes
 
@@ -114,7 +122,8 @@ def calculate_rmds(traditional, roth, interest_rate,
         except ZeroDivisionError:
             tax_rate = 0
 
-        print(f"{current_age=:3d} || {roth=:13,.2f} || {traditional=:13,.2f} || {rmd=:11,.2f} || {taxable_income=:10,.2f} || {taxes=:10,.2f} || {tax_rate=:5.2f} || {total_taxes=:12,.2f}")
+        total_assets = taxable + roth + traditional
+        debug_print(f"{current_age:3d} || {taxable:13,.2f} || {roth:13,.2f} || {traditional:13,.2f} || {total_assets:13,.2f} || {rmd:11,.2f} || {taxable_income:10,.2f} || {taxes:10,.2f} || {tax_rate:5.2f} || {total_taxes:12,.2f}")
 
         #
         # Happy new year! It's the end of the year. Apply interest, give
@@ -122,13 +131,18 @@ def calculate_rmds(traditional, roth, interest_rate,
         #
         traditional *= interest_rate
         roth *= interest_rate
+        taxable *= interest_rate
+
         if current_age < age_of_retirement:
             income = income * yearly_income_raise
             if max_income:
                 income = min(income, max_income)
+
         current_age += 1
 
-    print("congrats, you're dead")
+    debug_print("congrats, you're dead")
+    tax_to_assets_ratio = total_taxes/total_assets
+    return tax_to_assets_ratio
 
 
 if __name__ == "__main__":
@@ -200,6 +214,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--years-until-transition-to-pretax-contributions",
+        help="Years to wait before doing Traditional (pre-tax) contributions",
         metavar="YEARS",
         required=False,
         type=int,
@@ -247,10 +262,15 @@ if __name__ == "__main__":
         type=int,
         default=200
     )
+    parser.add_argument(
+        "--verbose",
+        help="Do things and talk more",
+        action="store_true"
+    )
 
     args = parser.parse_args()
 
-    calculate_rmds(
+    tax_to_assets_ratio = calculate_rmds(
         args.principal_traditional,
         args.principal_roth,
         args.interest_rate,
@@ -265,5 +285,8 @@ if __name__ == "__main__":
         args.income,
         args.yearly_income_raise,
         args.max_income,
-        args.age_of_marriage
+        args.age_of_marriage,
+        args.verbose
     )
+
+    print(f"{tax_to_assets_ratio=:.6f}")

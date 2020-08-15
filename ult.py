@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-
 #
 # Based on the Uniform Lifetime Table:
 # 

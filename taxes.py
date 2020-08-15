@@ -54,3 +54,19 @@ def calculate_taxes(income, married, debug=False):
         income -= taxable_income_at_rate
 
     return taxes
+
+def get_capital_gains_tax_rate(income, married, debug=False):
+    if not married:
+        if income < 40000:
+            return 0.00
+        elif income < 441450:
+            return 0.15
+        else:
+            return 0.20
+    else:
+        if income < 800000:
+            return 0.00
+        elif income < 496050:
+            return 0.15
+        else:
+            return 0.20
