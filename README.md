@@ -50,6 +50,12 @@ accounts, in which you pay taxes up-front and then (hopefully) never again.
 
 ## Figures
 
+The following figures are generated with the `graph.py` utility. The values are
+calculated with the `sim.calculate_tax_to_asset_ratio` method. Variables are:
+
+* Real Interest Rate (1% - 6%, should satisfy everyone)
+* Years to Wait (the number of years to wait before deferring taxes)
+
 Note: In most figures, after a certain number of years, the tax rate grows at a
 constant rate. This is due to there being so little in Traditional
 (tax-deferred) accounts. RMDs are relativly small (less than your standard
@@ -64,6 +70,10 @@ The figure below shows a 25 year old with nothing in retirement:
 
 ![Figure 2](https://github.com/6a74/finance/blob/master/figures/Figure_25.png?raw=true)
 
+The figure below shows a 25 year old with \$100k in Traditional and \$50k in Roth:
+
+![Figure 2](https://github.com/6a74/finance/blob/master/figures/Figure_25_with_assets.png?raw=true)
+
 The figure below shows a 40 year old with nothing in retirement:
 
 ![Figure 3](https://github.com/6a74/finance/blob/master/figures/Figure_40.png?raw=true)
@@ -77,5 +87,10 @@ The figure below shows a 20 year old that retires 10 years earlier (at 50):
 ![Figure 5](https://github.com/6a74/finance/blob/master/figures/Figure_20_retire_at_50.png?raw=true)
 
 The figure below shows a 20 year old that retires 20 years earlier (at 40):
+
+![Figure 6](https://github.com/6a74/finance/blob/master/figures/Figure_20_retire_at_40.png?raw=true)
+
+Even in this rather extreme situation, it might be better (if _real_ interest
+rates are greater than 4%) to defer deferring taxes a few years
 
 ![Figure 6](https://github.com/6a74/finance/blob/master/figures/Figure_20_retire_at_40.png?raw=true)
