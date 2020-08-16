@@ -55,6 +55,9 @@ def calculate_taxes(income, married, debug=False):
 
     return taxes
 
+def max_withdrawal_in_lowest_bracket(married):
+    return 24800 if married else 12400
+
 def get_capital_gains_tax_rate(income, married, debug=False):
     if not married:
         if income < 40000:

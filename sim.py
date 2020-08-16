@@ -2,28 +2,41 @@
 
 import argparse
 
-from taxes import calculate_taxes
+from taxes import calculate_taxes, max_withdrawal_in_lowest_bracket
 from ult import withdrawal_factors
 
-def calculate_rmds(traditional, roth, interest_rate,
+def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
                    yearly_contribution_traditional, yearly_contribution_roth,
                    years_until_transition_to_pretax_contributions, current_age,
-                   age_of_retirement, age_to_start_rmds, age_at_death,
+                   age_of_retirement, age_to_start_rmds, age_of_death,
                    roth_rollover_amount, income, yearly_income_raise,
                    max_income, age_of_marriage, debug=True):
-    """This function will print your state of finances for each year until you
-    die, depending on the inputs, of course!
+    """This function will simulate the state of finances for each year until you
+    die, depending on the inputs of course!
     """
 
     def debug_print(line):
         if debug:
             print(line)
 
-    assert current_age < age_at_death
-    debug_print(f"Settings: {traditional=:,.2f}, {roth=:,.2f}, {interest_rate=:.2f}, {yearly_contribution_traditional=:,.2f}")
-    debug_print(f"          {yearly_contribution_roth=:,.2f}, {years_until_transition_to_pretax_contributions=}")
-    debug_print(f"          {current_age=}, {age_of_retirement=} {age_to_start_rmds=}, {age_at_death=}, {roth_rollover_amount=:,.2f}")
-    debug_print(f"          {income=:,.2f}, {yearly_income_raise=:.2f}, {max_income=:,.2f} {age_of_marriage=}")
+    assert current_age <= 115
+    assert current_age < age_of_death
+
+    debug_print(f"{current_age=}")
+    debug_print(f"{age_of_death=}")
+    debug_print(f"{age_of_marriage=}")
+    debug_print(f"{age_of_retirement=}")
+    debug_print(f"{age_to_start_rmds=}")
+    debug_print(f"{income=:,.2f}")
+    debug_print(f"{max_income=:,.2f}")
+    debug_print(f"{interest_rate=:.2f}")
+    debug_print(f"{yearly_income_raise=:.2f}")
+    debug_print(f"{roth=:,.2f}")
+    debug_print(f"{traditional=:,.2f}")
+    debug_print(f"{yearly_contribution_roth=:,.2f}")
+    debug_print(f"{yearly_contribution_traditional=:,.2f}")
+    debug_print(f"{roth_rollover_amount=:,.2f}")
+    debug_print(f"{years_until_transition_to_pretax_contributions=}")
     debug_print("")
 
     taxes = 0
@@ -38,10 +51,13 @@ def calculate_rmds(traditional, roth, interest_rate,
     #
     married = True if age_of_marriage <= current_age else False
 
+    debug_print(f"|| Age ||       Taxable ||          Roth ||   Traditional ||  Total Assets ||         RMD ||       MAGI ||      Taxes || Tax % ||  Total Taxes ||")
+    debug_print(f"=================================================================================================================================================")
+
     #
     # Iterate over each year in our life.
     #
-    for year in range(age_at_death - current_age):
+    for year in range(age_of_death - current_age):
         #
         # Print some major life status updates.
         #
@@ -99,10 +115,16 @@ def calculate_rmds(traditional, roth, interest_rate,
         #
         if current_age >= age_to_start_rmds:
             rmd = traditional/withdrawal_factors[current_age]
-            traditional -= rmd
-            taxable_principal += rmd
-            taxable += rmd
-            income = rmd
+            best_amount = max_withdrawal_in_lowest_bracket(married)
+            withdrawal_amount = max(rmd, best_amount)
+
+            if withdrawal_amount >= traditional:
+                withdrawal_amount = traditional
+
+            traditional -= withdrawal_amount
+            taxable_principal += withdrawal_amount
+            taxable += withdrawal_amount
+            income = withdrawal_amount
         else:
             rmd = 0
 
@@ -123,7 +145,7 @@ def calculate_rmds(traditional, roth, interest_rate,
             tax_rate = 0
 
         total_assets = taxable + roth + traditional
-        debug_print(f"{current_age:3d} || {taxable:13,.2f} || {roth:13,.2f} || {traditional:13,.2f} || {total_assets:13,.2f} || {rmd:11,.2f} || {taxable_income:10,.2f} || {taxes:10,.2f} || {tax_rate:5.2f} || {total_taxes:12,.2f}")
+        debug_print(f"|| {current_age:3d} || {taxable:13,.2f} || {roth:13,.2f} || {traditional:13,.2f} || {total_assets:13,.2f} || {rmd:11,.2f} || {taxable_income:10,.2f} || {taxes:10,.2f} || {tax_rate:5.2f} || {total_taxes:12,.2f} ||")
 
         #
         # Happy new year! It's the end of the year. Apply interest, give
@@ -141,8 +163,8 @@ def calculate_rmds(traditional, roth, interest_rate,
         current_age += 1
 
     debug_print("congrats, you're dead")
-    tax_to_assets_ratio = total_taxes/total_assets
-    return tax_to_assets_ratio
+    tax_to_asset_ratio = total_taxes/total_assets
+    return tax_to_asset_ratio
 
 
 if __name__ == "__main__":
@@ -213,12 +235,12 @@ if __name__ == "__main__":
         default=6000
     )
     parser.add_argument(
-        "--years-until-transition-to-pretax-contributions",
+        "--years-to-wait",
         help="Years to wait before doing Traditional (pre-tax) contributions",
         metavar="YEARS",
         required=False,
         type=int,
-        default=5
+        default=0
     )
     parser.add_argument(
         "--age-of-retirement",
@@ -235,18 +257,11 @@ if __name__ == "__main__":
         default=72
     )
     parser.add_argument(
-        "--age-at-death",
+        "--age-of-death",
         help="When do you plan on dying?",
         required=False,
         type=int,
         default=116
-    )
-    parser.add_argument(
-        "--roth-rollover-amount",
-        help="After retirement, how much will you rollover from Traditional -> Roth per year?",
-        required=False,
-        type=float,
-        default=50000
     )
     parser.add_argument(
         "--yearly-income-raise",
@@ -270,18 +285,55 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    tax_to_assets_ratio = calculate_rmds(
+    #
+    # Calculate the most efficient Roth rollover amount.
+    #
+    min_tax_rate = 1.0
+    roth_rollover_amount = 0
+
+    #
+    # There's a chance we could die before retirement.
+    #
+    if args.age_of_death > args.age_of_retirement:
+        for x in range(1000):
+            tax_rate = calculate_tax_to_asset_ratio(
+                args.principal_traditional,
+                args.principal_roth,
+                args.interest_rate,
+                args.yearly_contribution_traditional,
+                args.yearly_contribution_roth,
+                args.years_to_wait,
+                args.current_age,
+                args.age_of_retirement,
+                args.age_to_start_rmds,
+                args.age_of_death,
+                roth_rollover_amount,
+                args.income,
+                args.yearly_income_raise,
+                args.max_income,
+                args.age_of_marriage,
+                debug=False
+            )
+            min_tax_rate = min(min_tax_rate, tax_rate)
+            if tax_rate > min_tax_rate:
+                break
+            roth_rollover_amount += 1000
+
+    #
+    # Now that we know all of the variables, run the simulation.
+    #
+    tax_to_asset_ratio = calculate_tax_to_asset_ratio(
         args.principal_traditional,
         args.principal_roth,
         args.interest_rate,
         args.yearly_contribution_traditional,
         args.yearly_contribution_roth,
-        args.years_until_transition_to_pretax_contributions,
+        args.years_to_wait,
         args.current_age,
         args.age_of_retirement,
         args.age_to_start_rmds,
-        args.age_at_death,
-        args.roth_rollover_amount,
+        args.age_of_death,
+        roth_rollover_amount, # we calculated this
         args.income,
         args.yearly_income_raise,
         args.max_income,
@@ -289,4 +341,4 @@ if __name__ == "__main__":
         args.verbose
     )
 
-    print(f"{tax_to_assets_ratio=:.6f}")
+    print(f"{tax_to_asset_ratio=:.6f}")
