@@ -18,47 +18,26 @@ accounts, they might be forced to withdrawal large sums of money, which could be
 heavily taxed. The alternative is to redirect those contributions to Roth
 accounts, in which you pay taxes up-front and then (hopefully) never again.
 
-## Dependencies
+## Utilities
 
-* [python](https://docs.python.org/3/whatsnew/3.8.html) (3.8+)
-* [matplotlib](https://matplotlib.org)
-* [progressbar2](https://pypi.org/project/progressbar2/)
+### `sim.py`
 
-## Rules and Assumptions
+This module contains the core function: `calculate_tax_to_asset_ratio`. Given
+all of the initial variables, this function will "simulate" your portfolio and
+return a "tax to assset" ratio. This is something I defined. I am unsure if this
+is used elsewhere.
 
-### Income
+#### Tax to Asset Ratio
 
-* There are no gaps in employment.
-* Pay raises are constant (unrealistic, I'm aware).
+The tax to asset ratio (TAR) is the total amount paid in taxes (income, capital
+gains) divided by total assets across all accounts (taxable, Roth, Traditional).
+We use this to compare simulations with different interest rates. You cannot
+compare simulations solely on assets or taxes. In higher interest rate
+simulations, more interest in accrued and as a result more taxes are required.
+In this situation, that does not mean it is worse. It is very similar to the
+price to earnings (PE) ratio.
 
-### Taxes
-
-* Federal taxes only; no state tax, social security, medicare, etc.
-* Standard duduction is assumed (so much easier).
-* Only "single" and "married" are options.
-* Dependents are not taken into account.
-
-### RMDs
-
-* After retirement and before RMDs, you will do [Roth IRA
-  conversions](https://www.bogleheads.org/wiki/Roth_IRA_conversion). This amount
-  is automatically calculated to produce the lowest taxes. Note: this currently
-  assumes your marital status does not change during this
-  post-retirement/pre-RMDs period. I understand that will not work for everyone.
-* During RMDs, you will withdrawal at least your standard deduction. This is
-  amount is taxed at 0%.
-* RMDs are transferred to a taxable account, where it grows at the same interest
-  rate as retirement accounts.
-
-### Other
-
-* Interest is applied at the end of each year.
-* The "market" has no volatility. Investments grow at a steady rate.
-* Divorce is not possible. Once you are married, you are stuck that way.
-* Taxable investments are never sold and therefore capital gains is take taken
-  into account. I could see myself adding a "yearly cost of living" option and
-  intelligently withdrawing from the best account. In this situation, capital
-  gains could be calculated and included.
+### `graph.py`
 
 ## Figures
 
@@ -118,3 +97,56 @@ are greater than 4%) to defer deferring taxes a few years.
   taxes immediately.
 * If long-term interest rates are high (6%+), it appears to be better to
   make Roth contributes.
+
+## How Do I Test It Out?
+
+You are encouraged to clone this repository and try this stuff out for yourself!
+This way, you will be able to use your own personal numbers. I tried to include
+options for anything that made sense. If there is something missing, please
+create an issue or send me an email.
+
+### Dependencies
+
+* [python](https://docs.python.org/3/whatsnew/3.8.html) (3.8+)
+* [matplotlib](https://matplotlib.org)
+* [progressbar2](https://pypi.org/project/progressbar2/)
+
+## Rules and Assumptions
+
+Not trying to hide this stuff, but here are some gotchas. Most of this stuff
+boils down to it being very difficult to predict the future. But some things
+were intential design decisions.
+
+### Income
+
+* There are no gaps in employment.
+* Pay raises are constant (unrealistic, I'm aware).
+
+### Taxes
+
+* Federal taxes only; no state tax, social security, medicare, etc.
+* Standard duduction only.
+* Only "single" and "married" filing statuses.
+* No dependents; no charities.
+
+### RMDs
+
+* After retirement and before RMDs, you will do [Roth IRA
+  conversions](https://www.bogleheads.org/wiki/Roth_IRA_conversion). This amount
+  is automatically calculated to produce the lowest taxes. Note: this currently
+  assumes your marital status does not change during this
+  post-retirement/pre-RMDs period. I understand that will not work for everyone.
+* During RMDs, you will withdrawal at least your standard deduction. This is
+  amount is taxed at 0%.
+* RMDs are transferred to a taxable account, where it grows at the same interest
+  rate as retirement accounts.
+
+### Other
+
+* Interest is applied at the end of each year.
+* The "market" has no volatility. Investments grow at a steady rate.
+* Divorce is not possible. Once you are married, you are stuck that way.
+* Taxable investments are never sold and therefore capital gains is take taken
+  into account. I could see myself adding a "yearly cost of living" option and
+  intelligently withdrawing from the best account. In this situation, capital
+  gains could be calculated and included.
