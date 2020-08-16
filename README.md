@@ -50,4 +50,4 @@ accounts, in which you pay taxes up-front and then (hopefully) never again.
 
 ## Figures
 
-![Figure 1](https://github.com/6a74/finance/blob/master/Figure_20.png?raw=true)
+![Figure 1](https://github.com/6a74/finance/blob/master/figures/Figure_20.png?raw=true)
