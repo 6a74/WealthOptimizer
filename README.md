@@ -46,3 +46,8 @@ accounts, in which you pay taxes up-front and then (hopefully) never again.
 
 * Interest is applied at the end of each year.
 * The "market" has no volatility. Investments will grow at a steady rate.
+
+
+## Figures
+
+![Figure 1](https://github.com/6a74/finance/blob/master/Figure_20.png?raw=true)
