@@ -21,11 +21,10 @@ accounts, in which you pay taxes up-front and then (hopefully) never again.
 ### Income
 
 * There are no gaps in employment.
-* Your income will grow at a steady rate.
+* Pay raises are steady (`--yearly-income-raise`).
 
 ### Taxes
-* This only accounts for federal taxes. No state tax, social security, medicare,
-   etc.
+* Federal taxes only; no state tax, social security, medicare, etc.
 * Standard duduction is assumed.
 * Dependents are not taken into account.
 * Only "single" and "married" are options.
@@ -39,16 +38,23 @@ accounts, in which you pay taxes up-front and then (hopefully) never again.
   post-retirement/pre-RMDs period. I understand that will not work for everyone.
 * During RMDs, you will withdrawal at least your standard deduction. This is
   amount is taxed at 0%.
-* RMDs are put into a taxable account, where it will grow at the same interest
-  rate.
+* RMDs transferred to a taxable account, where it will grow at the same interest
+  rate as retirement accounts.
 
 ### Other
 
 * Interest is applied at the end of each year.
 * The "market" has no volatility. Investments will grow at a steady rate.
+* Divorce is not possible. Once you are married, you are stuck that way.
 
 
 ## Figures
+
+Note: In most figures, after a certain number of years, the tax rate grows at a
+constant rate. This is due to there being so little in Traditional
+(tax-deferred) accounts. RMDs are relativly small (less than your standard
+deduction) and taxed generally taxed near (or at) 0%. After this point, it
+becomes clearily detremental to not defer taxes.
 
 The figure below shows a 20 year old with nothing in retirement:
 
@@ -61,3 +67,15 @@ The figure below shows a 25 year old with nothing in retirement:
 The figure below shows a 40 year old with nothing in retirement:
 
 ![Figure 3](https://github.com/6a74/finance/blob/master/figures/Figure_40.png?raw=true)
+
+This figure shows what values looks like without scaling:
+
+![Figure 4](https://github.com/6a74/finance/blob/master/figures/Figure_20_noscale.png?raw=true)
+
+The figure below shows a 20 year old that retires 10 years earlier (at 50):
+
+![Figure 5](https://github.com/6a74/finance/blob/master/figures/Figure_20_retire_at_50.png?raw=true)
+
+The figure below shows a 20 year old that retires 20 years earlier (at 40):
+
+![Figure 6](https://github.com/6a74/finance/blob/master/figures/Figure_20_retire_at_40.png?raw=true)
