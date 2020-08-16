@@ -1,14 +1,38 @@
-# Finance
+# When to Defer Taxes?
 
 ## Introduction
 
-Many people on [Bogleheads](https://www.bogleheads.org), a fantastic resource
-for investing advice, believe that it is almost always better to defer taxes
-(_i.e._ contribute to
+Many people in the [Bogleheads](https://www.bogleheads.org) community, a
+fantastic resource for investing advice, believe that it is almost always better
+to defer taxes (_i.e._ contribute to
 [Traditional](https://www.bogleheads.org/wiki/Traditional_IRA) accounts rather
 than [Roth](https://www.bogleheads.org/wiki/Roth_IRA) accounts). I would like to
-make the case against Traditional accounts, especially for young people. To help
-myself, I have developed a set of utilities to demonstrate what I mean.
+make the case against the notion that deferring taxes is best for people that
+can "max out their 401k," like many individuals on Bogleheads do.
+
+### Who Said Traditional is Better?
+
+From the Bogleheads's [general
+guidelines](https://www.bogleheads.org/wiki/Traditional_versus_Roth#General_guidelines)
+on Traditional vs. Roth:
+
+> Using 100% traditional because, for most people, traditional will be better
+
+While this is probably correct, the typical Bogleheads reader is probably a
+better saver.
+
+### Who is the Typical Person?
+
+In 2018, the real median [household income in the
+U.S.](https://en.wikipedia.org/wiki/Household_income_in_the_United_States) was
+$63,179. This is the latest figure available. Though, I suspect the typical
+boglehead has a slightly higher income. In 2018, the [median
+age](https://en.wikipedia.org/wiki/Demographics_of_the_United_States#Median_age_of_the_population)
+is 38.2 years old. For the years between 2015 and 2020, the [expected life
+expentancy](https://en.wikipedia.org/wiki/Demographics_of_the_United_States#Vital_statistics_2)
+is 78.8 years.
+
+## Argument
 
 My core argument is based around [minimum required
 distributions](https://www.bogleheads.org/wiki/Required_Minimum_Distribution)
@@ -17,27 +41,6 @@ retirement accounts. If an investor puts too much money in tax-deferred
 accounts, they might be forced to withdrawal large sums of money, which could be
 heavily taxed. The alternative is to redirect those contributions to Roth
 accounts, in which you pay taxes up-front and then (hopefully) never again.
-
-## Utilities
-
-### `sim.py`
-
-This module contains the core function: `calculate_tax_to_asset_ratio`. Given
-all of the initial variables, this function will "simulate" your portfolio and
-return a "tax to assset" ratio. This is something I defined. I am unsure if this
-is used elsewhere.
-
-#### Tax to Asset Ratio
-
-The tax to asset ratio (TAR) is the total amount paid in taxes (income, capital
-gains) divided by total assets across all accounts (taxable, Roth, Traditional).
-We use this to compare simulations with different interest rates. You cannot
-compare simulations solely on assets or taxes. In higher interest rate
-simulations, more interest in accrued and as a result more taxes are required.
-In this situation, that does not mean it is worse. It is very similar to the
-price to earnings (PE) ratio.
-
-### `graph.py`
 
 ## Figures
 
@@ -97,6 +100,27 @@ are greater than 4%) to defer deferring taxes a few years.
   taxes immediately.
 * If long-term interest rates are high (6%+), it appears to be better to
   make Roth contributes.
+
+## Utilities
+
+### `sim.py`
+
+This module contains the core function: `calculate_tax_to_asset_ratio`. Given
+all of the initial variables, this function will "simulate" your portfolio and
+return a "tax to assset" ratio. This is something I defined. I am unsure if this
+is used elsewhere.
+
+#### Tax to Asset Ratio
+
+The tax to asset ratio (TAR) is the total amount paid in taxes (income, capital
+gains) divided by total assets across all accounts (taxable, Roth, Traditional).
+We use this to compare simulations with different interest rates. You cannot
+compare simulations solely on assets or taxes. In higher interest rate
+simulations, more interest in accrued and as a result more taxes are required.
+In this situation, that does not mean it is worse. It is very similar to the
+price to earnings (PE) ratio.
+
+### `graph.py`
 
 ## How Do I Test It Out?
 

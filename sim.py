@@ -10,7 +10,9 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
                    years_until_transition_to_pretax_contributions, current_age,
                    age_of_retirement, age_to_start_rmds, age_of_death,
                    roth_conversion_amount, income, yearly_income_raise,
-                   max_income, age_of_marriage, debug=True):
+                   max_income, age_of_marriage,
+                   max_yearly_contribution_traditional,
+                   max_yearly_contribution_roth, debug=True):
     """This function will simulate the state of finances for each year until you
     die, depending on the inputs of course!
     """
@@ -34,7 +36,9 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
     debug_print(f"{roth=:,.2f}")
     debug_print(f"{traditional=:,.2f}")
     debug_print(f"{yearly_contribution_roth=:,.2f}")
+    debug_print(f"{max_yearly_contribution_roth=:,.2f}")
     debug_print(f"{yearly_contribution_traditional=:,.2f}")
+    debug_print(f"{max_yearly_contribution_traditional=:,.2f}")
     debug_print(f"{roth_conversion_amount=:,.2f}")
     debug_print(f"{years_until_transition_to_pretax_contributions=}")
     debug_print("")
@@ -51,8 +55,8 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
     #
     married = True if age_of_marriage <= current_age else False
 
-    debug_print(f"|| Age ||       Taxable ||          Roth ||   Traditional ||  Total Assets ||         RMD ||       MAGI ||      Taxes || Tax % ||  Total Taxes ||")
-    debug_print(f"=================================================================================================================================================")
+    debug_print(f"|| Age ||       Taxable ||          Roth ||   Traditional ||  Total Assets ||         RMD || Roth Cont. || Trad Cont. ||       MAGI ||      Taxes || Tax % ||  Total Taxes ||")
+    debug_print(f"=============================================================================================================================================================================")
 
     #
     # Iterate over each year in our life.
@@ -81,6 +85,8 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
         # Alright, if we're still working, we can make a tax-advantaged
         # contribution of some type. This might include tax deductions.
         #
+        roth_contrib = 0
+        trad_contrib = 0
         tax_deductions = 0
         if current_age < age_of_retirement:
             #
@@ -93,12 +99,14 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
                 total_contributions_traditional += yearly_contribution_traditional
                 traditional += yearly_contribution_traditional
                 tax_deductions += yearly_contribution_traditional
+                trad_contrib = yearly_contribution_traditional
             else:
                 #
                 # We are diverting traditional to roth.
                 #
                 total_contributions_roth += yearly_contribution_traditional
                 roth += yearly_contribution_traditional
+                roth_contrib = yearly_contribution_traditional
                 
         else:
             #
@@ -145,7 +153,7 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
             tax_rate = 0
 
         total_assets = taxable + roth + traditional
-        debug_print(f"|| {current_age:3d} || {taxable:13,.2f} || {roth:13,.2f} || {traditional:13,.2f} || {total_assets:13,.2f} || {rmd:11,.2f} || {taxable_income:10,.2f} || {taxes:10,.2f} || {tax_rate:5.2f} || {total_taxes:12,.2f} ||")
+        debug_print(f"|| {current_age:3d} || {taxable:13,.2f} || {roth:13,.2f} || {traditional:13,.2f} || {total_assets:13,.2f} || {rmd:11,.2f} || {roth_contrib:10,.2f} || {trad_contrib:10,.2f} || {taxable_income:10,.2f} || {taxes:10,.2f} || {tax_rate:5.2f} || {total_taxes:12,.2f} ||")
 
         #
         # Happy new year! It's the end of the year. Apply interest, give
@@ -156,9 +164,23 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
         taxable *= interest_rate
 
         if current_age < age_of_retirement:
-            income = income * yearly_income_raise
+            income *= yearly_income_raise
             if max_income:
                 income = min(income, max_income)
+
+            yearly_contribution_traditional *= yearly_income_raise
+            if max_yearly_contribution_traditional:
+                yearly_contribution_traditional = min(
+                    yearly_contribution_traditional,
+                    max_yearly_contribution_traditional
+                )
+
+            yearly_contribution_roth *= yearly_income_raise
+            if max_yearly_contribution_roth:
+                yearly_contribution_roth = min(
+                    yearly_contribution_roth,
+                    max_yearly_contribution_roth
+                )
 
         current_age += 1
 
@@ -173,25 +195,20 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    #
-    # Arguments without defaults.
-    #
     parser.add_argument(
         "--current-age",
         help="Your current age",
-        required=True,
-        type=int
+        required=False,
+        type=int,
+        default=38
     )
     parser.add_argument(
         "--income",
         help="Your current income",
-        required=True,
-        type=float
+        required=False,
+        type=float,
+        default=63179
     )
-
-    #
-    # Arguments with defaults.
-    #
     parser.add_argument(
         "--max-income",
         help="Define an income ceiling",
@@ -225,11 +242,25 @@ if __name__ == "__main__":
         help="How much are you contributing to Traditional per year?",
         required=False,
         type=float,
+        default=6000
+    )
+    parser.add_argument(
+        "--max-yearly-contribution-traditional",
+        help="What is the Traditional contribution limit?",
+        required=False,
+        type=float,
         default=19500
     )
     parser.add_argument(
         "--yearly-contribution-roth",
         help="How much are you contributing to Roth per year?",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
+        "--max-yearly-contribution-roth",
+        help="What is the Roth contribution limit?",
         required=False,
         type=float,
         default=6000
@@ -261,7 +292,7 @@ if __name__ == "__main__":
         help="When do you plan on dying?",
         required=False,
         type=int,
-        default=116
+        default=79
     )
     parser.add_argument(
         "--yearly-income-raise",
@@ -275,7 +306,7 @@ if __name__ == "__main__":
         help="When will you get married?",
         required=False,
         type=int,
-        default=200
+        default=30
     )
     parser.add_argument(
         "--verbose",
@@ -312,6 +343,8 @@ if __name__ == "__main__":
                 args.yearly_income_raise,
                 args.max_income,
                 args.age_of_marriage,
+                args.max_yearly_contribution_traditional,
+                args.max_yearly_contribution_roth,
                 debug=False
             )
             min_tax_rate = min(min_tax_rate, tax_rate)
@@ -338,6 +371,8 @@ if __name__ == "__main__":
         args.yearly_income_raise,
         args.max_income,
         args.age_of_marriage,
+        args.max_yearly_contribution_traditional,
+        args.max_yearly_contribution_roth,
         args.verbose
     )
 

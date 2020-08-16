@@ -12,25 +12,20 @@ if __name__ == "__main__":
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
-    #
-    # Arguments without defaults.
-    #
     parser.add_argument(
         "--current-age",
         help="Your current age",
-        required=True,
-        type=int
+        required=False,
+        type=int,
+        default=38
     )
     parser.add_argument(
         "--income",
         help="Your current income",
-        required=True,
-        type=float
+        required=False,
+        type=float,
+        default=63179
     )
-
-    #
-    # Arguments with defaults.
-    #
     parser.add_argument(
         "--max-income",
         help="Define an income ceiling",
@@ -57,11 +52,25 @@ if __name__ == "__main__":
         help="How much are you contributing to Traditional per year?",
         required=False,
         type=float,
+        default=6000
+    )
+    parser.add_argument(
+        "--max-yearly-contribution-traditional",
+        help="What is the Traditional contribution limit?",
+        required=False,
+        type=float,
         default=19500
     )
     parser.add_argument(
         "--yearly-contribution-roth",
         help="How much are you contributing to Roth per year?",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
+        "--max-yearly-contribution-roth",
+        help="What is the Roth contribution limit?",
         required=False,
         type=float,
         default=6000
@@ -85,7 +94,7 @@ if __name__ == "__main__":
         help="When do you plan on dying?",
         required=False,
         type=int,
-        default=116
+        default=79
     )
     parser.add_argument(
         "--yearly-income-raise",
@@ -99,7 +108,7 @@ if __name__ == "__main__":
         help="When will you get married?",
         required=False,
         type=int,
-        default=200
+        default=30
     )
     parser.add_argument(
         "--verbose",
@@ -134,6 +143,8 @@ if __name__ == "__main__":
                     args.yearly_income_raise,
                     args.max_income,
                     args.age_of_marriage,
+                    args.max_yearly_contribution_traditional,
+                    args.max_yearly_contribution_roth,
                     debug=False
                 )
                 min_tax_rate = min(min_tax_rate, tax_rate)
@@ -157,6 +168,8 @@ if __name__ == "__main__":
             args.yearly_income_raise,
             args.max_income,
             args.age_of_marriage,
+            args.max_yearly_contribution_traditional,
+            args.max_yearly_contribution_roth,
             args.verbose
         )
 
@@ -205,12 +218,14 @@ if __name__ == "__main__":
         ["Max Income", f"${args.max_income:,.2f}"],
         ["Yearly Income Raise", f"{args.yearly_income_raise:.2f}"],
         ["Starting Trad Balance", f"${args.principal_traditional:,.2f}"],
+        ["Starting Trad Contrib", f"${args.yearly_contribution_traditional:,.2f}"],
+        ["Max Trad Contrib", f"${args.max_yearly_contribution_traditional:,.2f}"],
         ["Starting Roth Balance", f"${args.principal_roth:,.2f}"],
-        ["Yearly Trad Contrib", f"${args.yearly_contribution_traditional:,.2f}"],
-        ["Yearly Roth Contrib", f"${args.yearly_contribution_roth:,.2f}"],
+        ["Starting Roth Contrib", f"${args.yearly_contribution_roth:,.2f}"],
+        ["Max Roth Contrib", f"${args.max_yearly_contribution_roth:,.2f}"],
     ]
 
-    plt.table(cellText=cells, bbox=[1.05,0.5,0.5,0.5])
+    plt.table(cellText=cells, bbox=[1.05, 0.25, 0.5, 0.75])
     plt.subplots_adjust(right=0.65)
 
     plt.legend()
