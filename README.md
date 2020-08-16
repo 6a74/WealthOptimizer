@@ -50,4 +50,14 @@ accounts, in which you pay taxes up-front and then (hopefully) never again.
 
 ## Figures
 
+The figure below shows a 20 year old with nothing in retirement:
+
 ![Figure 1](https://github.com/6a74/finance/blob/master/figures/Figure_20.png?raw=true)
+
+The figure below shows a 25 year old with nothing in retirement:
+
+![Figure 2](https://github.com/6a74/finance/blob/master/figures/Figure_25.png?raw=true)
+
+The figure below shows a 40 year old with nothing in retirement:
+
+![Figure 3](https://github.com/6a74/finance/blob/master/figures/Figure_40.png?raw=true)
