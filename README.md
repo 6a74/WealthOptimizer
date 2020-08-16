@@ -20,9 +20,9 @@ accounts, in which you pay taxes up-front and then (hopefully) never again.
 
 ## Dependencies
 
-* [Python](https://docs.python.org/3/whatsnew/3.8.html) (3.8+)
-* [matplotlib](https://matplotlib.org) (pip)
-* [progressbar2](https://pypi.org/project/progressbar2/) (pip)
+* [python](https://docs.python.org/3/whatsnew/3.8.html) (3.8+)
+* [matplotlib](https://matplotlib.org)
+* [progressbar2](https://pypi.org/project/progressbar2/)
 
 ## Rules and Assumptions
 
@@ -47,18 +47,18 @@ accounts, in which you pay taxes up-front and then (hopefully) never again.
   post-retirement/pre-RMDs period. I understand that will not work for everyone.
 * During RMDs, you will withdrawal at least your standard deduction. This is
   amount is taxed at 0%.
-* RMDs transferred to a taxable account, where it will grow at the same interest
+* RMDs are transferred to a taxable account, where it grows at the same interest
   rate as retirement accounts.
 
 ### Other
 
 * Interest is applied at the end of each year.
-* The "market" has no volatility. Investments will grow at a steady rate.
+* The "market" has no volatility. Investments grow at a steady rate.
 * Divorce is not possible. Once you are married, you are stuck that way.
 * Taxable investments are never sold and therefore capital gains is take taken
   into account. I could see myself adding a "yearly cost of living" option and
   intelligently withdrawing from the best account. In this situation, capital
-  gains could be included.
+  gains could be calculated and included.
 
 ## Figures
 
@@ -104,17 +104,17 @@ The figure below shows a 20 year old that retires 10 years earlier (at 50):
 
 The figure below shows a 20 year old that retires 20 years earlier (at 40). Even
 in this rather extreme situation, it might be better (if _real_ interest rates
-are greater than 4%) to defer deferring taxes a few years
+are greater than 4%) to defer deferring taxes a few years.
 
 ![Figure 6](https://github.com/6a74/finance/blob/master/figures/Figure_20_retire_at_40.png?raw=true)
 
 ### Key Takeaways
 
-* It _does_ makes sense to defer taxes later in ones career, just not
+* It _does_ makes sense to defer taxes later in one's career, just not always
   immediately.
-* In very low return (_e.g._ real 1%) scenarios, it is almost always better to defer
+* In very low interest rate (1%) scenarios, it is almost always better to defer
   taxes immediately.
-* If you plan to retire very early (_e.g._ 40), it appears to be better to defer
+* If you plan to retire very early (40), it appears to be better to defer
   taxes immediately.
-* If long-term terms are high (_e.g._ real 6%+), it appears to almost always
-  better to contribute to Roth in your youth.
+* If long-term interest rates are high (6%+), it appears to be better to
+  make Roth contributes.
