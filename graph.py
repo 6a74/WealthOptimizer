@@ -111,10 +111,10 @@ if __name__ == "__main__":
 
     def my_calculation(interest_rate, years_to_wait):
         #
-        # Calculate the most efficient Roth rollover amount.
+        # Calculate the most efficient Roth conversion amount.
         #
         min_tax_rate = 1.0
-        roth_rollover_amount = 0
+        roth_conversion_amount = 0
 
         if args.age_of_death > args.age_of_retirement:
             for x in range(1000):
@@ -129,7 +129,7 @@ if __name__ == "__main__":
                     args.age_of_retirement,
                     args.age_to_start_rmds,
                     args.age_of_death,
-                    roth_rollover_amount,
+                    roth_conversion_amount,
                     args.income,
                     args.yearly_income_raise,
                     args.max_income,
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                 min_tax_rate = min(min_tax_rate, tax_rate)
                 if tax_rate > min_tax_rate:
                     break
-                roth_rollover_amount += 1000
+                roth_conversion_amount += 1000
 
         return sim.calculate_tax_to_asset_ratio(
             args.principal_traditional,
@@ -152,7 +152,7 @@ if __name__ == "__main__":
             args.age_of_retirement,
             args.age_to_start_rmds,
             args.age_of_death,
-            roth_rollover_amount,
+            roth_conversion_amount,
             args.income,
             args.yearly_income_raise,
             args.max_income,

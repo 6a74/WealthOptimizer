@@ -9,7 +9,7 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
                    yearly_contribution_traditional, yearly_contribution_roth,
                    years_until_transition_to_pretax_contributions, current_age,
                    age_of_retirement, age_to_start_rmds, age_of_death,
-                   roth_rollover_amount, income, yearly_income_raise,
+                   roth_conversion_amount, income, yearly_income_raise,
                    max_income, age_of_marriage, debug=True):
     """This function will simulate the state of finances for each year until you
     die, depending on the inputs of course!
@@ -35,7 +35,7 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
     debug_print(f"{traditional=:,.2f}")
     debug_print(f"{yearly_contribution_roth=:,.2f}")
     debug_print(f"{yearly_contribution_traditional=:,.2f}")
-    debug_print(f"{roth_rollover_amount=:,.2f}")
+    debug_print(f"{roth_conversion_amount=:,.2f}")
     debug_print(f"{years_until_transition_to_pretax_contributions=}")
     debug_print("")
 
@@ -70,7 +70,7 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
 
         if current_age == age_of_retirement:
             debug_print("you're now retired, stopping contributions{}".format(
-                ", doing roth rollovers" if roth_rollover_amount else ""
+                ", doing roth conversions" if roth_conversion_amount else ""
             ))
 
         if current_age == age_of_marriage:
@@ -104,11 +104,11 @@ def calculate_tax_to_asset_ratio(traditional, roth, interest_rate,
             #
             # We have retired.
             #
-            roth_rollover_amount = min(traditional, roth_rollover_amount)
-            income = roth_rollover_amount
-            if roth_rollover_amount and current_age < age_to_start_rmds:
-                roth += roth_rollover_amount
-                traditional -= roth_rollover_amount
+            roth_conversion_amount = min(traditional, roth_conversion_amount)
+            income = roth_conversion_amount
+            if roth_conversion_amount and current_age < age_to_start_rmds:
+                roth += roth_conversion_amount
+                traditional -= roth_conversion_amount
 
         #
         # Do we need to make RMDs?
@@ -286,10 +286,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     #
-    # Calculate the most efficient Roth rollover amount.
+    # Calculate the most efficient Roth conversion amount.
     #
     min_tax_rate = 1.0
-    roth_rollover_amount = 0
+    roth_conversion_amount = 0
 
     #
     # There's a chance we could die before retirement.
@@ -307,7 +307,7 @@ if __name__ == "__main__":
                 args.age_of_retirement,
                 args.age_to_start_rmds,
                 args.age_of_death,
-                roth_rollover_amount,
+                roth_conversion_amount,
                 args.income,
                 args.yearly_income_raise,
                 args.max_income,
@@ -317,7 +317,7 @@ if __name__ == "__main__":
             min_tax_rate = min(min_tax_rate, tax_rate)
             if tax_rate > min_tax_rate:
                 break
-            roth_rollover_amount += 1000
+            roth_conversion_amount += 1000
 
     #
     # Now that we know all of the variables, run the simulation.
@@ -333,7 +333,7 @@ if __name__ == "__main__":
         args.age_of_retirement,
         args.age_to_start_rmds,
         args.age_of_death,
-        roth_rollover_amount, # we calculated this
+        roth_conversion_amount, # we calculated this
         args.income,
         args.yearly_income_raise,
         args.max_income,
