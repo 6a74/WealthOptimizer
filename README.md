@@ -8,7 +8,8 @@ to defer taxes (_i.e._ contribute to
 [Traditional](https://www.bogleheads.org/wiki/Traditional_IRA) accounts rather
 than [Roth](https://www.bogleheads.org/wiki/Roth_IRA) accounts). I would like to
 make the case against the notion that deferring taxes is best for people that
-can "max out their 401k," like many individuals on Bogleheads do.
+can "max out" their retirement accounts, like many individuals that read
+Bogleheads can do.
 
 ### Who Said Traditional is Better?
 
@@ -23,12 +24,13 @@ better saver.
 
 ### Who is the Typical Person?
 
-In 2018, the real median [household income in the
+* In 2018, the real median [household income in the
 U.S.](https://en.wikipedia.org/wiki/Household_income_in_the_United_States) was
-$63,179. This is the latest figure available. Though, I suspect the typical
-boglehead has a slightly higher income. In 2018, the [median
+$63,179.
+* In 2018, the [median
 age](https://en.wikipedia.org/wiki/Demographics_of_the_United_States#Median_age_of_the_population)
-is 38.2 years old. For the years between 2015 and 2020, the [expected life
+is 38.2 years old.
+* Between 2015 and 2020, the [expected life
 expentancy](https://en.wikipedia.org/wiki/Demographics_of_the_United_States#Vital_statistics_2)
 is 78.8 years.
 
