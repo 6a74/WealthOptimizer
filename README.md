@@ -1,4 +1,4 @@
-# When to Start Deferring Taxes?
+# Introduction
 
 Many people on [Bogleheads](https://www.bogleheads.org), a fantastic resource
 for investing advice, believe that it is almost always better to defer taxes
@@ -16,20 +16,27 @@ accounts, they might be forced to withdrawal large sums of money, which could be
 heavily taxed. The alternative is to redirect those contributions to Roth
 accounts, in which you pay taxes up-front and then (hopefully) never again.
 
-## Rules and Assumptions
+# Dependencies
 
-### Income
+* [Python](https://docs.python.org/3/whatsnew/3.8.html) (3.8+)
+* [matplotlib](https://matplotlib.org) (pip)
+* [progressbar2](https://pypi.org/project/progressbar2/) (pip)
+
+# Rules and Assumptions
+
+## Income
 
 * There are no gaps in employment.
 * Pay raises are steady (`--yearly-income-raise`).
 
-### Taxes
+## Taxes
+
 * Federal taxes only; no state tax, social security, medicare, etc.
 * Standard duduction is assumed.
 * Dependents are not taken into account.
 * Only "single" and "married" are options.
 
-### RMDs
+## RMDs
 
 * After retirement and before RMDs, you will do [Roth IRA
   conversions](https://www.bogleheads.org/wiki/Roth_IRA_conversion). This amount
@@ -41,14 +48,14 @@ accounts, in which you pay taxes up-front and then (hopefully) never again.
 * RMDs transferred to a taxable account, where it will grow at the same interest
   rate as retirement accounts.
 
-### Other
+## Other
 
 * Interest is applied at the end of each year.
 * The "market" has no volatility. Investments will grow at a steady rate.
 * Divorce is not possible. Once you are married, you are stuck that way.
 
 
-## Figures
+# Figures
 
 The following figures are generated with the `graph.py` utility. The values are
 calculated with the `sim.calculate_tax_to_asset_ratio` method. Variables are:
@@ -92,5 +99,3 @@ The figure below shows a 20 year old that retires 20 years earlier (at 40):
 
 Even in this rather extreme situation, it might be better (if _real_ interest
 rates are greater than 4%) to defer deferring taxes a few years
-
-![Figure 6](https://github.com/6a74/finance/blob/master/figures/Figure_20_retire_at_40.png?raw=true)
