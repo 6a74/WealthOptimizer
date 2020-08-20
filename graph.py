@@ -110,11 +110,6 @@ if __name__ == "__main__":
         type=int,
         default=30
     )
-    parser.add_argument(
-        "--verbose",
-        help="Do things and talk more",
-        action="store_true"
-    )
 
     args = parser.parse_args()
 
@@ -170,7 +165,7 @@ if __name__ == "__main__":
             args.age_of_marriage,
             args.max_yearly_contribution_traditional,
             args.max_yearly_contribution_roth,
-            args.verbose
+            debug=False
         )
 
     def scale(l):
