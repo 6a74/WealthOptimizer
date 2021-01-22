@@ -34,8 +34,15 @@ if __name__ == "__main__":
         default=0
     )
     parser.add_argument(
+        "--principal-taxable",
+        help="Starting balance for taxable (after-tax) accounts?",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
         "--principal-traditional",
-        help="Starting balance for Traditional (pre-tax) accounts?",
+        help="Starting balance for traditional (pre-tax) accounts?",
         required=False,
         type=float,
         default=0
@@ -48,32 +55,46 @@ if __name__ == "__main__":
         default=0
     )
     parser.add_argument(
-        "--yearly-contribution-traditional",
-        help="How much are you contributing to Traditional per year?",
-        required=False,
-        type=float,
-        default=6000
-    )
-    parser.add_argument(
-        "--max-yearly-contribution-traditional",
-        help="What is the Traditional contribution limit?",
+        "--yearly-401k-contribution",
+        help="How much are you contributing to your 401k per year?",
         required=False,
         type=float,
         default=19500
     )
     parser.add_argument(
-        "--yearly-contribution-roth",
-        help="How much are you contributing to Roth per year?",
+        "--yearly-401k-normal-contribution-limit",
+        help="What is the normal 401k contribution limit?",
         required=False,
         type=float,
-        default=0
+        default=19500
     )
     parser.add_argument(
-        "--max-yearly-contribution-roth",
-        help="What is the Roth contribution limit?",
+        "--yearly-401k-total-contribution-limit",
+        help="What is the total 401k contribution limit?",
+        required=False,
+        type=float,
+        default=58000
+    )
+    parser.add_argument(
+        "--yearly-ira-contribution",
+        help="How much are you contributing to your IRA per year?",
         required=False,
         type=float,
         default=6000
+    )
+    parser.add_argument(
+        "--yearly-ira-contribution-limit",
+        help="What is the IRA contribution limit?",
+        required=False,
+        type=float,
+        default=6000
+    )
+    parser.add_argument(
+        "--do-mega-backdoor-roth",
+        help="What is the IRA contribution limit?",
+        required=False,
+        action='store_true',
+        default=False
     )
     parser.add_argument(
         "--age-of-retirement",
@@ -110,10 +131,22 @@ if __name__ == "__main__":
         type=int,
         default=30
     )
+    parser.add_argument(
+        "--spending",
+        help="How much do you spend each year?",
+        required=False,
+        type=float,
+        default=30000
+    )
+    parser.add_argument(
+        "--verbose",
+        help="Do things and talk more",
+        action="store_true"
+    )
 
     args = parser.parse_args()
 
-    def my_calculation(interest_rate, years_to_wait):
+    def my_calculation(interest_rate, start_with_roth):
         #
         # Calculate the most efficient Roth conversion amount.
         #
@@ -123,12 +156,12 @@ if __name__ == "__main__":
         if args.age_of_death > args.age_of_retirement:
             for x in range(1000):
                 tax_rate = sim.calculate_tax_to_asset_ratio(
+                    args.principal_taxable,
                     args.principal_traditional,
                     args.principal_roth,
                     interest_rate,
-                    args.yearly_contribution_traditional,
-                    args.yearly_contribution_roth,
-                    years_to_wait,
+                    args.yearly_401k_contribution,
+                    start_with_roth,
                     args.current_age,
                     args.age_of_retirement,
                     args.age_to_start_rmds,
@@ -138,8 +171,12 @@ if __name__ == "__main__":
                     args.yearly_income_raise,
                     args.max_income,
                     args.age_of_marriage,
-                    args.max_yearly_contribution_traditional,
-                    args.max_yearly_contribution_roth,
+                    args.spending,
+                    args.yearly_401k_normal_contribution_limit,
+                    args.yearly_401k_total_contribution_limit,
+                    args.yearly_ira_contribution,
+                    args.yearly_ira_contribution_limit,
+                    args.do_mega_backdoor_roth,
                     debug=False
                 )
                 min_tax_rate = min(min_tax_rate, tax_rate)
@@ -148,12 +185,12 @@ if __name__ == "__main__":
                 roth_conversion_amount += 1000
 
         return sim.calculate_tax_to_asset_ratio(
+            args.principal_taxable,
             args.principal_traditional,
             args.principal_roth,
             interest_rate,
-            args.yearly_contribution_traditional,
-            args.yearly_contribution_roth,
-            years_to_wait,
+            args.yearly_401k_contribution,
+            start_with_roth,
             args.current_age,
             args.age_of_retirement,
             args.age_to_start_rmds,
@@ -161,11 +198,14 @@ if __name__ == "__main__":
             roth_conversion_amount,
             args.income,
             args.yearly_income_raise,
-            args.max_income,
-            args.age_of_marriage,
-            args.max_yearly_contribution_traditional,
-            args.max_yearly_contribution_roth,
-            debug=False
+            args.max_income, args.age_of_marriage,
+            args.spending,
+            args.yearly_401k_normal_contribution_limit,
+            args.yearly_401k_total_contribution_limit,
+            args.yearly_ira_contribution,
+            args.yearly_ira_contribution_limit,
+            args.do_mega_backdoor_roth,
+            args.verbose
         )
 
     def scale(l):
@@ -212,15 +252,18 @@ if __name__ == "__main__":
         ["Current Income", f"${args.income:,.2f}"],
         ["Max Income", f"${args.max_income:,.2f}"],
         ["Yearly Income Raise", f"{args.yearly_income_raise:.2f}"],
-        ["Starting Trad Balance", f"${args.principal_traditional:,.2f}"],
-        ["Starting Trad Contrib", f"${args.yearly_contribution_traditional:,.2f}"],
-        ["Max Trad Contrib", f"${args.max_yearly_contribution_traditional:,.2f}"],
+        ["Starting Tradtional Balance", f"${args.principal_traditional:,.2f}"],
         ["Starting Roth Balance", f"${args.principal_roth:,.2f}"],
-        ["Starting Roth Contrib", f"${args.yearly_contribution_roth:,.2f}"],
-        ["Max Roth Contrib", f"${args.max_yearly_contribution_roth:,.2f}"],
+        ["Starting 401k Contribution", f"${args.yearly_401k_contribution:,.2f}"],
+        ["401k Normal Contribution Limit", f"${args.yearly_401k_normal_contribution_limit:,.2f}"],
+        ["401k Total Contribution Limit", f"${args.yearly_401k_total_contribution_limit:,.2f}"],
+        ["Starting IRA Contribution", f"${args.yearly_ira_contribution:,.2f}"],
+        ["IRA Contribution Limit", f"${args.yearly_ira_contribution_limit:,.2f}"],
+        ["Do Mega-Backdoor Roth", args.do_mega_backdoor_roth],
     ]
 
-    plt.table(cellText=cells, bbox=[1.05, 0.25, 0.5, 0.75])
+    the_table = plt.table(cellText=cells, bbox=[1.05, 0.25, 0.5, 0.75])
+    the_table.auto_set_font_size(False)
     plt.subplots_adjust(right=0.65)
 
     plt.legend()
