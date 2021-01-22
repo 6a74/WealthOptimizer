@@ -61,7 +61,7 @@ def calculate_estate_taxes(estate):
         return 0
 
     for (limit, base_tax, tax_rate) in estate_tax_brackets:
-        if estate > limit:
+        if taxable_estate > limit:
             continue
         return base_tax + (taxable_estate * tax_rate)
 

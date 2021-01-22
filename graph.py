@@ -157,13 +157,13 @@ if __name__ == "__main__":
         #
         # Calculate the most efficient Roth conversion amount.
         #
-        min_tax_rate = 1.0
+        most_assets = 0
         roth_conversion_amount = 0
         best_roth_conversion_amount = 0
 
         if args.age_of_death > args.age_of_retirement:
             for x in range(1000):
-                tax_rate, _ = sim.calculate_tax_to_asset_ratio(
+                assets = sim.calculate_tax_to_asset_ratio(
                     args.principal_taxable,
                     args.principal_traditional,
                     args.principal_roth,
@@ -188,11 +188,11 @@ if __name__ == "__main__":
                     args.do_mega_backdoor_roth,
                     debug=False
                 )
-                if tax_rate < min_tax_rate:
+                if assets > most_assets:
                     best_roth_conversion_amount = roth_conversion_amount
-                if tax_rate > min_tax_rate:
+                    most_assets = assets
+                if assets < most_assets:
                     break
-                min_tax_rate = min(min_tax_rate, tax_rate)
                 roth_conversion_amount += 1000
 
         return sim.calculate_tax_to_asset_ratio(
@@ -235,8 +235,8 @@ if __name__ == "__main__":
     # Generate our outputs.
     #
     working_years = args.age_of_retirement - args.current_age
-    interest_rates = [1.01, 1.02, 1.03, 1.04, 1.05, 1.06]
-    colors = ['tab:blue', 'tab:red', 'tab:orange', 'tab:purple', 'tab:brown', 'tab:olive']
+    interest_rates = [1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07]
+    colors = ['tab:blue', 'tab:red', 'tab:orange', 'tab:purple', 'tab:brown', 'tab:olive', 'tab:cyan']
 
     assert working_years >= 0
 
@@ -246,37 +246,26 @@ if __name__ == "__main__":
     with progressbar.ProgressBar(max_value=num_calculations) as bar:
         for interest_rate, color in zip(interest_rates, colors):
             inputs = range(working_years)
-            outputs_a = []
-            outputs_b = []
+            outputs = []
             for y in inputs:
-                a, b = my_calculation(interest_rate, y)
-                outputs_a.append(a)
-                outputs_b.append(b)
+                outputs.append(my_calculation(interest_rate, y))
                 current_calculation += 1
                 bar.update(current_calculation)
 
             plt.plot(
                 inputs,
-                scale(outputs_a),
-                label=f"{interest_rate=:.2f} - taxes",
+                scale(outputs),
+                label=f"{interest_rate=:.2f}",
                 linestyle='-',
-                color=color
-            )
-            plt.plot(
-                inputs,
-                scale(outputs_b),
-                label=f"{interest_rate=:.2f} - assets",
-                linestyle=':',
                 color=color
             )
 
             best_index = 0
-            biggest_difference = 0
-            for index, output in enumerate(zip(scale(outputs_a), scale(outputs_b))):
-                diff = output[1] - output[0]
-                if diff > biggest_difference:
+            most_assets = 0
+            for index, assets in enumerate(outputs):
+                if assets > most_assets:
                     best_index = index
-                biggest_difference = max(biggest_difference, diff)
+                most_assets = max(most_assets, assets)
 
             while True:
                 if best_index in best_indices:
@@ -285,10 +274,10 @@ if __name__ == "__main__":
                     break
 
             best_indices.append(best_index)
-            plt.axvline(x=best_index, color=color, linestyle='-.')
+            plt.axvline(x=best_index, color=color, linestyle=':')
 
-    plt.xlabel("Years to Wait")
-    plt.ylabel("Taxes to Assets Ratio (scaled)")
+    plt.xlabel("Years to Wait Before Deferring Taxes")
+    plt.ylabel("Estate At Death After Taxesh")
     plt.title("When to Start Deferring Taxes?")
 
     cells = [
@@ -301,6 +290,7 @@ if __name__ == "__main__":
         ["Max Income", f"${args.max_income:,.2f}"],
         ["Yearly Spending", f"${args.spending:,.2f}"],
         ["Yearly Income Raise", f"{args.yearly_income_raise:.2f}"],
+        ["Starting Taxable Balance", f"${args.principal_taxable:,.2f}"],
         ["Starting Tradtional Balance", f"${args.principal_traditional:,.2f}"],
         ["Starting Roth Balance", f"${args.principal_roth:,.2f}"],
         ["Starting 401k Contribution", f"${args.yearly_401k_contribution:,.2f}"],
@@ -308,12 +298,13 @@ if __name__ == "__main__":
         ["401k Total Contribution Limit", f"${args.yearly_401k_total_contribution_limit:,.2f}"],
         ["Starting IRA Contribution", f"${args.yearly_ira_contribution:,.2f}"],
         ["IRA Contribution Limit", f"${args.yearly_ira_contribution_limit:,.2f}"],
-        ["Do Mega-Backdoor Roth", args.do_mega_backdoor_roth],
+        ["Mega-Backdoor Roth", args.do_mega_backdoor_roth],
     ]
 
     the_table = plt.table(cellText=cells, bbox=[1.05, 0.25, 0.5, 0.75])
     the_table.auto_set_font_size(False)
     plt.subplots_adjust(right=0.65)
 
-    plt.legend()
+    #plt.legend()
+    plt.legend(bbox_to_anchor=(1.045, 0), loc="lower left")
     plt.show()

@@ -316,10 +316,19 @@ def calculate_tax_to_asset_ratio(
                 roth -= roth_withdrawal
                 needed -= roth_withdrawal
 
-            #
-            # Not sure we need to implement any other sources. It should not be
-            # very common. I'm not sure what the order would be if we did.
-            #
+            if needed and traditional and current_age >= 60:
+                to_take = min(needed, traditional)
+                traditional_withdrawal += to_take
+                traditional -= to_take
+                needed -= to_take
+                total_taxes += neede
+
+            if needed and roth and current_age >= 60:
+                to_take = min(needed, roth)
+                roth_withdrawal += to_take
+                roth -= to_take
+                needed -= to_take
+
             if needed:
                 raise Exception("not enough money for expenses")
 
@@ -373,6 +382,8 @@ def calculate_tax_to_asset_ratio(
         # yourself a pay raise, and happy birthday!
         #
         current_age += 1
+        if current_age > age_of_death:
+            break
 
         traditional *= interest_rate
         roth *= interest_rate
@@ -440,7 +451,7 @@ def calculate_tax_to_asset_ratio(
         )
     )
 
-    return tax_to_asset_ratio, total_assets - total_taxes
+    return total_assets - total_taxes
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -607,7 +618,7 @@ if __name__ == "__main__":
     #
     # Calculate the most efficient Roth conversion amount.
     #
-    min_tax_rate = 1.0
+    most_assets = 0
     roth_conversion_amount = 0
     best_roth_conversion_amount = 0
 
@@ -616,7 +627,7 @@ if __name__ == "__main__":
     #
     if args.age_of_death > args.age_of_retirement:
         for x in range(1000):
-            tax_rate, _ = calculate_tax_to_asset_ratio(
+            assets = calculate_tax_to_asset_ratio(
                 args.principal_taxable,
                 args.principal_traditional,
                 args.principal_roth,
@@ -641,9 +652,11 @@ if __name__ == "__main__":
                 args.do_mega_backdoor_roth,
                 debug=False
             )
-            if tax_rate < min_tax_rate:
+            if assets > most_assets:
                 best_roth_conversion_amount = roth_conversion_amount
-            min_tax_rate = min(min_tax_rate, tax_rate)
+                most_assets = assets
+            if assets < most_assets:
+                break
             roth_conversion_amount += 1000
 
     #
