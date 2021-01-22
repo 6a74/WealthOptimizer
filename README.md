@@ -17,7 +17,7 @@ From the Bogleheads's [general
 guidelines](https://www.bogleheads.org/wiki/Traditional_versus_Roth#General_guidelines)
 on Traditional vs. Roth:
 
-> Using 100% traditional because, for most people, traditional will be better
+> Using 100% traditional because, for most people, traditional will be better.
 
 While this is probably correct, the typical Bogleheads reader is probably a
 better saver.
@@ -31,7 +31,7 @@ $63,179.
 age](https://en.wikipedia.org/wiki/Demographics_of_the_United_States#Median_age_of_the_population)
 is 38.2 years old.
 * Between 2015 and 2020, the [expected life
-expentancy](https://en.wikipedia.org/wiki/Demographics_of_the_United_States#Vital_statistics_2)
+expectancy](https://en.wikipedia.org/wiki/Demographics_of_the_United_States#Vital_statistics_2)
 is 78.8 years.
 
 ## Argument
@@ -47,50 +47,89 @@ accounts, in which you pay taxes up-front and then (hopefully) never again.
 ## Figures
 
 The following figures are generated with the `graph.py` utility. The values are
-calculated with the `sim.calculate_tax_to_asset_ratio` method. Variables are:
+calculated with the `sim.calculate_assets` method. Variables are:
 
-* Real Interest Rate (1% - 6%, should satisfy everyone)
-* Years to Wait (the number of years to wait before deferring taxes)
+* Real Interest Rate (1% - 7%, should satisfy everyone)
+* Years to Wait Before Deferring Taxes
 
-Note: In most figures, after a certain number of years, the tax rate grows at a
-constant rate. This is due to there being so little in Traditional
-(tax-deferred) accounts. RMDs are relativly small (less than your standard
-deduction) and taxed generally taxed near (or at) 0%. After this point, it
-becomes clearily detremental to not defer taxes.
+The lines represent your total assets (estate) after taxes at death. The goal is
+to maximize this value. The higher (vertically) the line the better. It should
+be noted that lines (interest rates) are independent from one another. The total
+assets will be vary widely between different interest rates. The lines are
+normalized to fit between 0.0 and 1.0 so they can be easily compared.
 
-The figure below shows a 20 year old starting from nothing. Unless the real
-return over the next 80 years is 1% or less, Roth contributions appear to be the
-logical choice for at least the next 10 years.
+The figure below shows the typical American. They make a little more than
+$60k/year. Unlike the typical American though, they attempt to max out their
+retirement accounts. This figure shows that if you expect the long-term real
+interest rate to be 6% or higher, you might be better off making Roth
+contributions for a few years.
 
-![Figure 1](https://github.com/6a74/finance/blob/master/figures/Figure_20.png?raw=true)
+![Figure 1](https://github.com/6a74/finance/blob/master/figures/figure_01.png?raw=true)
 
-The figure below shows a 25 year old starting from nothing. This is very similar
-to the figure above. Things are shifted by approximately five years; who would
-have guessed?
+Though, if the same person in the figure above were to have $100k already saved
+in their traditional retirement accounts, the outcome would be quite different.
+The (relatively) small amount grows exponentially and requires higher RMDs.
 
-![Figure 2](https://github.com/6a74/finance/blob/master/figures/Figure_25.png?raw=true)
+![Figure 2](https://github.com/6a74/finance/blob/master/figures/figure_02.png?raw=true)
 
-The figure below shows a 25 year old with \$100k in Traditional and \$50k in Roth:
+Next, we have a slightly younger person, 25, that is just starting their career.
+They have nothing in their retirement, but they graduated without debt and got a
+decent job out of college making approximately $60k/year. With long-term
+interest rates of 5%, 6%, and 7% this person should prefer Roth contributions
+for at least the first decade of their career.
 
-![Figure 2](https://github.com/6a74/finance/blob/master/figures/Figure_25_with_assets.png?raw=true)
+![Figure 3](https://github.com/6a74/finance/blob/master/figures/figure_03.png?raw=true)
 
-The figure below shows a 40 year old starting from nothing:
+Say the same recent graduate got a job making $100k/year instead of $60k/year.
+What would change? Well, because of their higher income, traditional IRA
+contributions are not deductible. There is no point in contributing to a
+non-deductible IRA. Instead, they would contribute to a Roth IRA. For this
+reason, it appears that this person would get less out of Roth contributions
+than the previous lad.
 
-![Figure 3](https://github.com/6a74/finance/blob/master/figures/Figure_40.png?raw=true)
+![Figure 4](https://github.com/6a74/finance/blob/master/figures/figure_04.png?raw=true)
 
-This figure shows what values looks like without scaling:
+Next, let's say the person above has a coworker that is the same age and has the
+same income, _but_ but spend twice as much (from $30k to $60k). What would
+change? Well, not much honestly. Their tax-advantaged savings should be on par,
+just their taxable savings would be different.
 
-![Figure 4](https://github.com/6a74/finance/blob/master/figures/Figure_20_noscale.png?raw=true)
+![Figure 5](https://github.com/6a74/finance/blob/master/figures/figure_05.png?raw=true)
 
-The figure below shows a 20 year old that retires 10 years earlier (at 50):
+Next, assume one of these lads were real lucky and got an internship at a nice
+company during college, and somehow they found a way to sock away $100k into
+their traditional retirement accounts. This definitely pushes the scale towards
+Roth contributions for the beginning of their career.
 
-![Figure 5](https://github.com/6a74/finance/blob/master/figures/Figure_20_retire_at_50.png?raw=true)
+![Figure 6](https://github.com/6a74/finance/blob/master/figures/figure_06.png?raw=true)
 
-The figure below shows a 20 year old that retires 20 years earlier (at 40). Even
-in this rather extreme situation, it might be better (if _real_ interest rates
-are greater than 4%) to defer deferring taxes a few years.
+Let's jump back to the typical American, but say this person really wants to
+retire early, say at 50 years old instead of 60. Unless their investments can
+provide a 7% real return, they will probably be better off purely contributing
+to traditional retirement accounts.
 
-![Figure 6](https://github.com/6a74/finance/blob/master/figures/Figure_20_retire_at_40.png?raw=true)
+![Figure 7](https://github.com/6a74/finance/blob/master/figures/figure_07.png?raw=true)
+
+On the other hand, what if the typical American decides to work a little bit
+longer, till the age of 70. Will this change things? By golly, it will. Unless
+their investments do very poorly over a long time, this person will be better
+off starting with Roth contributions.
+
+![Figure 8](https://github.com/6a74/finance/blob/master/figures/figure_08.png?raw=true)
+
+Next, let's say there's a hot-shot kid in Silicon Valley making $300/year and
+they want to retire at 40. Because they will have so few years in the workforce,
+traditional contributions will not make much of a difference in terms of RMDs.
+And because of their very high income, tax deductions are very valuable. These
+deductions do more good than RMDs do bad.
+
+![Figure 9](https://github.com/6a74/finance/blob/master/figures/figure_09.png?raw=true)
+
+Finally, let's say the same hot-shot kid decides he likes his job and wants to
+work another twenty years. The outcome is still the same. This person should
+always defer taxes. Their tax-rate is too high not too.
+
+![Figure 10](https://github.com/6a74/finance/blob/master/figures/figure_10.png?raw=true)
 
 ### Key Takeaways
 
@@ -107,22 +146,41 @@ are greater than 4%) to defer deferring taxes a few years.
 
 ### `sim.py`
 
-This module contains the core function: `calculate_tax_to_asset_ratio`. Given
-all of the initial variables, this function will "simulate" your portfolio and
-return a "tax to assset" ratio. This is something I defined. I am unsure if this
-is used elsewhere.
+This module contains the core function: `calculate_assets`. Given all of the
+initial variables (parameters), this function will simulate your portfolio and
+return the value of your assets (estate) after taxes, with the assumption that
+someone will inherit them. In the following figures, the following command was
+used:
 
-#### Tax to Asset Ratio
+```
+./sim.py --verbose
+```
 
-The tax to asset ratio (TAR) is the total amount paid in taxes (income, capital
-gains) divided by total assets across all accounts (taxable, Roth, Traditional).
-We use this to compare simulations with different interest rates. You cannot
-compare simulations solely on assets or taxes. In higher interest rate
-simulations, more interest in accrued and as a result more taxes are required.
-In this situation, that does not mean it is worse. It is very similar to the
-price to earnings (PE) ratio.
+Here are all of the configurable options:
+
+![Parameters](https://github.com/6a74/finance/blob/master/figures/sim_01.png?raw=true)
+
+It will generate a very large table that looks like this:
+
+![Life](https://github.com/6a74/finance/blob/master/figures/sim_02.png?raw=true)
+
+At the end, there will be a summary table:
+
+![Summary](https://github.com/6a74/finance/blob/master/figures/sim_03.png?raw=true)
 
 ### `graph.py`
+
+This utility generates a graph of your possibilities. This graph is intended to
+help you choose whether to make traditional or Roth contributions. It takes
+almost the exact same arguments as the `sim.py` script, but there are a few
+missing options like the `--start-with-roth=YEARS` option. To get started, run
+the following command:
+
+```
+./graph.py
+```
+
+![Figure 1](https://github.com/6a74/finance/blob/master/figures/figure_01.png?raw=true)
 
 ## How Do I Test It Out?
 
@@ -136,6 +194,7 @@ create an issue or send me an email.
 * [python](https://docs.python.org/3/whatsnew/3.8.html) (3.8+)
 * [matplotlib](https://matplotlib.org)
 * [progressbar2](https://pypi.org/project/progressbar2/)
+* [tablulate](https://pypi.org/project/tabulate/)
 
 ## Rules and Assumptions
 
@@ -147,6 +206,8 @@ were intential design decisions.
 
 * There are no gaps in employment.
 * Pay raises are constant (unrealistic, I'm aware).
+* Saving contributions will go up at the same rate as pay raises.
+* Any excess income will go into a taxable account.
 
 ### Taxes
 

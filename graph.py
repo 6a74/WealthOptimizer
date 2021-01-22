@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
         if args.age_of_death > args.age_of_retirement:
             for x in range(1000):
-                assets = sim.calculate_tax_to_asset_ratio(
+                assets = sim.calculate_assets(
                     args.principal_taxable,
                     args.principal_traditional,
                     args.principal_roth,
@@ -195,7 +195,7 @@ if __name__ == "__main__":
                     break
                 roth_conversion_amount += 1000
 
-        return sim.calculate_tax_to_asset_ratio(
+        return sim.calculate_assets(
             args.principal_taxable,
             args.principal_traditional,
             args.principal_roth,
@@ -277,7 +277,7 @@ if __name__ == "__main__":
             plt.axvline(x=best_index, color=color, linestyle=':')
 
     plt.xlabel("Years to Wait Before Deferring Taxes")
-    plt.ylabel("Estate At Death After Taxesh")
+    plt.ylabel("Estate At Death After Taxes")
     plt.title("When to Start Deferring Taxes?")
 
     cells = [
@@ -291,7 +291,7 @@ if __name__ == "__main__":
         ["Yearly Spending", f"${args.spending:,.2f}"],
         ["Yearly Income Raise", f"{args.yearly_income_raise:.2f}"],
         ["Starting Taxable Balance", f"${args.principal_taxable:,.2f}"],
-        ["Starting Tradtional Balance", f"${args.principal_traditional:,.2f}"],
+        ["Starting Traditional Balance", f"${args.principal_traditional:,.2f}"],
         ["Starting Roth Balance", f"${args.principal_roth:,.2f}"],
         ["Starting 401k Contribution", f"${args.yearly_401k_contribution:,.2f}"],
         ["401k Normal Contribution Limit", f"${args.yearly_401k_normal_contribution_limit:,.2f}"],

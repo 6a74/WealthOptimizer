@@ -7,7 +7,7 @@ import taxes as tm
 import ult
 
 
-def calculate_tax_to_asset_ratio(
+def calculate_assets(
         taxable,
         traditional,
         roth,
@@ -439,7 +439,7 @@ def calculate_tax_to_asset_ratio(
     summary_table.append(["Total Taxes", total_taxes])
     summary_table.append(["Total Assets", total_assets])
     summary_table.append(["Total Assets After Taxes", total_assets - total_taxes])
-    summary_table.append(["Tax/Ratio Ratio", tax_to_asset_ratio])
+    summary_table.append(["Tax/Asset Ratio", tax_to_asset_ratio])
 
     debug_print(
         tabulate(
@@ -627,7 +627,7 @@ if __name__ == "__main__":
     #
     if args.age_of_death > args.age_of_retirement:
         for x in range(1000):
-            assets = calculate_tax_to_asset_ratio(
+            assets = calculate_assets(
                 args.principal_taxable,
                 args.principal_traditional,
                 args.principal_roth,
@@ -662,7 +662,7 @@ if __name__ == "__main__":
     #
     # Now that we know all of the variables, run the simulation.
     #
-    calculate_tax_to_asset_ratio(
+    calculate_assets(
         args.principal_taxable,
         args.principal_traditional,
         args.principal_roth,
