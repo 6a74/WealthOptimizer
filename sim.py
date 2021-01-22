@@ -2,7 +2,6 @@
 
 from tabulate import tabulate
 
-import account
 import argparse
 import taxes as tm
 import ult
@@ -29,6 +28,7 @@ def calculate_tax_to_asset_ratio(
         yearly_401k_total_contribution_limit,
         yearly_ira_contribution,
         yearly_ira_contribution_limit,
+        ira_contribution_catch_up,
         do_mega_backdoor_roth,
         debug=True
     ):
@@ -81,6 +81,9 @@ def calculate_tax_to_asset_ratio(
         )
     )
 
+    #
+    # These are life-time counters.
+    #
     taxes = 0
     total_contributions_traditional = 0
     total_contributions_roth = 0
@@ -88,7 +91,7 @@ def calculate_tax_to_asset_ratio(
     total_taxes = 0
 
     #
-    # Doesn't really help me, but y'all might already be married.
+    # The initial values for life events.
     #
     married = True if age_of_marriage <= current_age else False
     retired = False
@@ -125,7 +128,7 @@ def calculate_tax_to_asset_ratio(
     #
     for year in range(age_of_death - current_age + 1):
         #
-        # Print some major life status updates.
+        # Update life events.
         #
         if current_age == age_of_retirement:
             retired = True
@@ -134,8 +137,7 @@ def calculate_tax_to_asset_ratio(
         if year >= years_until_transition_to_pretax_contributions:
             prefer_roth = False
         if current_age == 50:
-            # The catch-up contribution.
-            yearly_ira_contribution_limit += 1000
+            yearly_ira_contribution_limit += ira_contribution_catch_up
 
         #
         # Alright, if we're still working, we can make a tax-advantaged
@@ -154,10 +156,8 @@ def calculate_tax_to_asset_ratio(
 
         if current_age < age_of_retirement:
             this_years_income = income
-
             #
-            # We are still working.
-            # Calculate 401k contributions.
+            # Calculate 401k contribution.
             #
             if prefer_roth:
                 roth_contribution = min(
@@ -170,6 +170,9 @@ def calculate_tax_to_asset_ratio(
                     yearly_401k_normal_contribution_limit
                 )
 
+            #
+            # Calculate Mega-Backdoor Roth contribution, if applicable.
+            #
             if do_mega_backdoor_roth:
                 roth_contribution += (
                     yearly_401k_total_contribution_limit
@@ -177,6 +180,11 @@ def calculate_tax_to_asset_ratio(
                     - roth_contribution
                 )
 
+            #
+            # Calcuate IRA contribution. If there are no tax deductions for the
+            # traditional IRA (because our income is too high) we might as well
+            # contribute to Roth.
+            #
             would_be_agi = (
                 this_years_income
                 - traditional_contribution
@@ -193,21 +201,16 @@ def calculate_tax_to_asset_ratio(
                     yearly_ira_contribution_limit
                 )
 
-            #
-            # Handle traditional contributions:
-            #
             total_contributions_traditional += traditional_contribution
             traditional += traditional_contribution
             tax_deductions += traditional_contribution
-
-            #
-            # Handle Roth contributions:
-            #
             total_contributions_roth += roth_contribution
             roth += roth_contribution
         else:
             #
-            # We have retired.
+            # We have retired. While we're retired, but before RMDs, let's do
+            # some rollovers from our traditional to Roth accounts. This will
+            # allow the money to grow tax free in Roth accounts.
             #
             if current_age < age_to_start_rmds:
                 roth_conversion_amount = min(traditional, roth_conversion_amount)
@@ -223,12 +226,16 @@ def calculate_tax_to_asset_ratio(
         # Do we need to make RMDs?
         #
         if current_age >= age_to_start_rmds:
-            rmd = traditional/ult.withdrawal_factors[current_age]
+            #
+            # The best amount here is the amount that's included in the standard
+            # deduction, and therefore would not be taxed. We should always take
+            # at least that amount if possible.
+            #
             best_amount = tm.get_standard_deduction(married)
+            rmd = traditional/ult.withdrawal_factors[current_age]
             traditional_withdrawal = max(rmd, best_amount)
             if traditional_withdrawal >= traditional:
                 traditional_withdrawal = traditional
-
             traditional -= traditional_withdrawal
             this_years_income += traditional_withdrawal
         else:
@@ -264,19 +271,19 @@ def calculate_tax_to_asset_ratio(
 
         if needed:
             #
-            # We need money for spending expenses. If there are Roth contributions,
-            # take the required money from there. There is no penality to do
-            # this. Do not provide option to take interest.
+            # We need money for spending expenses. The order of operations are
+            # as follows. They are in order of best to worst.
             #
-            # (1) Frist, take from taxable. Tax rates should be low. This will
-            #     give time for Roth contributions to grow tax free.
+            # (1) First, take from taxable. Tax rates should be low. This will
+            #     give time for Roth contributions to continue to grow tax free.
             #
-            # (2) Then, take from the current Roth contribution for this year.
-            #     This could be the Mega-Backdoor Roth conversion contribution.
+            # (2) Next, if we still need more, take from the current Roth
+            #     contribution for this year. This could be the Mega-Backdoor
+            #     Roth conversion contribution.
             #
-            # (3) Then, withdrawal Roth contributions.
-            #
-            # (4) Lastly, withdrawal from Traditional. This is TODO.
+            # (3) Next, if we still need more, withdrawal Roth contributions
+            #     made in previous years. These withdrawals will not be
+            #     penalized.
             #
             if needed and taxable > 0:
                 withdrawal = needed
@@ -309,8 +316,10 @@ def calculate_tax_to_asset_ratio(
                 roth -= roth_withdrawal
                 needed -= roth_withdrawal
 
-            if needed and traditional:
-                raise Exception("need money from traditional")
+            #
+            # Not sure we need to implement any other sources. It should not be
+            # very common. I'm not sure what the order would be if we did.
+            #
             if needed:
                 raise Exception("not enough money for expenses")
 
@@ -323,21 +332,8 @@ def calculate_tax_to_asset_ratio(
             tax_rate = 0
 
         #
-        # Happy new year! It's the end of the year. Apply interest, give
-        # yourself a pay raise, and happy birthday!
+        # Calculate our savings rate. This is pre-tax.
         #
-        traditional *= interest_rate
-        roth *= interest_rate
-        taxable *= interest_rate
-
-        if current_age < age_of_retirement:
-            income *= yearly_income_raise
-            if max_income:
-                income = min(income, max_income)
-
-            yearly_401k_contribution *= yearly_income_raise
-            yearly_ira_contribution *= yearly_income_raise
-
         try:
             savings_rate = (
                 taxable_contribution
@@ -372,9 +368,26 @@ def calculate_tax_to_asset_ratio(
             float(total_taxes)
         ])
 
-        year += 1
+        #
+        # Happy new year! It's the end of the year. Apply interest, give
+        # yourself a pay raise, and happy birthday!
+        #
         current_age += 1
 
+        traditional *= interest_rate
+        roth *= interest_rate
+        taxable *= interest_rate
+
+        if current_age < age_of_retirement:
+            income *= yearly_income_raise
+            if max_income:
+                income = min(income, max_income)
+            yearly_401k_contribution *= yearly_income_raise
+            yearly_ira_contribution *= yearly_income_raise
+
+    #
+    # We have finished the simulation. Print the table.
+    #
     debug_print(
         tabulate(
             table,
@@ -395,7 +408,8 @@ def calculate_tax_to_asset_ratio(
     taxes_for_heir = tm.calculate_minimum_remaining_taxes_for_heir(traditional, age_of_death - 30)
 
     #
-    #
+    # Add the rest of the taxes and calculate our "tax to asset ratio" which is
+    # used to determine how well you did tax wise.
     #
     total_taxes += estate_tax
     total_taxes += taxes_for_heir
@@ -426,7 +440,7 @@ def calculate_tax_to_asset_ratio(
         )
     )
 
-    return tax_to_asset_ratio
+    return tax_to_asset_ratio, total_assets - total_taxes
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -519,6 +533,13 @@ if __name__ == "__main__":
         default=6000
     )
     parser.add_argument(
+        "--ira-contribution-catch-up",
+        help="How much extra can you contribute at the age of 50?",
+        required=False,
+        type=float,
+        default=1000
+    )
+    parser.add_argument(
         "--do-mega-backdoor-roth",
         help="What is the IRA contribution limit?",
         required=False,
@@ -595,7 +616,7 @@ if __name__ == "__main__":
     #
     if args.age_of_death > args.age_of_retirement:
         for x in range(1000):
-            tax_rate = calculate_tax_to_asset_ratio(
+            tax_rate, _ = calculate_tax_to_asset_ratio(
                 args.principal_taxable,
                 args.principal_traditional,
                 args.principal_roth,
@@ -616,6 +637,7 @@ if __name__ == "__main__":
                 args.yearly_401k_total_contribution_limit,
                 args.yearly_ira_contribution,
                 args.yearly_ira_contribution_limit,
+                args.ira_contribution_catch_up,
                 args.do_mega_backdoor_roth,
                 debug=False
             )
@@ -648,6 +670,7 @@ if __name__ == "__main__":
         args.yearly_401k_total_contribution_limit,
         args.yearly_ira_contribution,
         args.yearly_ira_contribution_limit,
+        args.ira_contribution_catch_up,
         args.do_mega_backdoor_roth,
         args.verbose
     )

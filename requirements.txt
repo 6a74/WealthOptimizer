@@ -1,0 +1,3 @@
+tabulate
+matplotlib
+progressbar2
