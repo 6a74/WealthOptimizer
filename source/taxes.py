@@ -3,6 +3,247 @@
 import sys
 import slet
 
+################################################################################
+# Alabama
+################################################################################
+
+class Alabama:
+    deductions = {
+        'single': 2500,
+        'married': 7500
+    }
+    exemptions = {
+        'personal': 1500,
+        'dependant': 1000
+    }
+    brackets = {
+        'single': [
+            (0,      0, 0.02),
+            (500,   10, 0.04),
+            (3000, 110, 0.05),
+        ],
+        'married': [
+            (0,      0, 0.02),
+            (1000,  20, 0.04),
+            (6000, 220, 0.05),
+        ]
+    }
+
+################################################################################
+# Arkansas
+################################################################################
+
+class Arkansas:
+    deductions = {
+        'single': 2200,
+        'married': 4400
+    }
+
+    #
+    # XXX: Arkansas is different from other states in that it treats personal
+    # exemptions state tax exemptions as tax credits - which means that instead
+    # of deducting an amount from taxable income, the exemptions reduce your
+    # actual tax liability after it has been calculated.
+    #
+    exemptions = {
+        'personal': 26,
+        'dependant': 26
+    }
+    brackets = {
+        'single': [
+            (0,           0, 0.02),
+            (4000,    80.00, 0.04),
+            (8000,   240.00, 0.059),
+            (79300, 4446.70, 0.066),
+        ],
+        'married': [
+            (0,           0, 0.02),
+            (4000,    80.00, 0.04),
+            (8000,   240.00, 0.059),
+            (79300, 4446.70, 0.066),
+        ]
+    }
+
+################################################################################
+# Arizona
+################################################################################
+
+class Arizona:
+    deductions = {
+        'single': 5312,
+        'married': 10613
+    }
+    exemptions = {
+        'personal': 2200,
+        'dependant': 2300
+    }
+    brackets = {
+        'single': [
+            (0,             0, 0.0259),
+            (26500,    686.35, 0.0334),
+            (53000,   1571.45, 0.0417),
+            (159000,  5991.65, 0.0450),
+        ],
+        'married': [
+            (0,             0, 0.0259),
+            (53000,   1372.70, 0.0334),
+            (106000,  3142.90, 0.0417),
+            (318000, 11983.30, 0.0450),
+        ]
+    }
+
+################################################################################
+# California
+################################################################################
+
+class California:
+    deductions = {
+        'single': 4236,
+        'married': 8472
+    }
+
+    #
+    # XXX: California is different from other states in that it treats personal
+    # exemptions state tax exemptions as tax credits - which means that instead
+    # of deducting an amount from taxable income, the exemptions reduce your
+    # actual tax liability after it has been calculated.
+    #
+    exemptions = {
+        'personal': 114,
+        'dependant': 353
+    }
+    brackets = {
+        'single': [
+            (0,            0.00, 0.010),
+            (8809,        88.09, 0.020),
+            (20883,      329.57, 0.040),
+            (32960,      812.65, 0.060),
+            (45753,     1580.23, 0.080),
+            (57824,     2545.91, 0.093),
+            (295373,   24637.97, 0.103),
+            (354445,   30722.38, 0.113),
+            (590742,   57423.94, 0.123),
+            (1000000, 107762.68, 0.133),
+        ],
+        'married': [
+            (0,            0.00, 0.010),
+            (17618,      176.18, 0.020),
+            (41766,      659.14, 0.040),
+            (65920,     1625.30, 0.060),
+            (91506,     3160.46, 0.080),
+            (115648,    5091.82, 0.093),
+            (590746,   49275.93, 0.103),
+            (708890,   61444.77, 0.113),
+            (1000000,  94340.20, 0.123),
+            (1181484, 116662.73, 0.133),
+        ]
+    }
+
+################################################################################
+# Colorada
+################################################################################
+
+class Colorado:
+    deductions = {
+        'single': 0,
+        'married': 0
+    }
+    exemptions = {
+        'personal': 0,
+        'dependant': 0
+    }
+    brackets = {
+        'single': [
+            (0,             0, 0.0463),
+        ],
+        'married': [
+            (0,             0, 0.0463),
+        ]
+    }
+
+states = {
+        'AK': None,
+        'AL': Alabama,
+        'AR': Arkansas,
+        'AZ': Arizona,
+        'CA': California,
+        'CO': Colorado,
+        'TX': None
+}
+
+todo = {
+        'CT': 'Connecticut',
+        'DC': 'District of Columbia',
+        'DE': 'Delaware',
+        'FL': 'Florida',
+        'GA': 'Georgia',
+        'GU': 'Guam',
+        'HI': 'Hawaii',
+        'IA': 'Iowa',
+        'ID': 'Idaho',
+        'IL': 'Illinois',
+        'IN': 'Indiana',
+        'KS': 'Kansas',
+        'KY': 'Kentucky',
+        'LA': 'Louisiana',
+        'MA': 'Massachusetts',
+        'MD': 'Maryland',
+        'ME': 'Maine',
+        'MI': 'Michigan',
+        'MN': 'Minnesota',
+        'MO': 'Missouri',
+        'MP': 'Northern Mariana Islands',
+        'MS': 'Mississippi',
+        'MT': 'Montana',
+        'NA': 'National',
+        'NC': 'North Carolina',
+        'ND': 'North Dakota',
+        'NE': 'Nebraska',
+        'NH': 'New Hampshire',
+        'NJ': 'New Jersey',
+        'NM': 'New Mexico',
+        'NV': 'Nevada',
+        'NY': 'New York',
+        'OH': 'Ohio',
+        'OK': 'Oklahoma',
+        'OR': 'Oregon',
+        'PA': 'Pennsylvania',
+        'PR': 'Puerto Rico',
+        'RI': 'Rhode Island',
+        'SC': 'South Carolina',
+        'SD': 'South Dakota',
+        'TN': 'Tennessee',
+        'TX': 'Texas',
+        'UT': 'Utah',
+        'VA': 'Virginia',
+        'VI': 'Virgin Islands',
+        'VT': 'Vermont',
+        'WA': 'Washington',
+        'WI': 'Wisconsin',
+        'WV': 'West Virginia',
+        'WY': 'Wyoming'
+}
+
+def calculate_state_taxes(agi, married, state):
+    assert agi >= 0
+    if agi == 0 or states[state] is None:
+        return 0
+
+    if married:
+        brackets = states[state].brackets['married']
+        deduction = states[state].deductions['married']
+        exemption = states[state].exemptions['personal'] * 2
+    else:
+        brackets = states[state].brackets['single']
+        deduction = states[state].deductions['single']
+        exemption = states[state].exemptions['personal']
+
+    taxable_income = agi - deduction - exemption
+    for minimum, base_tax, tax_rate in reversed(brackets):
+        if taxable_income > minimum:
+            return base_tax + ((taxable_income - minimum) * tax_rate)
+    return 0
+
 #
 # These brackets are a bit weird, but it's the amount of money in each tax
 # bracket bucket, rather than income limits.
@@ -101,7 +342,7 @@ def calculate_minimum_remaining_taxes_for_heir(value, age):
 def get_standard_deduction(married):
     return 24800 if married else 12400
 
-def calculate_taxes(agi, married, ltcg=0, just_ltcg=False, debug=False):
+def calculate_taxes(agi, married, state=None, ltcg=0, just_ltcg=False, debug=False):
     def debug_print(line):
         if debug:
             print(line)
@@ -120,9 +361,15 @@ def calculate_taxes(agi, married, ltcg=0, just_ltcg=False, debug=False):
         income_to_tax -= taxable_income_at_rate
         if income_to_tax == 0:
             break
+
+    if state:
+        state_income_taxes = calculate_state_taxes(agi, married, state)
+        debug_print(f"${state_income_taxes:,.2f}\n")
+        income_taxes += state_income_taxes
+
     debug_print(f"============================================================================")
     debug_print(f"Total: ${income_taxes:,.2f}\n")
-    
+
     debug_print("Calculating long-term capital gains tax")
     income_to_tax = ltcg
     ltcg_taxes = 0
@@ -138,7 +385,7 @@ def calculate_taxes(agi, married, ltcg=0, just_ltcg=False, debug=False):
                 continue
             if not rate_limit:
                 continue
-            
+
         taxable_income_at_rate = min(income_to_tax, rate_limit)
         taxes_at_rate = tax_rate * taxable_income_at_rate
         debug_print(f"{tax_rate=:.2f} * {taxable_income_at_rate=:10,.2f} = {taxes_at_rate=:10,.2f}")
