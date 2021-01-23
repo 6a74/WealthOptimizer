@@ -54,6 +54,27 @@ estate_tax_brackets = [
     (1000000, 345800, 0.40),
 ]
 
+savers_credit_brackets_married = [
+    (0,     0.50),
+    (39501, 0.20),
+    (43001, 0.10),
+    (66000, 0.00),
+]
+
+savers_credit_brackets_other = [
+    (0,     0.50),
+    (19751, 0.20),
+    (21501, 0.10),
+    (33000, 0.00),
+]
+
+def calculate_savers_credit(agi, retirement_contributions, married):
+    assert agi >= 0
+    bracket = savers_credit_brackets_married if married else savers_credit_brackets_other
+    for limit, credit_rate in reversed(bracket):
+        if agi >= limit:
+            return retirement_contributions * credit_rate
+
 def calculate_estate_taxes(estate):
     assert estate > 0
     deduction = 11700000 # $11.7 million for 2021
@@ -61,7 +82,7 @@ def calculate_estate_taxes(estate):
     if not taxable_estate:
         return 0
 
-    for (minimum, base_tax, tax_rate) in reversed(estate_tax_brackets):
+    for minimum, base_tax, tax_rate in reversed(estate_tax_brackets):
         if taxable_estate > minimum:
             return base_tax + ((taxable_estate - minimum) * tax_rate)
 
