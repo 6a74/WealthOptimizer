@@ -11,7 +11,7 @@ def calculate_assets(
         taxable,
         traditional,
         roth,
-        interest_rate,
+        return_rate,
         yearly_401k_contribution,
         years_until_transition_to_pretax_contributions,
         current_age,
@@ -57,7 +57,7 @@ def calculate_assets(
     params_table.append(["Age to Start RMDs", age_to_start_rmds])
     params_table.append(["Starting Income", income])
     params_table.append(["Max Income", max_income])
-    params_table.append(["Yearly Interest Rate", interest_rate])
+    params_table.append(["Yearly Rate of Return", return_rate])
     params_table.append(["Yearly Income Raise", yearly_income_raise])
     params_table.append(["Starting Taxable Balance", taxable])
     params_table.append(["Starting Roth Balance", roth])
@@ -378,16 +378,16 @@ def calculate_assets(
         ])
 
         #
-        # Happy new year! It's the end of the year. Apply interest, give
+        # Happy new year! It's the end of the year. Apply return, give
         # yourself a pay raise, and happy birthday!
         #
         current_age += 1
         if current_age > age_of_death:
             break
 
-        traditional *= interest_rate
-        roth *= interest_rate
-        taxable *= interest_rate
+        traditional *= return_rate
+        roth *= return_rate
+        taxable *= return_rate
 
         if current_age < age_of_retirement:
             income *= yearly_income_raise
@@ -502,8 +502,8 @@ if __name__ == "__main__":
         default=0
     )
     parser.add_argument(
-        "--interest-rate",
-        help="What is the long-term interest rate?",
+        "--return-rate",
+        help="What is the long-term return rate?",
         required=False,
         type=float,
         default=1.04
@@ -631,7 +631,7 @@ if __name__ == "__main__":
                 args.principal_taxable,
                 args.principal_traditional,
                 args.principal_roth,
-                args.interest_rate,
+                args.return_rate,
                 args.yearly_401k_contribution,
                 args.start_with_roth,
                 args.current_age,
@@ -666,7 +666,7 @@ if __name__ == "__main__":
         args.principal_taxable,
         args.principal_traditional,
         args.principal_roth,
-        args.interest_rate,
+        args.return_rate,
         args.yearly_401k_contribution,
         args.start_with_roth,
         args.current_age,

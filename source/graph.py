@@ -153,7 +153,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    def my_calculation(interest_rate, start_with_roth):
+    def my_calculation(return_rate, start_with_roth):
         #
         # Calculate the most efficient Roth conversion amount.
         #
@@ -167,7 +167,7 @@ if __name__ == "__main__":
                     args.principal_taxable,
                     args.principal_traditional,
                     args.principal_roth,
-                    interest_rate,
+                    return_rate,
                     args.yearly_401k_contribution,
                     start_with_roth,
                     args.current_age,
@@ -199,7 +199,7 @@ if __name__ == "__main__":
             args.principal_taxable,
             args.principal_traditional,
             args.principal_roth,
-            interest_rate,
+            return_rate,
             args.yearly_401k_contribution,
             start_with_roth,
             args.current_age,
@@ -235,27 +235,27 @@ if __name__ == "__main__":
     # Generate our outputs.
     #
     working_years = args.age_of_retirement - args.current_age
-    interest_rates = [1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07]
+    return_rates = [1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07]
     colors = ['tab:blue', 'tab:red', 'tab:orange', 'tab:purple', 'tab:brown', 'tab:olive', 'tab:cyan']
 
     assert working_years >= 0
 
     best_indices = []
     current_calculation = 0
-    num_calculations = working_years * len(interest_rates)
+    num_calculations = working_years * len(return_rates)
     with progressbar.ProgressBar(max_value=num_calculations) as bar:
-        for interest_rate, color in zip(interest_rates, colors):
+        for return_rate, color in zip(return_rates, colors):
             inputs = range(working_years)
             outputs = []
             for y in inputs:
-                outputs.append(my_calculation(interest_rate, y))
+                outputs.append(my_calculation(return_rate, y))
                 current_calculation += 1
                 bar.update(current_calculation)
 
             plt.plot(
                 inputs,
                 scale(outputs),
-                label=f"{interest_rate=:.2f}",
+                label=f"Rate of Return: {return_rate:.2f}",
                 linestyle='-',
                 color=color
             )
