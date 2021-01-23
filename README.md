@@ -124,8 +124,7 @@ Next, let's say there's a hot-shot kid in Silicon Valley making $300/year and
 they want to retire at 40. Because they will have so few years in the workforce,
 traditional contributions will not make much of a difference in terms of RMDs.
 And because of their very high income, tax deductions are very valuable. These
-deductions do more good than RMDs do bad. Also, I am not really sure what's
-going on with the 3% interest rate line. I believe that can be ignored.
+deductions do more good than RMDs do bad.
 
 ![Figure 9](https://github.com/6a74/finance/blob/master/figures/figure_09.png?raw=true)
 
