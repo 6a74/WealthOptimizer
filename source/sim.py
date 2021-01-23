@@ -11,7 +11,7 @@ def calculate_assets(
         taxable,
         traditional,
         roth,
-        return_rate,
+        rate_of_return,
         yearly_401k_contribution,
         years_until_transition_to_pretax_contributions,
         current_age,
@@ -30,7 +30,8 @@ def calculate_assets(
         yearly_ira_contribution_limit,
         ira_contribution_catch_up,
         do_mega_backdoor_roth,
-        debug=True
+        debug=True,
+        print_summary=False
     ):
     """This function will simulate the state of finances for each year until you
     die, depending on the inputs of course!
@@ -57,7 +58,7 @@ def calculate_assets(
     params_table.append(["Age to Start RMDs", age_to_start_rmds])
     params_table.append(["Starting Income", income])
     params_table.append(["Max Income", max_income])
-    params_table.append(["Yearly Rate of Return", return_rate])
+    params_table.append(["Yearly Rate of Return", rate_of_return])
     params_table.append(["Yearly Income Raise", yearly_income_raise])
     params_table.append(["Starting Taxable Balance", taxable])
     params_table.append(["Starting Roth Balance", roth])
@@ -385,9 +386,9 @@ def calculate_assets(
         if current_age > age_of_death:
             break
 
-        traditional *= return_rate
-        roth *= return_rate
-        taxable *= return_rate
+        traditional *= rate_of_return
+        roth *= rate_of_return
+        taxable *= rate_of_return
 
         if current_age < age_of_retirement:
             income *= yearly_income_raise
@@ -441,15 +442,16 @@ def calculate_assets(
     summary_table.append(["Total Assets After Taxes", total_assets - total_taxes])
     summary_table.append(["Tax/Asset Ratio", tax_to_asset_ratio])
 
-    debug_print(
-        tabulate(
-            summary_table,
-            summary_header,
-            tablefmt="fancy_grid",
-            numalign="right",
-            floatfmt=",.2f"
+    if debug or print_summary:
+        print(
+            tabulate(
+                summary_table,
+                summary_header,
+                tablefmt="fancy_grid",
+                numalign="right",
+                floatfmt=",.2f"
+            )
         )
-    )
 
     return total_assets - total_taxes
 
@@ -502,8 +504,8 @@ if __name__ == "__main__":
         default=0
     )
     parser.add_argument(
-        "--return-rate",
-        help="What is the long-term return rate?",
+        "--rate-of-return",
+        help="What is the long-term rate of return?",
         required=False,
         type=float,
         default=1.04
@@ -558,7 +560,7 @@ if __name__ == "__main__":
         default=False
     )
     parser.add_argument(
-        "--start-with-roth",
+        "--years-to-wait",
         help="Years to wait before doing Traditional (pre-tax) contributions",
         metavar="YEARS",
         required=False,
@@ -631,9 +633,9 @@ if __name__ == "__main__":
                 args.principal_taxable,
                 args.principal_traditional,
                 args.principal_roth,
-                args.return_rate,
+                args.rate_of_return,
                 args.yearly_401k_contribution,
-                args.start_with_roth,
+                args.years_to_wait,
                 args.current_age,
                 args.age_of_retirement,
                 args.age_to_start_rmds,
@@ -666,9 +668,9 @@ if __name__ == "__main__":
         args.principal_taxable,
         args.principal_traditional,
         args.principal_roth,
-        args.return_rate,
+        args.rate_of_return,
         args.yearly_401k_contribution,
-        args.start_with_roth,
+        args.years_to_wait,
         args.current_age,
         args.age_of_retirement,
         args.age_to_start_rmds,
@@ -685,5 +687,6 @@ if __name__ == "__main__":
         args.yearly_ira_contribution_limit,
         args.ira_contribution_catch_up,
         args.do_mega_backdoor_roth,
-        args.verbose
+        args.verbose,
+        print_summary=True
     )
