@@ -55,13 +55,6 @@ if __name__ == "__main__":
         default=0
     )
     parser.add_argument(
-        "--yearly-401k-contribution",
-        help="How much are you contributing to your 401k per year?",
-        required=False,
-        type=float,
-        default=19500
-    )
-    parser.add_argument(
         "--yearly-401k-normal-contribution-limit",
         help="What is the normal 401k contribution limit?",
         required=False,
@@ -74,13 +67,6 @@ if __name__ == "__main__":
         required=False,
         type=float,
         default=58000
-    )
-    parser.add_argument(
-        "--yearly-ira-contribution",
-        help="How much are you contributing to your IRA per year?",
-        required=False,
-        type=float,
-        default=6000
     )
     parser.add_argument(
         "--yearly-ira-contribution-limit",
@@ -168,7 +154,6 @@ if __name__ == "__main__":
                     args.principal_traditional,
                     args.principal_roth,
                     rate_of_return,
-                    args.yearly_401k_contribution,
                     years_to_wait,
                     args.current_age,
                     args.age_of_retirement,
@@ -182,7 +167,6 @@ if __name__ == "__main__":
                     args.spending,
                     args.yearly_401k_normal_contribution_limit,
                     args.yearly_401k_total_contribution_limit,
-                    args.yearly_ira_contribution,
                     args.yearly_ira_contribution_limit,
                     args.ira_contribution_catch_up,
                     args.do_mega_backdoor_roth,
@@ -200,7 +184,6 @@ if __name__ == "__main__":
             args.principal_traditional,
             args.principal_roth,
             rate_of_return,
-            args.yearly_401k_contribution,
             years_to_wait,
             args.current_age,
             args.age_of_retirement,
@@ -213,7 +196,6 @@ if __name__ == "__main__":
             args.spending,
             args.yearly_401k_normal_contribution_limit,
             args.yearly_401k_total_contribution_limit,
-            args.yearly_ira_contribution,
             args.yearly_ira_contribution_limit,
             args.ira_contribution_catch_up,
             args.do_mega_backdoor_roth,
@@ -293,10 +275,8 @@ if __name__ == "__main__":
         ["Starting Taxable Balance", f"${args.principal_taxable:,.2f}"],
         ["Starting Traditional Balance", f"${args.principal_traditional:,.2f}"],
         ["Starting Roth Balance", f"${args.principal_roth:,.2f}"],
-        ["Starting 401k Contribution", f"${args.yearly_401k_contribution:,.2f}"],
         ["401k Normal Contribution Limit", f"${args.yearly_401k_normal_contribution_limit:,.2f}"],
         ["401k Total Contribution Limit", f"${args.yearly_401k_total_contribution_limit:,.2f}"],
-        ["Starting IRA Contribution", f"${args.yearly_ira_contribution:,.2f}"],
         ["IRA Contribution Limit", f"${args.yearly_ira_contribution_limit:,.2f}"],
         ["Mega-Backdoor Roth", args.do_mega_backdoor_roth],
     ]
