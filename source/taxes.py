@@ -1217,29 +1217,35 @@ def calculate_state_tax(agi, married, state, dependents=0):
 
     return 0
 
-#
-# These brackets are a bit weird, but it's the amount of money in each tax
-# bracket bucket, rather than income limits.
-#
-single_tax_brackets = [
-    (0.10,   9875),
-    (0.12,  30250), #  40,125
-    (0.22,  45400), #  85,525
-    (0.24,  77805), # 163,330
-    (0.32,  44020), # 207,350
-    (0.35, 311050), # 518,400
-    (0.37, sys.float_info.max),
-]
-
-married_tax_brackets = [
-    (0.10,  19750),
-    (0.12,  60500), #  80,250
-    (0.22,  90800), # 171,050
-    (0.24, 155550), # 326,600
-    (0.32,  88100), # 414,700
-    (0.35, 207350), # 622,050
-    (0.37, sys.float_info.max),
-]
+class FederalIncomeTax_2021:
+    deductions = {
+        'single': 12550,
+        'married': 25100
+    }
+    exemptions = {
+        'personal': 0,
+        'dependent': 0
+    }
+    brackets = {
+        'single': [
+            (     0,      0.00, 0.10),
+            (  9950,    995.00, 0.12),
+            ( 40525,   4664.00, 0.22),
+            ( 86375,  14751.00, 0.24),
+            (164925,  33603.00, 0.32),
+            (209425,  47843.00, 0.35),
+            (523600, 157804.25, 0.37),
+        ],
+        'married': [
+            (     0,      0.00, 0.10),
+            ( 19900,   1990.00, 0.12),
+            ( 81050,   9328.00, 0.22),
+            (172750,  29502.00, 0.24),
+            (329850,  67206.00, 0.32),
+            (418850,  95686.00, 0.35),
+            (628300, 168993.50, 0.37),
+        ]
+    }
 
 single_ltcg_brackets = [
     (0.00,   40000),
@@ -1314,31 +1320,31 @@ def calculate_minimum_remaining_tax_for_heir(value, age):
     return total_taxes
 
 def get_standard_deduction(married):
-    return 24800 if married else 12400
+    key = 'married' if married else 'single'
+    return FederalIncomeTax_2021.deductions[key]
 
-def calculate_federal_income_tax(agi, married, dependents=0, ltcg=0, just_ltcg=False, debug=False):
-    def debug_print(line):
-        if debug:
-            print(line)
+def calculate_fica_tax(gross_income, married):
+    assert gross_income >= 0
+    # This is the 2021 limit.
+    social_security_tax = min(142800, gross_income) * 0.062
+    medicare_tax = gross_income * 0.0145
+    threshold = 250000 if married else 200000
+    additional_medicare_tax = max(gross_income - threshold, 0) * 0.9
+    return social_security_tax + medicare_tax + additional_medicare_tax
 
+def calculate_federal_income_tax(agi, married, dependents=0, ltcg=0, just_ltcg=False):
     assert agi >= 0, f"{agi=:.2f}"
-    debug_print("Calculating federal income tax")
+
     standard_deduction = get_standard_deduction(married)
     income_to_tax = max(agi - standard_deduction, 0)
-    income_taxes = 0.0
-    brackets = married_tax_brackets if married else single_tax_brackets
-    for tax_rate, rate_limit in brackets:
-        taxable_income_at_rate = min(income_to_tax, rate_limit)
-        taxes_at_rate = tax_rate * taxable_income_at_rate
-        debug_print(f"{tax_rate=:.2f} * {taxable_income_at_rate=:10,.2f} = {taxes_at_rate=:10,.2f}")
-        income_taxes += taxes_at_rate
-        income_to_tax -= taxable_income_at_rate
-        if income_to_tax == 0:
-            break
-    debug_print(f"============================================================================")
-    debug_print(f"Total: ${income_taxes:,.2f}\n")
+    key = 'married' if married else 'single'
+    brackets = FederalIncomeTax_2021.brackets[key]
 
-    debug_print("Calculating long-term capital gains tax")
+    income_taxes = 0
+    for minimum, base_tax, tax_rate in reversed(brackets):
+        if income_to_tax > minimum:
+            income_taxes = base_tax + ((income_to_tax - minimum) * tax_rate)
+
     income_to_tax = ltcg
     ltcg_taxes = 0
     taxed_income = 0
@@ -1346,7 +1352,6 @@ def calculate_federal_income_tax(agi, married, dependents=0, ltcg=0, just_ltcg=F
     for tax_rate, rate_limit in brackets:
         if taxed_income < agi:
             taxable_income_at_rate = min((agi - taxed_income), rate_limit)
-            debug_print(f"{tax_rate=:.2f} * {taxable_income_at_rate=:10,.2f} = skipping agi")
             taxed_income += taxable_income_at_rate
             rate_limit -= taxable_income_at_rate
             if ((agi - taxed_income) > 0):
@@ -1356,14 +1361,11 @@ def calculate_federal_income_tax(agi, married, dependents=0, ltcg=0, just_ltcg=F
 
         taxable_income_at_rate = min(income_to_tax, rate_limit)
         taxes_at_rate = tax_rate * taxable_income_at_rate
-        debug_print(f"{tax_rate=:.2f} * {taxable_income_at_rate=:10,.2f} = {taxes_at_rate=:10,.2f}")
         ltcg_taxes += taxes_at_rate
         income_to_tax -= taxable_income_at_rate
         taxed_income += taxable_income_at_rate
         if income_to_tax == 0:
             break
-    debug_print(f"============================================================================")
-    debug_print(f"Total: ${ltcg_taxes:,.2f}\n")
 
     if just_ltcg:
         return ltcg_taxes
