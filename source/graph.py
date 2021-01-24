@@ -84,6 +84,13 @@ if __name__ == "__main__":
         default=1000
     )
     parser.add_argument(
+        "--ira-contribution-catch-up-age",
+        help="At what age can you do extra catch up contributions?",
+        required=False,
+        type=int,
+        default=50
+    )
+    parser.add_argument(
         "--do-mega-backdoor-roth",
         help="What is the IRA contribution limit?",
         required=False,
@@ -147,6 +154,14 @@ if __name__ == "__main__":
         default=30000
     )
     parser.add_argument(
+        "--add-dependent",
+        help="Your age when dependent is to be added. This option can be used multiple times.",
+        required=False,
+        type=int,
+        metavar="AGE",
+        action='append'
+    )
+    parser.add_argument(
         "--verbose",
         help="Do things and talk more",
         action="store_true"
@@ -184,9 +199,11 @@ if __name__ == "__main__":
                     args.yearly_401k_total_contribution_limit,
                     args.yearly_ira_contribution_limit,
                     args.ira_contribution_catch_up,
+                    args.ira_contribution_catch_up_age,
                     args.do_mega_backdoor_roth,
                     args.working_state,
                     args.retirement_state,
+                    args.add_dependent,
                     debug=False
                 )
                 if assets > most_assets:
@@ -215,9 +232,11 @@ if __name__ == "__main__":
             args.yearly_401k_total_contribution_limit,
             args.yearly_ira_contribution_limit,
             args.ira_contribution_catch_up,
+            args.ira_contribution_catch_up_age,
             args.do_mega_backdoor_roth,
             args.working_state,
             args.retirement_state,
+            args.add_dependent,
             args.verbose
         )
 
