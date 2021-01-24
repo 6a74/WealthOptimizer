@@ -19,7 +19,7 @@ class Alabama:
     }
     exemptions = {
         'personal': 1500,
-        'dependant': 1000
+        'dependent': 1000
     }
     brackets = {
         'single': [
@@ -41,7 +41,7 @@ class Arkansas:
     }
     exemptions = {
         'personal': Credit(26),
-        'dependant': Credit(26)
+        'dependent': Credit(26)
     }
     brackets = {
         'single': [
@@ -65,7 +65,7 @@ class Arizona:
     }
     exemptions = {
         'personal': 2200,
-        'dependant': 2300
+        'dependent': 2300
     }
     brackets = {
         'single': [
@@ -89,7 +89,7 @@ class California:
     }
     exemptions = {
         'personal': Credit(114),
-        'dependant': Credit(353)
+        'dependent': Credit(353)
     }
     brackets = {
         'single': [
@@ -125,7 +125,7 @@ class Colorado:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -143,7 +143,7 @@ class Connecticut:
     }
     exemptions = {
         'personal': Credit(15000),
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -173,7 +173,7 @@ class Delaware:
     }
     exemptions = {
         'personal': Credit(110),
-        'dependant': Credit(110)
+        'dependent': Credit(110)
     }
     brackets = {
         'single': [
@@ -203,7 +203,7 @@ class DistrictOfColumbia:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -231,7 +231,7 @@ class Georgia:
     }
     exemptions = {
         'personal': 2700,
-        'dependant': 3000
+        'dependent': 3000
     }
     brackets = {
         'single': [
@@ -259,7 +259,7 @@ class Hawaii:
     }
     exemptions = {
         'personal': 1144,
-        'dependant': 1144
+        'dependent': 1144
     }
     brackets = {
         'single': [
@@ -299,7 +299,7 @@ class Idaho:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -329,7 +329,7 @@ class Illinois:
     }
     exemptions = {
         'personal': 2000,
-        'dependant': 2000
+        'dependent': 2000
     }
     brackets = {
         'single': [
@@ -347,7 +347,7 @@ class Indiana:
     }
     exemptions = {
         'personal': 1000,
-        'dependant': 1000
+        'dependent': 1000
     }
     brackets = {
         'single': [
@@ -365,7 +365,7 @@ class Iowa:
     }
     exemptions = {
         'personal': Credit(40),
-        'dependant': Credit(40)
+        'dependent': Credit(40)
     }
     brackets = {
         'single': [
@@ -399,7 +399,7 @@ class Kansas:
     }
     exemptions = {
         'personal': 2250,
-        'dependant': 2250
+        'dependent': 2250
     }
     brackets = {
         'single': [
@@ -421,7 +421,7 @@ class Kentucky:
     }
     exemptions = {
         'personal': Credit(0),
-        'dependant': Credit(0)
+        'dependent': Credit(0)
     }
     brackets = {
         'single': [
@@ -439,7 +439,7 @@ class Louisiana:
     }
     exemptions = {
         'personal': 4500,
-        'dependant': 1000
+        'dependent': 1000
     }
     brackets = {
         'single': [
@@ -461,7 +461,7 @@ class Maine:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -483,7 +483,7 @@ class Maryland:
     }
     exemptions = {
         'personal': 3200,
-        'dependant': 3200
+        'dependent': 3200
     }
     brackets = {
         'single': [
@@ -515,7 +515,7 @@ class Massachusetts:
     }
     exemptions = {
         'personal': 4400,
-        'dependant': 1000
+        'dependent': 1000
     }
     brackets = {
         'single': [
@@ -533,7 +533,7 @@ class Michigan:
     }
     exemptions = {
         'personal': 4050,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -551,7 +551,7 @@ class Minnesota:
     }
     exemptions = {
         'personal': 4150,
-        'dependant': 4150
+        'dependent': 4150
     }
     brackets = {
         'single': [
@@ -575,7 +575,7 @@ class Mississippi:
     }
     exemptions = {
         'personal': 6000,
-        'dependant': 1500
+        'dependent': 1500
     }
     brackets = {
         'single': [
@@ -599,7 +599,7 @@ class Missouri:
     }
     exemptions = {
         'personal': 2100,
-        'dependant': 1200
+        'dependent': 1200
     }
     brackets = {
         'single': [
@@ -633,7 +633,7 @@ class Montana:
     }
     exemptions = {
         'personal': 2440,
-        'dependant': 2440
+        'dependent': 2440
     }
     brackets = {
         'single': [
@@ -663,7 +663,7 @@ class Nebraska:
     }
     exemptions = {
         'personal': Credit(134),
-        'dependant': Credit(134)
+        'dependent': Credit(134)
     }
     brackets = {
         'single': [
@@ -687,7 +687,7 @@ class NewHampshire:
     }
     exemptions = {
         'personal': 2400,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -705,7 +705,7 @@ class NewJersey:
     }
     exemptions = {
         'personal': 1000,
-        'dependant': 1500
+        'dependent': 1500
     }
     brackets = {
         'single': [
@@ -736,7 +736,7 @@ class NewMexico:
     }
     exemptions = {
         'personal': 4050,
-        'dependant': 4050
+        'dependent': 4050
     }
     brackets = {
         'single': [
@@ -760,7 +760,7 @@ class NewYork:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 1000
+        'dependent': 1000
     }
     brackets = {
         'single': [
@@ -792,7 +792,7 @@ class NorthCarolina:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -810,7 +810,7 @@ class NorthDakota:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -836,7 +836,7 @@ class Ohio:
     }
     exemptions = {
         'personal': 2350,
-        'dependant': 2350
+        'dependent': 2350
     }
     brackets = {
         'single': [
@@ -864,7 +864,7 @@ class Oklahoma:
     }
     exemptions = {
         'personal': 1000,
-        'dependant': 1000
+        'dependent': 1000
     }
     brackets = {
         'single': [
@@ -892,7 +892,7 @@ class Oregon:
     }
     exemptions = {
         'personal': Credit(201),
-        'dependant': Credit(201)
+        'dependent': Credit(201)
     }
     brackets = {
         'single': [
@@ -916,7 +916,7 @@ class Pennsylvania:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -934,7 +934,7 @@ class RhodeIsland:
     }
     exemptions = {
         'personal': 4000,
-        'dependant': 4000
+        'dependent': 4000
     }
     brackets = {
         'single': [
@@ -956,7 +956,7 @@ class SouthCarolina:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -984,7 +984,7 @@ class Tennessee:
     }
     exemptions = {
         'personal': 1250,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -1002,7 +1002,7 @@ class Utah:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -1020,7 +1020,7 @@ class Vermont:
     }
     exemptions = {
         'personal': 0,
-        'dependant': 0
+        'dependent': 0
     }
     brackets = {
         'single': [
@@ -1044,7 +1044,7 @@ class Virginia:
     }
     exemptions = {
         'personal': 930,
-        'dependant': 930
+        'dependent': 930
     }
     brackets = {
         'single': [
@@ -1068,7 +1068,7 @@ class WestVirginia:
     }
     exemptions = {
         'personal': 2000,
-        'dependant': 2000
+        'dependent': 2000
     }
     brackets = {
         'single': [
@@ -1094,7 +1094,7 @@ class Wisconsin:
     }
     exemptions = {
         'personal': 700,
-        'dependant': 700
+        'dependent': 700
     }
     brackets = {
         'single': [
@@ -1173,7 +1173,7 @@ states = {
     'WV': WestVirginia,
 }
 
-def calculate_state_taxes(agi, married, state, dependants=0):
+def calculate_state_taxes(agi, married, state, dependents=0):
     assert agi >= 0
     if agi == 0 or states[state] is None:
         return 0
@@ -1199,13 +1199,13 @@ def calculate_state_taxes(agi, married, state, dependants=0):
         taxable_income -= personal_exemption * multiplier
 
     #
-    # Handle dependants.
+    # Handle dependents.
     #
-    dependant_exemption = states[state].exemptions['dependant']
-    if isinstance(dependant_exemption, Credit):
-        taxes -= dependant_exemption.value * dependants
+    dependent_exemption = states[state].exemptions['dependent']
+    if isinstance(dependent_exemption, Credit):
+        taxes -= dependent_exemption.value * dependents
     else:
-        taxable_income -= dependant_exemption * dependants
+        taxable_income -= dependent_exemption * dependents
 
     #
     # Calculate taxes.
@@ -1316,7 +1316,7 @@ def calculate_minimum_remaining_taxes_for_heir(value, age):
 def get_standard_deduction(married):
     return 24800 if married else 12400
 
-def calculate_taxes(agi, married, state=None, ltcg=0, just_ltcg=False, debug=False):
+def calculate_taxes(agi, married, state=None, dependents=0, ltcg=0, just_ltcg=False, debug=False):
     def debug_print(line):
         if debug:
             print(line)
@@ -1337,7 +1337,7 @@ def calculate_taxes(agi, married, state=None, ltcg=0, just_ltcg=False, debug=Fal
             break
 
     if state:
-        state_income_taxes = calculate_state_taxes(agi, married, state)
+        state_income_taxes = calculate_state_taxes(agi, married, state, dependents)
         debug_print(f"${state_income_taxes:,.2f}\n")
         income_taxes += state_income_taxes
 
