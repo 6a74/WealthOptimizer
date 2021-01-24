@@ -180,35 +180,51 @@ def calculate_assets(
         # Retirement Contribution Calculations
         ########################################################################
 
-        #
-        # Alright, if we're still working, we can make a tax-advantaged
-        # contribution of some type. This might include tax deductions.
-        #
         tax_deductions = 0
         this_years_income = 0
         this_years_roth_conversion = 0
+
+        # Withdrawals:
         roth_withdrawal = 0
         taxable_withdrawal = 0
         traditional_withdrawal = 0
-        traditional_contribution = 0
+
+        # Contributions:
         roth_contribution = 0
         taxable_contribution = 0
+        traditional_contribution = 0
+        contribution_401k = 0
+        contribution_ira = 0
 
-        tax_advantaged_space = (
-            (yearly_401k_total_contribution_limit if do_mega_backdoor_roth else yearly_401k_normal_contribution_limit)
-            + yearly_ira_contribution_limit
-        )
+        #
+        # Calcuate how much tax advantaged space we have. This will be our total
+        # contribution limit for this year.
+        #
+        tax_advantaged_space = yearly_ira_contribution_limit
+        if do_mega_backdoor_roth:
+            tax_advantaged_space += yearly_401k_total_contribution_limit
+        else:
+            tax_advantaged_space += yearly_401k_normal_contribution_limit
 
+        #
+        # These variables are used to binary search the maximum contribution.
+        #
         minimum_contribution = 0
         total_contribution_limit = tax_advantaged_space
         maximum_contribution = tax_advantaged_space
 
-        contribution_401k = 0
-        contribution_ira = 0
-
+        #
+        # Alright, if we're still working, we can make some tax-advantaged
+        # contributions. If there is a traditional contribution, it will lower
+        # our taxes and, as a result, will allow us to contribute more! This is
+        # why we must binary search the maximum contribution.
+        #
         if current_age < age_of_retirement:
             this_years_income = income
 
+            #
+            # We'll break out of this once the ideal amount is found.
+            #
             while True:
                 contribution_401k = 0
                 contribution_ira = 0
@@ -251,7 +267,8 @@ def calculate_assets(
                 # TODO: Maybe add a more granular approach, rather than an all
                 # or nothing approach.
                 #
-                if prefer_roth or not tm.fully_tax_deductible_ira(would_be_agi_if_trad, married):
+                if prefer_roth or not tm.fully_tax_deductible_ira(
+                        would_be_agi_if_trad, married):
                     roth_contribution += contribution_ira
                 else:
                     traditional_contribution += contribution_ira
@@ -268,8 +285,13 @@ def calculate_assets(
                     roth_contribution += after_tax_contribution
 
                 tax_deductions = traditional_contribution
-                taxable_income = this_years_income - tax_deductions
 
+                #
+                # We know about all of our tax deductions, we can accurately
+                # calculate our taxes now.
+                #
+                taxable_income = this_years_income - tax_deductions
+                fica_tax = tm.calculate_fica_tax(this_years_income, married)
                 federal_income_tax = tm.calculate_federal_income_tax(
                     taxable_income,
                     married,
@@ -280,9 +302,6 @@ def calculate_assets(
                     traditional_contribution + roth_contribution,
                     married
                 )
-                federal_income_tax = max(federal_income_tax, 0)
-                fica_tax = tm.calculate_fica_tax(this_years_income, married)
-
                 state_tax = tm.calculate_state_tax(
                     taxable_income,
                     married,
@@ -290,18 +309,26 @@ def calculate_assets(
                     num_dependents(current_age)
                 )
 
+                #
+                # We can't have negative taxes. The saver's credit could
+                # potentially be more than our total federal income tax.
+                #
+                federal_income_tax = max(federal_income_tax, 0)
+
                 result = (
                     this_years_income
                     - spending
-                    - federal_income_tax
                     - fica_tax
+                    - federal_income_tax
                     - state_tax
                     - traditional_contribution
                     - roth_contribution
                 )
 
                 #
-                # Binary search our way to the ideal contribution.
+                # Binary search our way to the ideal contribution. We want the
+                # result to be zero, which will happen when there is no leftover
+                # money after taxes.
                 #
                 if result > 0:
                     if total_contribution_limit == tax_advantaged_space:
@@ -346,9 +373,6 @@ def calculate_assets(
         # Required Minimum Distribution (RMD) Calculations
         ########################################################################
 
-        #
-        # Do we need to make RMDs?
-        #
         if current_age >= age_to_start_rmds:
             #
             # The best amount here is the amount that's included in the standard
@@ -369,10 +393,16 @@ def calculate_assets(
         # Tax Calculations
         ########################################################################
 
-        #
-        # How much taxes are we going to pay this year?
-        #
         taxable_income = this_years_income - tax_deductions
+
+        #
+        # When calculating the FICA tax, we must not include retirement
+        # distributions. These have already been taxed by FICA.
+        #
+        fica_tax = tm.calculate_fica_tax(
+            this_years_income - traditional_withdrawal,
+            married
+        )
 
         #
         # Calculate the federal taxes. This includes the federal income tax and
@@ -383,6 +413,11 @@ def calculate_assets(
             married,
             num_dependents(current_age)
         )
+
+        #
+        # Calculate saver's credit. This provides tax credits if you are low
+        # income and made retirement contributions.
+        #
         savers_credit = 0
         if not retired:
             savers_credit = tm.calculate_savers_credit(
@@ -390,16 +425,11 @@ def calculate_assets(
                 traditional_contribution + roth_contribution,
                 married
             )
-        federal_income_tax = max(federal_income_tax - savers_credit, 0)
 
         #
-        # When calculating the FICA tax, we must not include retirement
-        # distributions. These have already been taxed by FICA.
+        # Apply saver's credit. Credits cannot result in negative taxes.
         #
-        fica_tax = tm.calculate_fica_tax(
-            this_years_income - traditional_withdrawal,
-            married
-        )
+        federal_income_tax = max(federal_income_tax - savers_credit, 0)
 
         #
         # Finally, calculate state taxes, if any.
@@ -419,13 +449,16 @@ def calculate_assets(
 
         total_taxes += this_years_taxes
 
-        #
-        # Calculate how much we can put into taxable, after spending.
-        #
-        income_after_taxes = this_years_income - this_years_taxes
+        ########################################################################
+        # Excess/Insufficent Funds
+        ########################################################################
 
+        #
+        # First, calculate the difference between our income and spending.
+        #
         difference = (
-            income_after_taxes
+            this_years_income
+            - this_years_taxes
             - spending
             - taxable_contribution
             - roth_contribution
@@ -435,6 +468,9 @@ def calculate_assets(
         leftover = max(0, difference)
         needed = abs(min(difference, 0))
 
+        #
+        # If we have excess funds, put it into taxable.
+        #
         if leftover:
             taxable += leftover
             total_contributions_taxable += leftover
