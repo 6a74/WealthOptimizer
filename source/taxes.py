@@ -1173,7 +1173,7 @@ states = {
     'WV': WestVirginia,
 }
 
-def calculate_state_taxes(agi, married, state, dependents=0):
+def calculate_state_tax(agi, married, state, dependents=0):
     assert agi >= 0
     if agi == 0 or states[state] is None:
         return 0
@@ -1290,7 +1290,7 @@ def calculate_savers_credit(agi, retirement_contributions, married):
         if agi >= limit:
             return qualified_retirement_contributions * credit_rate
 
-def calculate_estate_taxes(estate):
+def calculate_estate_tax(estate):
     assert estate > 0
     deduction = 11700000 # $11.7 million for 2021
     taxable_estate = max(0, estate - deduction)
@@ -1301,13 +1301,13 @@ def calculate_estate_taxes(estate):
         if taxable_estate > minimum:
             return base_tax + ((taxable_estate - minimum) * tax_rate)
 
-def calculate_minimum_remaining_taxes_for_heir(value, age):
+def calculate_minimum_remaining_tax_for_heir(value, age):
     total_taxes = 0
     while True:
         try:
             rmd = value/slet.withdrawal_factors[age]
             value -= rmd
-            total_taxes += calculate_taxes(rmd, True)
+            total_taxes += calculate_federal_income_tax(rmd, True)
         except KeyError:
             break
         age += 1
@@ -1316,7 +1316,7 @@ def calculate_minimum_remaining_taxes_for_heir(value, age):
 def get_standard_deduction(married):
     return 24800 if married else 12400
 
-def calculate_taxes(agi, married, state=None, dependents=0, ltcg=0, just_ltcg=False, debug=False):
+def calculate_federal_income_tax(agi, married, dependents=0, ltcg=0, just_ltcg=False, debug=False):
     def debug_print(line):
         if debug:
             print(line)
@@ -1335,12 +1335,6 @@ def calculate_taxes(agi, married, state=None, dependents=0, ltcg=0, just_ltcg=Fa
         income_to_tax -= taxable_income_at_rate
         if income_to_tax == 0:
             break
-
-    if state:
-        state_income_taxes = calculate_state_taxes(agi, married, state, dependents)
-        debug_print(f"${state_income_taxes:,.2f}\n")
-        income_taxes += state_income_taxes
-
     debug_print(f"============================================================================")
     debug_print(f"Total: ${income_taxes:,.2f}\n")
 
