@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import progressbar
 
 import sim
-import taxes as tm
+import state_taxes
 
 def main():
     parser = argparse.ArgumentParser(
@@ -108,14 +108,14 @@ def main():
         "--work-state",
         help="What state will you work in?",
         required=False,
-        choices=tm.states.keys(),
+        choices=state_taxes.states.keys(),
         default='TX'
     )
     parser.add_argument(
         "--retirement-state",
         help="What state will you retire in?",
         required=False,
-        choices=tm.states.keys(),
+        choices=state_taxes.states.keys(),
         default='TX'
     )
     parser.add_argument(

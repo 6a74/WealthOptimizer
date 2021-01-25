@@ -4,7 +4,8 @@ import argparse
 
 from tabulate import tabulate
 
-import taxes as tm
+import federal_taxes
+import state_taxes
 import ult
 
 def calculate_assets(
@@ -267,7 +268,7 @@ def calculate_assets(
                 # TODO: Maybe add a more granular approach, rather than an all
                 # or nothing approach.
                 #
-                if prefer_roth or not tm.fully_tax_deductible_ira(
+                if prefer_roth or not federal_taxes.fully_tax_deductible_ira(
                         would_be_agi_if_trad, married):
                     roth_contribution += contribution_ira
                 else:
@@ -291,18 +292,18 @@ def calculate_assets(
                 # calculate our taxes now.
                 #
                 taxable_income = this_years_income - tax_deductions
-                fica_tax = tm.calculate_fica_tax(this_years_income, married)
-                federal_income_tax = tm.calculate_federal_income_tax(
+                fica_tax = federal_taxes.calculate_fica_tax(this_years_income, married)
+                federal_income_tax = federal_taxes.calculate_federal_income_tax(
                     taxable_income,
                     married,
                     num_dependents(current_age)
                 )
-                federal_income_tax -= tm.calculate_savers_credit(
+                federal_income_tax -= federal_taxes.calculate_savers_credit(
                     taxable_income,
                     traditional_contribution + roth_contribution,
                     married
                 )
-                state_tax = tm.calculate_state_tax(
+                state_tax = state_taxes.calculate_state_tax(
                     taxable_income,
                     married,
                     current_state,
@@ -395,7 +396,7 @@ def calculate_assets(
                 earnings = taxable - total_contributions_taxable
                 earnings_ratio = earnings/taxable
                 ltcg = taxable_withdrawal * earnings_ratio
-                ltcg_taxes = tm.calculate_federal_income_tax(
+                ltcg_taxes = federal_taxes.calculate_federal_income_tax(
                     this_years_income,
                     married,
                     ltcg=ltcg,
@@ -465,7 +466,7 @@ def calculate_assets(
             # When calculating the FICA tax, we must not include retirement
             # distributions. These have already been taxed by FICA.
             #
-            fica_tax = tm.calculate_fica_tax(
+            fica_tax = federal_taxes.calculate_fica_tax(
                 max(this_years_income - traditional_withdrawal, 0),
                 married
             )
@@ -474,7 +475,7 @@ def calculate_assets(
             # Calculate the federal taxes. This includes the federal income tax
             # and FICA (social security and medicare) tax.
             #
-            federal_income_tax = tm.calculate_federal_income_tax(
+            federal_income_tax = federal_taxes.calculate_federal_income_tax(
                 taxable_income,
                 married,
                 num_dependents(current_age)
@@ -486,7 +487,7 @@ def calculate_assets(
             #
             savers_credit = 0
             if not retired:
-                savers_credit = tm.calculate_savers_credit(
+                savers_credit = federal_taxes.calculate_savers_credit(
                     taxable_income,
                     traditional_contribution + roth_contribution,
                     married
@@ -500,7 +501,7 @@ def calculate_assets(
             #
             # Finally, calculate state taxes, if any.
             #
-            state_tax = tm.calculate_state_tax(
+            state_tax = state_taxes.calculate_state_tax(
                 taxable_income,
                 married,
                 current_state,
@@ -677,7 +678,7 @@ def calculate_assets(
     # inheritance.
     #
     total_assets = roth + traditional + taxable
-    estate_tax = tm.calculate_estate_tax(total_assets)
+    estate_tax = federal_taxes.calculate_estate_tax(total_assets)
 
     #
     # This calculates the minimum tax your heir will be expected to pay as a
@@ -687,7 +688,7 @@ def calculate_assets(
     # difference in age, rather than a hardcoded value. To simplify our
     # calculation, we can assume everything goes to the eldest child.
     #
-    taxes_for_heir = tm.calculate_minimum_remaining_tax_for_heir(
+    taxes_for_heir = federal_taxes.calculate_minimum_remaining_tax_for_heir(
         traditional,
         age_of_death - 30
     )
@@ -844,14 +845,14 @@ def main():
         "--work-state",
         help="What state will you work in?",
         required=False,
-        choices=tm.states.keys(),
+        choices=state_taxes.states.keys(),
         default='TX'
     )
     parser.add_argument(
         "--retirement-state",
         help="What state will you retire in?",
         required=False,
-        choices=tm.states.keys(),
+        choices=state_taxes.states.keys(),
         default='TX'
     )
     parser.add_argument(
