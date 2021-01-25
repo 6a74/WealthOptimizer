@@ -5,7 +5,7 @@
 Many people in the [Bogleheads](https://www.bogleheads.org) community, a
 fantastic resource for investing advice, believe that it is almost always better
 to defer taxes (_i.e._ contribute to
-[Traditional](https://www.bogleheads.org/wiki/Traditional_IRA) accounts rather
+[traditional](https://www.bogleheads.org/wiki/Traditional_IRA) accounts rather
 than [Roth](https://www.bogleheads.org/wiki/Roth_IRA) accounts). I would like to
 make the case against the notion that deferring taxes is best for people that
 can "max out" their retirement accounts, like many individuals that read
@@ -15,7 +15,7 @@ Bogleheads can do.
 
 From the Bogleheads's [general
 guidelines](https://www.bogleheads.org/wiki/Traditional_versus_Roth#General_guidelines)
-on Traditional vs. Roth:
+on traditional vs. Roth:
 
 > Using 100% traditional because, for most people, traditional will be better.
 
