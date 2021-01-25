@@ -33,6 +33,7 @@ def calculate_assets(
         working_state,
         retirement_state,
         dependents,
+        public_safety_employee,
         debug=True,
         print_summary=False
     ):
@@ -144,6 +145,7 @@ def calculate_assets(
         "Dependents",
         "State",
         "State Tax",
+        "Wdrl. Penalty",
         "Federal Tax",
         "Tax %",
         "Total Taxes"
@@ -349,21 +351,6 @@ def calculate_assets(
             traditional += traditional_contribution
             total_contributions_roth += roth_contribution
             roth += roth_contribution
-        else:
-            #
-            # We have retired. While we're retired, but before RMDs, let's do
-            # some rollovers from our traditional to Roth accounts. This will
-            # allow the money to grow tax free in Roth accounts.
-            #
-            if current_age < age_to_start_rmds:
-                roth_conversion_amount = min(traditional, roth_conversion_amount)
-                this_years_income = roth_conversion_amount
-                roth_contribution += roth_conversion_amount
-                total_contributions_roth += roth_conversion_amount
-                roth += roth_conversion_amount
-                traditional_withdrawal = roth_conversion_amount
-                traditional -= roth_conversion_amount
-                this_years_roth_conversion = roth_conversion_amount
 
         ########################################################################
         # Required Minimum Distribution (RMD) Calculations
@@ -375,19 +362,16 @@ def calculate_assets(
             # deduction, and therefore would not be taxed. We should always take
             # at least that amount if possible.
             #
-            best_amount = tm.get_standard_deduction(married)
+            #best_amount = tm.get_standard_deduction(married)
             rmd = traditional/ult.withdrawal_factors[current_age]
-            withdrawal = max(rmd, best_amount)
-            if withdrawal >= traditional:
-                withdrawal = traditional
-            traditional -= withdrawal
-            this_years_income += withdrawal
         else:
             rmd = 0
 
         ########################################################################
         # Withdrawals
         ########################################################################
+
+        conversion_amount = 0
 
         roth_withdrawal = 0
         taxable_withdrawal = 0
@@ -397,19 +381,25 @@ def calculate_assets(
         total_assets = traditional + roth + taxable
         maximum_withdrawal = total_assets
         total_withdrawal = 0
+        penalty_fees = 0
 
         stop_simulation = False
+        _this_years_income = this_years_income
 
         while True:
             roth_withdrawal = 0
             taxable_withdrawal = 0
             traditional_withdrawal = 0
+            penalty_fees = 0
 
+            this_years_income = _this_years_income
             taxable_withdrawal = min(taxable, total_withdrawal)
 
             ltcg_taxes = 0
             if taxable_withdrawal:
-                ltcg = (taxable - total_contributions_taxable) * (taxable_withdrawal/taxable)
+                earnings = taxable - total_contributions_taxable
+                earnings_ratio = earnings/taxable
+                ltcg = taxable_withdrawal * earnings_ratio
                 ltcg_taxes = tm.calculate_federal_income_tax(
                     this_years_income,
                     married,
@@ -422,25 +412,66 @@ def calculate_assets(
                 total_withdrawal - taxable_withdrawal
             )
 
-            roth_withdrawal += min(
-                roth,
+            roth_with_interest_withdrawal = min(
+                roth - roth_withdrawal,
                 total_withdrawal - taxable_withdrawal - roth_withdrawal
             )
 
-            traditional_withdrawal += min(
+            #
+            # Police officers, firefighters, EMTs, and air traffic controllers
+            # are considered public safety employees, and they get a little
+            # extra time to access their qualified retirement plans. For them,
+            # the rule applies in the calendar year in which they turn 50.
+            #
+            # TODO: This does not apply to IRA withdrawals. Right now, this
+            # calculator is 401k/IRA agnostic. Until then, just assume the
+            # person has the funds in the 401k.
+            #
+            #
+            rule_of_55_age = 50 if public_safety_employee else 55
+            if current_age < 60:
+                if not current_age >= rule_of_55_age >= age_of_retirement:
+                    penalty_fees += roth_with_interest_withdrawal * 0.10
+
+            roth_gains = 0
+            if current_age < 72 and roth_with_interest_withdrawal:
+                earnings = roth - total_contributions_roth
+                earnings_ratio = earnings/roth
+                roth_gains = roth_with_interest_withdrawal * earnings_ratio
+
+            roth_withdrawal += roth_with_interest_withdrawal
+
+            traditional_withdrawal += max(min(
                 traditional,
                 total_withdrawal - taxable_withdrawal - roth_withdrawal
-            )
+            ), rmd)
 
-            _this_years_income = this_years_income + traditional_withdrawal
-            taxable_income = _this_years_income - tax_deductions
+            #
+            # Roth conversions. While we're retired, but before RMDs, let's do
+            # some rollovers from our traditional to Roth accounts. This will
+            # allow the money to grow tax free in Roth accounts.
+            #
+            if retired and current_age < age_to_start_rmds:
+                conversion_amount = min(
+                    traditional - traditional_withdrawal,
+                    roth_conversion_amount
+                )
+                this_years_roth_conversion = conversion_amount
+                traditional_withdrawal += conversion_amount
+
+            if current_age < 60:
+                if not current_age >= rule_of_55_age >= age_of_retirement:
+                    penalty_fees += traditional_withdrawal * 0.10
+
+            this_years_income += traditional_withdrawal + roth_gains
+            taxable_income = this_years_income - tax_deductions
 
             #
             # When calculating the FICA tax, we must not include retirement
             # distributions. These have already been taxed by FICA.
             #
             fica_tax = tm.calculate_fica_tax(
-                max(_this_years_income - traditional_withdrawal - rmd, 0),
+                max(this_years_income - traditional_withdrawal, 0),
                 married
             )
 
@@ -489,7 +520,7 @@ def calculate_assets(
             )
 
             result = (
-                _this_years_income
+                this_years_income
                 - this_years_taxes
                 - spending
                 - taxable_contribution
@@ -497,6 +528,8 @@ def calculate_assets(
                 - traditional_contribution
                 + taxable_withdrawal
                 + roth_withdrawal
+                - penalty_fees
+                - conversion_amount
             )
 
             #
@@ -539,6 +572,17 @@ def calculate_assets(
             else:
                 break
 
+        roth += conversion_amount
+        roth_contribution += conversion_amount
+        total_contributions_roth += conversion_amount
+
+        total_contributions_roth = max(
+            total_contributions_roth - roth_withdrawal, 0)
+        total_contributions_taxable = max(
+            total_contributions_taxable - taxable_withdrawal, 0)
+        total_contributions_traditional = max(
+            total_contributions_traditional - traditional_withdrawal, 0)
+
         roth -= roth_withdrawal
         taxable -= taxable_withdrawal
         traditional -= traditional_withdrawal
@@ -579,7 +623,7 @@ def calculate_assets(
             float(taxable_contribution),
             float(taxable_withdrawal),
             float(traditional_contribution),
-            float(rmd + traditional_withdrawal),
+            float(traditional_withdrawal),
             float(roth_contribution),
             float(roth_withdrawal),
             float(total_contributions_roth),
@@ -589,6 +633,7 @@ def calculate_assets(
             int(num_dependents(current_age)),
             current_state,
             float(state_tax),
+            float(penalty_fees),
             float(federal_income_tax + fica_tax),
             float(tax_rate),
             float(total_taxes)
@@ -858,6 +903,13 @@ if __name__ == "__main__":
         action='append'
     )
     parser.add_argument(
+        "--public-safety-employee",
+        help="Are you a public safety employee?",
+        required=False,
+        action='store_true',
+        default=False
+    )
+    parser.add_argument(
         "--verbose",
         help="Do things and talk more",
         action="store_true"
@@ -875,9 +927,10 @@ if __name__ == "__main__":
     #
     # There's a chance we could die before retirement.
     #
+    # TODO: Speed this up.
+    #
     if args.age_of_death > args.age_of_retirement:
-        #for x in range(1000):
-        for x in range(0):
+        for x in range(500):
             assets = calculate_assets(
                 args.principal_taxable,
                 args.principal_traditional,
@@ -903,13 +956,12 @@ if __name__ == "__main__":
                 args.working_state,
                 args.retirement_state,
                 args.add_dependent,
+                args.public_safety_employee,
                 debug=False
             )
             if assets > most_assets:
                 best_roth_conversion_amount = roth_conversion_amount
                 most_assets = assets
-            if assets < most_assets:
-                break
             roth_conversion_amount += 1000
 
     #
@@ -940,6 +992,7 @@ if __name__ == "__main__":
         args.working_state,
         args.retirement_state,
         args.add_dependent,
+        args.public_safety_employee,
         args.verbose,
         True
     )
