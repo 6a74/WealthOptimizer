@@ -7,7 +7,6 @@ from tabulate import tabulate
 import taxes as tm
 import ult
 
-
 def calculate_assets(
         taxable,
         traditional,
@@ -37,9 +36,7 @@ def calculate_assets(
         debug=True,
         print_summary=False
     ):
-    """This function will simulate the state of finances for each year until you
-    die, depending on the inputs of course!
-    """
+    """Simulate the state of finances for every year until you die."""
 
     def debug_print(line):
         if debug:
@@ -116,7 +113,7 @@ def calculate_assets(
             # refundable, so it may give a taxpayer a refund even if they don't
             # owe any tax.
             #
-            if dep <= current_age and (dep + 17) > current_age:
+            if dep <= current_age < (dep + 17):
                 count += 1
         return count
 
