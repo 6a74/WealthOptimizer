@@ -923,11 +923,6 @@ if __name__ == "__main__":
     roth_conversion_amount = 0
     best_roth_conversion_amount = 0
 
-    #
-    # There's a chance we could die before retirement.
-    #
-    # TODO: Speed this up.
-    #
     if args.age_of_death > args.age_of_retirement:
         for x in range(500):
             assets, traditional = calculate_assets(
