@@ -186,7 +186,7 @@ if __name__ == "__main__":
 
         if args.age_of_death > args.age_of_retirement:
             for x in range(500):
-                assets = sim.calculate_assets(
+                assets, traditional = sim.calculate_assets(
                     args.principal_taxable,
                     args.principal_traditional,
                     args.principal_roth,
@@ -214,6 +214,8 @@ if __name__ == "__main__":
                     args.public_safety_employee,
                     debug=False
                 )
+                if not traditional:
+                    break
                 if assets > most_assets:
                     best_roth_conversion_amount = roth_conversion_amount
                     most_assets = assets
@@ -245,7 +247,7 @@ if __name__ == "__main__":
             args.add_dependent,
             args.public_safety_employee,
             args.verbose
-        )
+        )[0]
 
     def scale(l):
         """Depending on the variables, these values can be part of a pretty wide

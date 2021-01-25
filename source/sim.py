@@ -186,7 +186,6 @@ def calculate_assets(
 
         tax_deductions = 0
         this_years_income = 0
-        this_years_roth_conversion = 0
 
         roth_contribution = 0
         taxable_contribution = 0
@@ -731,7 +730,7 @@ def calculate_assets(
             )
         )
 
-    return total_assets - total_taxes
+    return total_assets - total_taxes, traditional
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -931,7 +930,7 @@ if __name__ == "__main__":
     #
     if args.age_of_death > args.age_of_retirement:
         for x in range(500):
-            assets = calculate_assets(
+            assets, traditional = calculate_assets(
                 args.principal_taxable,
                 args.principal_traditional,
                 args.principal_roth,
@@ -959,6 +958,8 @@ if __name__ == "__main__":
                 args.public_safety_employee,
                 debug=False
             )
+            if not traditional:
+                break
             if assets > most_assets:
                 best_roth_conversion_amount = roth_conversion_amount
                 most_assets = assets
