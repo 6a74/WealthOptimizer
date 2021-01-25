@@ -489,7 +489,6 @@ def calculate_assets(
                 married,
                 num_dependents(current_age)
             )
-            print(taxable_income, federal_income_tax)
 
             #
             # Calculate saver's credit. This provides tax credits if you are low
