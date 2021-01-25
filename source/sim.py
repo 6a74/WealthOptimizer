@@ -30,7 +30,7 @@ def calculate_assets(
         ira_contribution_catch_up,
         ira_contribution_catch_up_age,
         do_mega_backdoor_roth,
-        working_state,
+        work_state,
         retirement_state,
         dependents,
         public_safety_employee,
@@ -76,7 +76,7 @@ def calculate_assets(
     params_table.append(["Yearly 401k Contribution Limit", f"${yearly_401k_total_contribution_limit:,.2f}"])
     params_table.append(["Yearly IRA Contribution Limit", f"${yearly_ira_contribution_limit:,.2f}"])
     params_table.append(["Do Mega-Backdoor Roth After Tax-Advantaged Limit?", do_mega_backdoor_roth])
-    params_table.append(["Working State", working_state])
+    params_table.append(["Work State", work_state])
     params_table.append(["Retirement State", retirement_state])
 
     debug_print(
@@ -184,7 +184,7 @@ def calculate_assets(
         #
         # If we have a different state set.
         #
-        current_state = retirement_state if retired else working_state
+        current_state = retirement_state if retired else work_state
 
         ########################################################################
         # Retirement Contribution Calculations
@@ -361,16 +361,9 @@ def calculate_assets(
         # Required Minimum Distribution (RMD) Calculations
         ########################################################################
 
+        rmd = 0
         if current_age >= age_to_start_rmds:
-            #
-            # The best amount here is the amount that's included in the standard
-            # deduction, and therefore would not be taxed. We should always take
-            # at least that amount if possible.
-            #
-            #best_amount = tm.get_standard_deduction(married)
             rmd = traditional/ult.withdrawal_factors[current_age]
-        else:
-            rmd = 0
 
         ########################################################################
         # Withdrawals
@@ -738,7 +731,7 @@ def calculate_assets(
 
     return total_assets - total_taxes, traditional
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Calculate RMDs",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -851,7 +844,7 @@ if __name__ == "__main__":
         default=60
     )
     parser.add_argument(
-        "--working-state",
+        "--work-state",
         help="What state will you work in?",
         required=False,
         choices=tm.states.keys(),
@@ -953,7 +946,7 @@ if __name__ == "__main__":
                 args.ira_contribution_catch_up,
                 args.ira_contribution_catch_up_age,
                 args.do_mega_backdoor_roth,
-                args.working_state,
+                args.work_state,
                 args.retirement_state,
                 args.add_dependent,
                 args.public_safety_employee,
@@ -991,10 +984,13 @@ if __name__ == "__main__":
         args.ira_contribution_catch_up,
         args.ira_contribution_catch_up_age,
         args.do_mega_backdoor_roth,
-        args.working_state,
+        args.work_state,
         args.retirement_state,
         args.add_dependent,
         args.public_safety_employee,
         args.verbose,
         True
     )
+
+if __name__ == "__main__":
+    main()
