@@ -25,7 +25,7 @@ class Withdrawal:
         return self.gains
 
     def get_insufficient(self):
-        return self.needed
+        return self.insufficient
 
 class Account:
     """
@@ -66,11 +66,14 @@ class Account:
     def get_gains_ratio(self):
         return self.get_gains()/self.get_value()
 
-    def withdrawal(self, needed):
+    def withdrawal(self, needed, dry_run=False):
         assert needed >= 0
         total_taken = 0
         still_needed = needed
         total_gains = 0
+
+        # Back up these values in case it's a dry run.
+        value, contributions = self.value, self.contributions
 
         while round(still_needed, 2):
             #
@@ -94,6 +97,9 @@ class Account:
             total_taken += to_take
             total_gains += to_take * ratio
             still_needed -= to_take
+
+        if dry_run:
+            self.value, self.contributions = value, contributions
 
         return Withdrawal(total_taken, total_gains, still_needed)
 
