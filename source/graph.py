@@ -217,7 +217,7 @@ def main():
                 if assets > most_assets:
                     best_roth_conversion_amount = roth_conversion_amount
                     most_assets = assets
-                if not traditional:
+                if round(traditional, 2) == 0:
                     break
                 roth_conversion_amount += 1000
 
