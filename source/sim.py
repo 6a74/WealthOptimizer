@@ -100,33 +100,38 @@ def calculate_assets(
     total_taxes = 0
 
     #
-    #
+    # These are our accounts:
     #
     taxable_account = Account(
+        name="Taxable",
         rate_of_return=rate_of_return,
         starting_balance=starting_balance_taxable,
         withdrawal_contributions_first=False
     )
 
     roth_401k = Account(
+        name="Roth 401k",
         rate_of_return=rate_of_return,
         starting_balance=starting_balance_roth_401k,
         withdrawal_contributions_first=True
     )
 
     roth_ira = Account(
+        name="Roth IRA",
         rate_of_return=rate_of_return,
         starting_balance=starting_balance_roth_ira,
         withdrawal_contributions_first=True
     )
 
     trad_401k = Account(
+        name="Traditional 401k",
         rate_of_return=rate_of_return,
         starting_balance=starting_balance_trad_401k,
         withdrawal_contributions_first=False
     )
 
     trad_ira = Account(
+        name="Traditional IRA",
         rate_of_return=rate_of_return,
         starting_balance=starting_balance_trad_ira,
         withdrawal_contributions_first=False
@@ -138,6 +143,7 @@ def calculate_assets(
     married = age_of_marriage < current_age
     retired = False
     prefer_roth = True
+    rule_of_55_age = 50 if public_safety_employee else 55
 
     def num_dependents(current_age):
         if dependents is None:
@@ -420,8 +426,8 @@ def calculate_assets(
         trad_401k_rmd = 0
         trad_ira_rmd = 0
         if current_age >= age_to_start_rmds:
-            trad_401k_rmd = trad_401k.get_value()/ult.withdrawal_factors[current_age]
-            trad_ira_rmd = trad_ira.get_value()/ult.withdrawal_factors[current_age]
+            trad_401k_rmd = round(trad_401k.get_value()/ult.withdrawal_factors[current_age], 2)
+            trad_ira_rmd = round(trad_ira.get_value()/ult.withdrawal_factors[current_age], 2)
 
         ########################################################################
         # Withdrawals
@@ -435,9 +441,10 @@ def calculate_assets(
             + roth_401k.get_value()
         )
 
-        minimum_withdrawal = 0
+        bare_minimum_withdrawal = trad_401k_rmd + trad_ira_rmd
+        minimum_withdrawal = bare_minimum_withdrawal
+        total_withdrawal = bare_minimum_withdrawal
         maximum_withdrawal = total_assets
-        total_withdrawal = 0
         penalty_fees = 0
 
         stop_simulation = False
@@ -465,37 +472,73 @@ def calculate_assets(
             penalty_fees = 0
 
             #
+            # First things first, take the RMDs.
+            #
+            trad_401k_withdrawal += trad_401k_rmd
+            trad_ira_withdrawal += trad_ira_rmd
+
+            #
+            # If we can withdrawal money without penalty, we should at least
+            # withdrawal the standard deduction, because this will not have
+            # federal income taxes.
+            #
+            if (current_age >= rule_of_55_age >= age_of_retirement) or current_age >= 60:
+                trad_401k_withdrawal += min(min(
+                    trad_401k.get_value() - trad_401k_withdrawal,
+                    max((
+                        federal_taxes.get_standard_deduction(married)
+                        - this_years_income
+                        - trad_401k_withdrawal
+                        - trad_ira_withdrawal
+                    ), 0)
+                ), whats_left_to_withdrawal())
+
+            if current_age > 60:
+                trad_ira_withdrawal += min(min(
+                    trad_ira.get_value() - trad_ira_withdrawal,
+                    max((
+                        federal_taxes.get_standard_deduction(married)
+                        - this_years_income
+                        - trad_401k_withdrawal
+                        - trad_ira_withdrawal
+                    ), 0)
+                ), whats_left_to_withdrawal())
+
+            #
             # TODO: Order withdrawals based on situation.
             #
-            taxable_withdrawal = min(
-                taxable_account.get_value(),
+            taxable_withdrawal += min(
+                taxable_account.get_value() - taxable_withdrawal,
                 whats_left_to_withdrawal()
             )
 
             ltcg_taxes = 0
             if taxable_withdrawal:
-                withdrawal = taxable_account.withdrawal(taxable_withdrawal, dry_run=True)
+                withdrawal = taxable_account.withdrawal(
+                    taxable_withdrawal,
+                    dry_run=True
+                )
                 ltcg_taxes = federal_taxes.calculate_federal_income_tax(
                     this_years_income, married,
                     ltcg=withdrawal.get_gains(), just_ltcg=True
                 )
 
-            roth_401k_withdrawal = min(
-                roth_401k.get_contributions(),
+            roth_401k_withdrawal += min(
+                roth_401k.get_contributions() - roth_401k_withdrawal,
                 whats_left_to_withdrawal()
             )
 
-            roth_ira_withdrawal = min(
-                roth_ira.get_contributions(),
+            roth_ira_withdrawal += min(
+                roth_ira.get_contributions() - roth_ira_withdrawal,
                 whats_left_to_withdrawal()
             )
 
-            roth_401k_with_interest_withdrawal = min(
+            roth_401k_with_interest_withdrawal += min(
                 roth_401k.get_value() - roth_401k_withdrawal,
                 whats_left_to_withdrawal()
             )
 
-            roth_ira_with_interest_withdrawal = min(
+            roth_ira_with_interest_withdrawal += min(
                 roth_ira.get_value() - roth_ira_withdrawal,
                 whats_left_to_withdrawal()
             )
@@ -511,15 +554,15 @@ def calculate_assets(
                     dry_run=True
                 ).get_gains()
 
-            trad_401k_withdrawal += max(min(
-                trad_401k.get_value(),
+            trad_401k_withdrawal += min(
+                trad_401k.get_value() - trad_401k_withdrawal,
                 whats_left_to_withdrawal()
-            ), trad_401k_rmd)
+            )
 
-            trad_ira_withdrawal += max(min(
-                trad_ira.get_value(),
+            trad_ira_withdrawal += min(
+                trad_ira.get_value() - trad_ira_withdrawal,
                 whats_left_to_withdrawal()
-            ), trad_ira_rmd)
+            )
 
             #
             # Roth conversions. While we're retired, but before RMDs, let's do
@@ -533,17 +576,11 @@ def calculate_assets(
                 desired_conversion_amount = roth_conversion_amount
 
                 trad_401k_conversion = min(
-                    (
-                        trad_401k.get_value()
-                        - trad_401k_withdrawal
-                    ),
+                    trad_401k.get_value() - trad_401k_withdrawal,
                     desired_conversion_amount
                 )
                 trad_ira_conversion = min(
-                    (
-                        trad_ira.get_value()
-                        - trad_ira_withdrawal
-                    ),
+                    trad_ira.get_value() - trad_ira_withdrawal,
                     desired_conversion_amount - trad_401k_conversion
                 )
 
@@ -674,7 +711,7 @@ def calculate_assets(
                 #
                 # We have excess money.
                 #
-                if round(total_withdrawal, 2) == 0:
+                if round(total_withdrawal, 2) == round(bare_minimum_withdrawal, 2):
                     taxable_contribution = result
                     taxable_account.contribute(taxable_contribution)
                     break
@@ -699,11 +736,16 @@ def calculate_assets(
             else:
                 break
 
-        assert roth_401k.withdrawal(roth_401k_withdrawal).get_insufficient() == 0
-        assert trad_401k.withdrawal(trad_401k_withdrawal).get_insufficient() == 0
-        assert roth_ira.withdrawal(roth_ira_withdrawal).get_insufficient() == 0
-        assert trad_ira.withdrawal(trad_ira_withdrawal).get_insufficient() == 0
-        assert taxable_account.withdrawal(taxable_withdrawal).get_insufficient() == 0
+        withdrawals = [
+            roth_401k.withdrawal(roth_401k_withdrawal),
+            trad_401k.withdrawal(trad_401k_withdrawal),
+            roth_ira.withdrawal(roth_ira_withdrawal),
+            trad_ira.withdrawal(trad_ira_withdrawal),
+            taxable_account.withdrawal(taxable_withdrawal)
+        ]
+
+        for withdrawal in withdrawals:
+            assert withdrawal.get_insufficient() == 0, withdrawal
 
         roth_ira_contribution += conversion_amount
         roth_ira.contribute(conversion_amount)
@@ -721,7 +763,14 @@ def calculate_assets(
         # Calculate the effective tax rate.
         #
         try:
-            tax_rate = (this_years_taxes/this_years_income) * 100
+            tax_rate = (
+                this_years_taxes /
+                (
+                    this_years_income
+                    + trad_401k_withdrawal
+                    + trad_ira_withdrawal
+                )
+            ) * 100
         except ZeroDivisionError:
             tax_rate = 0
 

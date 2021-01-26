@@ -5,18 +5,23 @@ class Withdrawal:
     This class represents a withdrawal. It stores relevant information.
     Withdrawals can be insufficient.
     """
-    def __init__(self, value, gains, insufficient=0):
+    def __init__(self, account_name, value, gains, insufficient=0):
+        self.account_name = account_name
         self.value = value
         self.gains = gains
         self.insufficient = insufficient
 
     def __repr__(self):
         return (
-            f"Withdrawal(value={self.value:,.2f}"
+            f"Withdrawal(account={repr(self.account_name)}"
+            + f" value={self.value:,.2f}"
             + f" gains={self.gains:,.2f}"
             + (f" insufficient={self.insufficient:,.2f}" if self.insufficient else "")
             + ")"
         )
+
+    def get_account_name(self):
+        return self.account
 
     def get_value(self):
         return self.value
@@ -31,7 +36,9 @@ class Account:
     """
     This class represents an account. It holds assets.
     """
-    def __init__(self, rate_of_return, starting_balance=0, withdrawal_contributions_first=False):
+    def __init__(self, name, rate_of_return, starting_balance=0,
+                 withdrawal_contributions_first=False):
+        self.name = name
         self.rate_of_return = rate_of_return
         self.withdrawal_contributions_first = withdrawal_contributions_first
         self.account_age = 0
@@ -40,12 +47,16 @@ class Account:
 
     def __repr__(self):
         return (
-            f"Account(age={self.account_age:d}"
+            f"Account(name={repr(self.name)}"
+            f" age={self.account_age:d}"
             f" value={self.get_value():,.2f}"
             f" gains={self.get_gains():,.2f}"
             f" contrs_first={self.withdrawal_contributions_first}"
             f")"
         )
+
+    def get_name(self):
+        return self.name
 
     def contribute(self, money):
         self.contributions += money
@@ -67,7 +78,8 @@ class Account:
         return self.get_gains()/self.get_value()
 
     def withdrawal(self, needed, dry_run=False):
-        assert needed >= 0
+        needed = round(needed, 2)
+        assert needed >= 0, needed
         total_taken = 0
         still_needed = needed
         total_gains = 0
@@ -101,7 +113,12 @@ class Account:
         if dry_run:
             self.value, self.contributions = value, contributions
 
-        return Withdrawal(total_taken, total_gains, still_needed)
+        return Withdrawal(
+            self.get_name(),
+            total_taken,
+            total_gains,
+            round(still_needed, 2)
+        )
 
     def increment(self):
         self.account_age += 1
