@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import argparse
+from rich.console import Console
+from rich.table import Table
 
 from tabulate import tabulate
 
@@ -9,6 +11,8 @@ import state_taxes
 import ult
 
 from account import Account
+
+console = Console()
 
 def calculate_assets(
         starting_balance_taxable,
@@ -161,42 +165,31 @@ def calculate_assets(
     if current_age > ira_contribution_catch_up_age:
         yearly_ira_contribution_limit += ira_contribution_catch_up
 
-    table = []
-    header = [
-        "Age",
-        "Married",
-        "Retired",
-        "Spending",
-        "Roth 401k",
-        "Roth 401k Cont.",
-        "Roth 401k With.",
-        "Roth 401k With. Int.",
-        "Roth IRA",
-        "Roth IRA Cont.",
-        "Roth IRA With.",
-        "Roth IRA With. Int.",
-        "Taxable",
-        "Taxable Cont.",
-        "Taxable With.",
-        "Trad 401k",
-        "Trad 401k Cont.",
-        "Trad 401k With.",
-        "Trad 401k RMD",
-        "Trad IRA",
-        "Trad IRA Cont.",
-        "Trad IRA With.",
-        "Trad IRA RMD",
-        "Gross Income",
-        "MAGI",
-        "Saver's Credit",
-        "Dependents",
-        "State",
-        "State Tax",
-        "With. Penalty",
-        "Federal Tax",
-        "Tax %",
-        "Total Taxes"
-    ]
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("Age", justify="right")
+    table.add_column("M", justify="center")
+    table.add_column("R", justify="center")
+    table.add_column("Roth 401k", justify="right")
+    table.add_column("Diff", justify="right")
+    table.add_column("Roth IRA", justify="right")
+    table.add_column("Diff", justify="right")
+    table.add_column("Taxable", justify="right")
+    table.add_column("Diff", justify="right")
+    table.add_column("Trad 401k", justify="right")
+    table.add_column("Diff", justify="right")
+    table.add_column("RMD", justify="right")
+    table.add_column("Trad IRA", justify="right")
+    table.add_column("Diff", justify="right")
+    table.add_column("RMD", justify="right")
+    table.add_column("MAGI", justify="right")
+    table.add_column("Spending", justify="right")
+    table.add_column("Deps", justify="center")
+    table.add_column("State", justify="center")
+    table.add_column("State Tax", justify="right")
+    table.add_column("Penalties", justify="right")
+    table.add_column("Federal Tax", justify="right")
+    table.add_column("Tax %", justify="right")
+    table.add_column("Total Taxes", justify="right")
 
     needed_to_continue = 0
 
@@ -759,45 +752,38 @@ def calculate_assets(
         except ZeroDivisionError:
             tax_rate = 0
 
+        this_years_federal_taxes = federal_income_tax + fica_tax
+
         #
         # We have finished the year. Add an entry to the table. This will get
         # printed when the simulation is over.
         #
-        table.append([
-            current_age,
-            married,
-            retired,
-            float(spending),
-            float(roth_401k.get_value()),
-            float(roth_401k_contribution),
-            float(roth_401k_withdrawal),
-            float(roth_401k_with_interest_withdrawal),
-            float(roth_ira.get_value()),
-            float(roth_ira_contribution),
-            float(roth_ira_withdrawal),
-            float(roth_ira_with_interest_withdrawal),
-            float(taxable_account.get_value()),
-            float(taxable_contribution),
-            float(taxable_withdrawal),
-            float(trad_401k.get_value()),
-            float(trad_401k_contribution),
-            float(trad_401k_withdrawal),
-            float(trad_401k_rmd),
-            float(trad_ira.get_value()),
-            float(trad_ira_contribution),
-            float(trad_ira_withdrawal),
-            float(trad_ira_rmd),
-            float(this_years_income),
-            float(taxable_income),
-            float(savers_credit),
-            int(num_dependents(current_age)),
-            current_state,
-            float(state_tax),
-            float(penalty_fees),
-            float(federal_income_tax + fica_tax),
-            float(tax_rate),
-            float(total_taxes)
-        ])
+        table.add_row(
+            f"{current_age}",
+            ":heart_eyes:" if married else "",
+            ":tada:" if retired else "",
+            f"{roth_401k.get_value():,.2f}",
+            f"{roth_401k.get_yearly_update()}",
+            f"{roth_ira.get_value():,.2f}",
+            f"{roth_ira.get_yearly_update()}",
+            f"{taxable_account.get_value():,.2f}",
+            f"{taxable_account.get_yearly_update()}",
+            f"{trad_401k.get_value():,.2f}",
+            f"{trad_401k.get_yearly_update()}",
+            f"[yellow]{trad_401k_rmd:,.2f}[/yellow]" if trad_401k_rmd else "",
+            f"{trad_ira.get_value():,.2f}",
+            f"{trad_ira.get_yearly_update()}",
+            f"[yellow]{trad_ira_rmd:,.2f}[/yellow]" if trad_ira_rmd else "",
+            f"[cyan]{taxable_income:,.2f}[/cyan]",
+            f"[red]{spending:,.2f}[/red]",
+            f"{num_dependents(current_age):d}",
+            f"{current_state}",
+            f"[red]{state_tax:,.2f}[/red]" if state_tax else "",
+            f"[red]{penalty_fees:,.2f}[/red]" if penalty_fees else "",
+            f"[red]{this_years_federal_taxes:,.2f}[/red]" if this_years_federal_taxes else "",
+            f"{tax_rate:,.2f}",
+            f"[purple]{total_taxes:,.2f}[/purple]",
+        )
 
         ########################################################################
         # Preparation for New Year
@@ -825,15 +811,8 @@ def calculate_assets(
     #
     # We have finished the simulation. Print the table.
     #
-    debug_print(
-        tabulate(
-            table,
-            header,
-            tablefmt="fancy_grid",
-            numalign="right",
-            floatfmt=",.2f"
-        )
-    )
+    if debug:
+        console.print(table, justify="left")
 
     if print_summary and needed_to_continue:
         print(f"Please enter ${needed_to_continue:,.2f} to continue playing.")
