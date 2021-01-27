@@ -626,13 +626,10 @@ def calculate_assets(
                 savers_credit = federal_taxes.calculate_savers_credit(
                     taxable_income,
                     (
-                        taxable_withdrawal
-                        + roth_401k_withdrawal
-                        + roth_ira_withdrawal
-                        + roth_401k_with_interest_withdrawal
-                        + roth_ira_with_interest_withdrawal
-                        + trad_401k_withdrawal
-                        + trad_ira_withdrawal
+                        roth_401k_contribution
+                        + roth_ira_contribution
+                        + trad_401k_contribution
+                        + trad_ira_contribution
                     ),
                     married
                 )
@@ -669,6 +666,8 @@ def calculate_assets(
                 - taxable_contribution
                 - roth_401k_contribution
                 - roth_ira_contribution
+                - trad_401k_contribution
+                - trad_ira_contribution
                 - conversion_amount
                 - penalty_fees
                 + taxable_withdrawal
