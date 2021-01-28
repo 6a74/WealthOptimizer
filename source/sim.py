@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
 
 import argparse
-
-from tabulate import tabulate
+from rich.console import Console
+from rich.table import Table
 
 import federal_taxes
 import state_taxes
 import ult
 
 from account import Account
+
+console = Console()
 
 def calculate_assets(
         starting_balance_taxable,
@@ -57,42 +59,35 @@ def calculate_assets(
     #
     # Input parameters:
     #
-    params_table = []
-    params_header = ["Field", "Value"]
-    params_table.append(["Starting Age", current_age])
-    params_table.append(["Age of Death", age_of_death])
-    params_table.append(["Age of Marriage", age_of_marriage])
-    params_table.append(["Age of Retirement", age_of_retirement])
-    params_table.append(["Age to Start RMDs", age_to_start_rmds])
-    params_table.append(["Starting Income", f"${income:,.2f}"])
-    params_table.append(["Max Income", f"${max_income:,.2f}" if max_income else None])
-    params_table.append(["Yearly Rate of Return", f"{(rate_of_return-1)*100:.2f}%"])
-    params_table.append(["Yearly Income Raise", f"{(yearly_income_raise-1)*100:.2f}%"])
-    params_table.append(["Starting Balance Taxable", f"${starting_balance_taxable:,.2f}"])
-    params_table.append(["Starting Balance Trad 401k", f"${starting_balance_trad_401k:,.2f}"])
-    params_table.append(["Starting Balance Trad IRA", f"${starting_balance_trad_ira:,.2f}"])
-    params_table.append(["Starting Balance Roth 401k", f"${starting_balance_roth_401k:,.2f}"])
-    params_table.append(["Starting Balance Roth IRA", f"${starting_balance_roth_ira:,.2f}"])
-    params_table.append(["Yearly Roth Conversion Amount", f"${roth_conversion_amount:,.2f}"])
-    params_table.append(["Years to Prefer Roth Contributions", years_until_transition_to_pretax_contributions])
-    params_table.append(["Yearly Spending", f"${spending:,.2f}"])
-    params_table.append(["Yearly 401k Pre-tax Limit", f"${yearly_401k_normal_contribution_limit:,.2f}"])
-    params_table.append(["Yearly 401k Contribution Limit", f"${yearly_401k_total_contribution_limit:,.2f}"])
-    params_table.append(["Yearly IRA Contribution Limit", f"${yearly_ira_contribution_limit:,.2f}"])
-    params_table.append(["Do Mega-Backdoor Roth After Tax-Advantaged Limit?", do_mega_backdoor_roth])
-    params_table.append(["Work State", work_state])
-    params_table.append(["Retirement State", retirement_state])
+    params_table = Table(show_header=True, header_style="bold magenta")
+    params_table.add_column("Field")
+    params_table.add_column("Value", justify="right")
+    params_table.add_row("Starting Age", str(current_age))
+    params_table.add_row("Age of Death", str(age_of_death))
+    params_table.add_row("Age of Marriage", str(age_of_marriage))
+    params_table.add_row("Age of Retirement", str(age_of_retirement))
+    params_table.add_row("Age to Start RMDs", str(age_to_start_rmds))
+    params_table.add_row("Starting Income", f"{income:,.2f}")
+    params_table.add_row("Max Income", f"{max_income:,.2f}" if max_income else None)
+    params_table.add_row("Yearly Rate of Return", f"{(rate_of_return-1)*100:.2f}%")
+    params_table.add_row("Yearly Income Raise", f"{(yearly_income_raise-1)*100:.2f}%")
+    params_table.add_row("Starting Balance Taxable", f"{starting_balance_taxable:,.2f}")
+    params_table.add_row("Starting Balance Trad 401k", f"{starting_balance_trad_401k:,.2f}")
+    params_table.add_row("Starting Balance Trad IRA", f"{starting_balance_trad_ira:,.2f}")
+    params_table.add_row("Starting Balance Roth 401k", f"{starting_balance_roth_401k:,.2f}")
+    params_table.add_row("Starting Balance Roth IRA", f"{starting_balance_roth_ira:,.2f}")
+    params_table.add_row("Yearly Roth Conversion Amount", f"{roth_conversion_amount:,.2f}")
+    params_table.add_row("Years to Prefer Roth Contributions", str(years_until_transition_to_pretax_contributions))
+    params_table.add_row("Yearly Spending", f"{spending:,.2f}")
+    params_table.add_row("Yearly 401k Pre-tax Limit", f"{yearly_401k_normal_contribution_limit:,.2f}")
+    params_table.add_row("Yearly 401k Contribution Limit", f"{yearly_401k_total_contribution_limit:,.2f}")
+    params_table.add_row("Yearly IRA Contribution Limit", f"{yearly_ira_contribution_limit:,.2f}")
+    params_table.add_row("Do Mega-Backdoor Roth After Tax-Advantaged Limit?", str(do_mega_backdoor_roth))
+    params_table.add_row("Work State", work_state)
+    params_table.add_row("Retirement State", retirement_state)
 
-    debug_print(
-        tabulate(
-            params_table,
-            params_header,
-            tablefmt="fancy_grid",
-            numalign="right",
-            floatfmt=",.2f",
-            colalign=("left", "right")
-        )
-    )
+    if debug:
+        console.print(params_table)
 
     #
     # These are life-time counters.
@@ -161,42 +156,31 @@ def calculate_assets(
     if current_age > ira_contribution_catch_up_age:
         yearly_ira_contribution_limit += ira_contribution_catch_up
 
-    table = []
-    header = [
-        "Age",
-        "Married",
-        "Retired",
-        "Spending",
-        "Roth 401k",
-        "Roth 401k Cont.",
-        "Roth 401k With.",
-        "Roth 401k With. Int.",
-        "Roth IRA",
-        "Roth IRA Cont.",
-        "Roth IRA With.",
-        "Roth IRA With. Int.",
-        "Taxable",
-        "Taxable Cont.",
-        "Taxable With.",
-        "Trad 401k",
-        "Trad 401k Cont.",
-        "Trad 401k With.",
-        "Trad 401k RMD",
-        "Trad IRA",
-        "Trad IRA Cont.",
-        "Trad IRA With.",
-        "Trad IRA RMD",
-        "Gross Income",
-        "MAGI",
-        "Saver's Credit",
-        "Dependents",
-        "State",
-        "State Tax",
-        "With. Penalty",
-        "Federal Tax",
-        "Tax %",
-        "Total Taxes"
-    ]
+    table = Table(show_header=True, header_style="bold magenta")
+    table.add_column("Age", justify="right")
+    table.add_column("M", justify="center")
+    table.add_column("R", justify="center")
+    table.add_column("Roth 401k", justify="right")
+    table.add_column("Diff", justify="right")
+    table.add_column("Roth IRA", justify="right")
+    table.add_column("Diff", justify="right")
+    table.add_column("Taxable", justify="right")
+    table.add_column("Diff", justify="right")
+    table.add_column("Trad 401k", justify="right")
+    table.add_column("Diff", justify="right")
+    table.add_column("RMD", justify="right")
+    table.add_column("Trad IRA", justify="right")
+    table.add_column("Diff", justify="right")
+    table.add_column("RMD", justify="right")
+    table.add_column("MAGI", justify="right")
+    table.add_column("Spending", justify="right")
+    table.add_column("Deps", justify="center")
+    table.add_column("State", justify="center")
+    table.add_column("State Tax", justify="right")
+    table.add_column("Penalties", justify="right")
+    table.add_column("Federal Tax", justify="right")
+    table.add_column("Tax %", justify="right")
+    table.add_column("Total Taxes", justify="right")
 
     needed_to_continue = 0
 
@@ -759,45 +743,38 @@ def calculate_assets(
         except ZeroDivisionError:
             tax_rate = 0
 
+        this_years_federal_taxes = federal_income_tax + fica_tax
+
         #
         # We have finished the year. Add an entry to the table. This will get
         # printed when the simulation is over.
         #
-        table.append([
-            current_age,
-            married,
-            retired,
-            float(spending),
-            float(roth_401k.get_value()),
-            float(roth_401k_contribution),
-            float(roth_401k_withdrawal),
-            float(roth_401k_with_interest_withdrawal),
-            float(roth_ira.get_value()),
-            float(roth_ira_contribution),
-            float(roth_ira_withdrawal),
-            float(roth_ira_with_interest_withdrawal),
-            float(taxable_account.get_value()),
-            float(taxable_contribution),
-            float(taxable_withdrawal),
-            float(trad_401k.get_value()),
-            float(trad_401k_contribution),
-            float(trad_401k_withdrawal),
-            float(trad_401k_rmd),
-            float(trad_ira.get_value()),
-            float(trad_ira_contribution),
-            float(trad_ira_withdrawal),
-            float(trad_ira_rmd),
-            float(this_years_income),
-            float(taxable_income),
-            float(savers_credit),
-            int(num_dependents(current_age)),
-            current_state,
-            float(state_tax),
-            float(penalty_fees),
-            float(federal_income_tax + fica_tax),
-            float(tax_rate),
-            float(total_taxes)
-        ])
+        table.add_row(
+            f"{current_age}",
+            ":heart_eyes:" if married else "",
+            ":tada:" if retired else "",
+            f"{roth_401k.get_value():,.2f}",
+            f"{roth_401k.get_yearly_diff()}",
+            f"{roth_ira.get_value():,.2f}",
+            f"{roth_ira.get_yearly_diff()}",
+            f"{taxable_account.get_value():,.2f}",
+            f"{taxable_account.get_yearly_diff()}",
+            f"{trad_401k.get_value():,.2f}",
+            f"{trad_401k.get_yearly_diff()}",
+            f"[yellow]{trad_401k_rmd:,.2f}[/yellow]" if trad_401k_rmd else "",
+            f"{trad_ira.get_value():,.2f}",
+            f"{trad_ira.get_yearly_diff()}",
+            f"[yellow]{trad_ira_rmd:,.2f}[/yellow]" if trad_ira_rmd else "",
+            f"[cyan]{taxable_income:,.2f}[/cyan]",
+            f"[red]{spending:,.2f}[/red]",
+            f"{num_dependents(current_age):d}",
+            f"{current_state}",
+            f"[red]{state_tax:,.2f}[/red]" if state_tax else "",
+            f"[red]{penalty_fees:,.2f}[/red]" if penalty_fees else "",
+            f"[red]{this_years_federal_taxes:,.2f}[/red]" if this_years_federal_taxes else "",
+            f"{tax_rate:,.2f}",
+            f"[purple]{total_taxes:,.2f}[/purple]",
+        )
 
         ########################################################################
         # Preparation for New Year
@@ -825,18 +802,13 @@ def calculate_assets(
     #
     # We have finished the simulation. Print the table.
     #
-    debug_print(
-        tabulate(
-            table,
-            header,
-            tablefmt="fancy_grid",
-            numalign="right",
-            floatfmt=",.2f"
-        )
-    )
+    if debug:
+        console.print(table, justify="left")
 
     if print_summary and needed_to_continue:
-        print(f"Please enter ${needed_to_continue:,.2f} to continue playing.")
+        console.print(":fire::fire::fire: "
+                      f"Please enter [underline]{needed_to_continue:,.2f}[/underline] to continue playing."
+                      " :fire::fire::fire:")
 
     #
     # Do not sell stocks before death. They get a "step up in basis" meaning the
@@ -877,30 +849,23 @@ def calculate_assets(
     #
     # Print a summary of things.
     #
-    summary_table = []
-    summary_header = ["Field", "Value at Death"]
-    summary_table.append(["Taxable", taxable_account.get_value()])
-    summary_table.append(["Trad 401k", trad_401k.get_value()])
-    summary_table.append(["Trad IRA", trad_ira.get_value()])
-    summary_table.append(["Roth 401k", roth_401k.get_value()])
-    summary_table.append(["Roth IRA", roth_ira.get_value()])
-    summary_table.append(["Min Tax for Heir", taxes_for_heir])
-    summary_table.append(["Estate Taxes", estate_tax])
-    summary_table.append(["Total Taxes", total_taxes])
-    summary_table.append(["Total Assets", total_assets])
-    summary_table.append(["Total Assets After Taxes", max(total_assets - death_tax, 0)])
-    summary_table.append(["Tax/Asset Ratio", tax_to_asset_ratio])
+    summary_table = Table(show_header=True, header_style="bold magenta")
+    summary_table.add_column("Field")
+    summary_table.add_column("Value at Death", justify="right")
+    summary_table.add_row("Taxable", f"{taxable_account.get_value():,.2f}")
+    summary_table.add_row("Trad 401k", f"{trad_401k.get_value():,.2f}")
+    summary_table.add_row("Trad IRA", f"{trad_ira.get_value():,.2f}")
+    summary_table.add_row("Roth 401k", f"{roth_401k.get_value():,.2f}")
+    summary_table.add_row("Roth IRA", f"{roth_ira.get_value():,.2f}")
+    summary_table.add_row("Min Tax for Heir", f"{taxes_for_heir:,.2f}")
+    summary_table.add_row("Estate Taxes", f"{estate_tax:,.2f}")
+    summary_table.add_row("Total Taxes", f"{total_taxes:,.2f}")
+    summary_table.add_row("Total Assets", f"{total_assets:,.2f}")
+    summary_table.add_row("Total Assets After Taxes", f"{max(total_assets - death_tax, 0):,.2f}")
+    summary_table.add_row("Tax/Asset Ratio", f"{tax_to_asset_ratio:,.2f}" if tax_to_asset_ratio else "")
 
-    if debug or print_summary:
-        print(
-            tabulate(
-                summary_table,
-                summary_header,
-                tablefmt="fancy_grid",
-                numalign="right",
-                floatfmt=",.2f"
-            )
-        )
+    if (debug or print_summary) and not stop_simulation:
+        console.print(summary_table)
 
     return total_assets - death_tax, (
         trad_401k.get_value()

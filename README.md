@@ -204,8 +204,7 @@ create an issue or send me an email.
 
 * [python](https://docs.python.org/3/whatsnew/3.8.html) (3.8+)
 * [matplotlib](https://matplotlib.org)
-* [progressbar2](https://pypi.org/project/progressbar2/)
-* [tablulate](https://pypi.org/project/tabulate/)
+* [rich](https://pypi.org/project/rich/)
 
 ## Rules and Assumptions
 
