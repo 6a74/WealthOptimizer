@@ -659,12 +659,13 @@ def calculate_assets(
                     dry_run=True
                 ).get_gains()
 
-            taxable_income = (
+            taxable_income = round(
                 this_years_income
                 + trad_401k_withdrawal
                 + trad_ira_withdrawal
                 + roth_gains
-                - tax_deductions
+                - tax_deductions,
+                2
             )
 
             #
@@ -1175,78 +1176,85 @@ def main():
         print("Retirement cannot be after death")
         return
 
-    with Live(transient=True, refresh_per_second=144) as live:
-        while True:
-            results = calculate_assets(
-                args.starting_balance_taxable,
-                args.starting_balance_trad_401k,
-                args.starting_balance_trad_ira,
-                args.starting_balance_roth_401k,
-                args.starting_balance_roth_ira,
-                args.rate_of_return,
-                args.years_to_wait,
-                args.current_age,
-                args.age_of_retirement,
-                args.age_to_start_rmds,
-                args.age_of_death,
-                roth_conversion_amount, # this is our variable
-                args.income,
-                args.yearly_income_raise,
-                args.max_income,
-                args.age_of_marriage,
-                args.spending,
-                args.yearly_401k_normal_contribution_limit,
-                args.yearly_401k_total_contribution_limit,
-                args.yearly_ira_contribution_limit,
-                args.ira_contribution_catch_up,
-                args.ira_contribution_catch_up_age,
-                args.do_mega_backdoor_roth,
-                args.work_state,
-                args.retirement_state,
-                args.add_dependent,
-                args.public_safety_employee
-            )
-            live.update(f"Simulating with Roth conversion: {roth_conversion_amount:,.2f}")
-            if round(results.assets, 2) >= round(most_assets, 2):
-                best_roth_conversion_amount = roth_conversion_amount
-                most_assets = results.assets
-            if round(results.traditional, 2) == 0:
-                break
-            roth_conversion_amount += args.roth_conversion_unit
+    try:
+        with Live(transient=True, refresh_per_second=144) as live:
+            while True:
+                results = calculate_assets(
+                    args.starting_balance_taxable,
+                    args.starting_balance_trad_401k,
+                    args.starting_balance_trad_ira,
+                    args.starting_balance_roth_401k,
+                    args.starting_balance_roth_ira,
+                    args.rate_of_return,
+                    args.years_to_wait,
+                    args.current_age,
+                    args.age_of_retirement,
+                    args.age_to_start_rmds,
+                    args.age_of_death,
+                    roth_conversion_amount, # this is our variable
+                    args.income,
+                    args.yearly_income_raise,
+                    args.max_income,
+                    args.age_of_marriage,
+                    args.spending,
+                    args.yearly_401k_normal_contribution_limit,
+                    args.yearly_401k_total_contribution_limit,
+                    args.yearly_ira_contribution_limit,
+                    args.ira_contribution_catch_up,
+                    args.ira_contribution_catch_up_age,
+                    args.do_mega_backdoor_roth,
+                    args.work_state,
+                    args.retirement_state,
+                    args.add_dependent,
+                    args.public_safety_employee
+                )
+                live.update("Simulating with Roth conversion: "
+                            f"{roth_conversion_amount:,.2f}")
+                if round(results.assets, 2) >= round(most_assets, 2):
+                    best_roth_conversion_amount = roth_conversion_amount
+                    most_assets = results.assets
+                if round(results.traditional, 2) == 0:
+                    break
+                roth_conversion_amount += args.roth_conversion_unit
+
+        #
+        # Now that we know all of the variables, run the simulation.
+        #
+        results = calculate_assets(
+            args.starting_balance_taxable,
+            args.starting_balance_trad_401k,
+            args.starting_balance_trad_ira,
+            args.starting_balance_roth_401k,
+            args.starting_balance_roth_ira,
+            args.rate_of_return,
+            args.years_to_wait,
+            args.current_age,
+            args.age_of_retirement,
+            args.age_to_start_rmds,
+            args.age_of_death,
+            best_roth_conversion_amount,
+            args.income,
+            args.yearly_income_raise,
+            args.max_income,
+            args.age_of_marriage,
+            args.spending,
+            args.yearly_401k_normal_contribution_limit,
+            args.yearly_401k_total_contribution_limit,
+            args.yearly_ira_contribution_limit,
+            args.ira_contribution_catch_up,
+            args.ira_contribution_catch_up_age,
+            args.do_mega_backdoor_roth,
+            args.work_state,
+            args.retirement_state,
+            args.add_dependent,
+            args.public_safety_employee,
+        )
+    except KeyboardInterrupt:
+        return
 
     #
-    # Now that we know all of the variables, run the simulation.
+    # Print stuff to the console if the user wants it.
     #
-    results = calculate_assets(
-        args.starting_balance_taxable,
-        args.starting_balance_trad_401k,
-        args.starting_balance_trad_ira,
-        args.starting_balance_roth_401k,
-        args.starting_balance_roth_ira,
-        args.rate_of_return,
-        args.years_to_wait,
-        args.current_age,
-        args.age_of_retirement,
-        args.age_to_start_rmds,
-        args.age_of_death,
-        best_roth_conversion_amount,
-        args.income,
-        args.yearly_income_raise,
-        args.max_income,
-        args.age_of_marriage,
-        args.spending,
-        args.yearly_401k_normal_contribution_limit,
-        args.yearly_401k_total_contribution_limit,
-        args.yearly_ira_contribution_limit,
-        args.ira_contribution_catch_up,
-        args.ira_contribution_catch_up_age,
-        args.do_mega_backdoor_roth,
-        args.work_state,
-        args.retirement_state,
-        args.add_dependent,
-        args.public_safety_employee,
-    )
-
     console = Console()
     if args.show_params:
         console.print(results.params_table)
