@@ -54,7 +54,9 @@ class Account:
             f"Account(name={repr(self.name)}"
             f" age={self.account_age:d}"
             f" value={self.get_value():,.2f}"
+            f" basis={self.get_basis():,.2f}"
             f" gains={self.get_gains():,.2f}"
+            f" conts={self.get_contributions():,.2f}"
             f" contrs_first={self.withdrawal_contributions_first}"
             f")"
         )
@@ -102,7 +104,7 @@ class Account:
         total_gains = 0
 
         # Back up these values in case it's a dry run.
-        value, basis = self.value, self.basis
+        value, basis, conts = self.value, self.basis, self.contributions
 
         while round(still_needed, 2):
             #
@@ -122,13 +124,15 @@ class Account:
 
             self.value -= to_take
             self.basis -= to_take * (1 - ratio)
+            self.contributions -= to_take * (1 - ratio)
+            self.contributions = max(self.contributions, 0)
 
             total_taken += to_take
             total_gains += to_take * ratio
             still_needed -= to_take
 
         if dry_run:
-            self.value, self.basis = value, basis
+            self.value, self.basis, self.contributions = value, basis, conts
         if not dry_run:
             self.yearly_diff[self.account_age] -= total_taken
 
@@ -141,8 +145,18 @@ class Account:
 
     def increment(self):
         self.account_age += 1
-        self.value *= self.rate_of_return
         self.yearly_diff.append(0)
+
+        #
+        # If the account is empty, there's a chance the value will become 0.01
+        # with compounded interest. This looks bad.
+        #
+        if round(self.value, 2) == 0:
+            self.value = 0
+            self.basis = 0
+            self.contributions = 0
+        else:
+            self.value *= self.rate_of_return
 
 
 if __name__ == "__main__":
