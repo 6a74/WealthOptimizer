@@ -179,7 +179,6 @@ def calculate_assets(
     table.add_column("State Tax", justify="right")
     table.add_column("Penalties", justify="right")
     table.add_column("Federal Tax", justify="right")
-    table.add_column("Tax %", justify="right")
     table.add_column("Total Taxes", justify="right")
 
     needed_to_continue = 0
@@ -416,6 +415,8 @@ def calculate_assets(
         )
 
         bare_minimum_withdrawal = trad_401k_rmd + trad_ira_rmd
+        if retired and (current_age < age_to_start_rmds):
+            bare_minimum_withdrawal += roth_conversion_amount
         minimum_withdrawal = bare_minimum_withdrawal
         total_withdrawal = bare_minimum_withdrawal
         maximum_withdrawal = total_assets
@@ -435,6 +436,12 @@ def calculate_assets(
             roth_401k_with_interest_withdrawal = 0
             roth_ira_with_interest_withdrawal = 0
 
+            ltcg_taxes = 0
+            penalty_fees = 0
+            conversion_amount = 0
+            roth_gains = 0
+            savers_credit = 0
+
             def whats_left_to_withdrawal():
                 return (
                     total_withdrawal
@@ -446,13 +453,32 @@ def calculate_assets(
                     - trad_ira_withdrawal
                 )
 
-            penalty_fees = 0
-
             #
             # First things first, take the RMDs.
             #
             trad_401k_withdrawal += trad_401k_rmd
             trad_ira_withdrawal += trad_ira_rmd
+
+            #
+            # Roth conversions. While we're retired, but before RMDs, let's do
+            # some rollovers from our traditional to Roth accounts. This will
+            # allow the money to grow tax free in Roth accounts.
+            #
+            # TODO: Be sure to enforce the 5 year maturity rule.
+            #
+            if retired and (current_age < age_to_start_rmds):
+                trad_401k_conversion = min(
+                    trad_401k.get_value() - trad_401k_withdrawal,
+                    roth_conversion_amount
+                )
+                trad_ira_conversion = min(
+                    trad_ira.get_value() - trad_ira_withdrawal,
+                    roth_conversion_amount - trad_401k_conversion
+                )
+
+                conversion_amount = trad_401k_conversion + trad_ira_conversion
+                trad_401k_withdrawal += trad_401k_conversion
+                trad_ira_withdrawal += trad_ira_conversion
 
             #
             # If we can withdrawal money without penalty, we should at least
@@ -470,6 +496,30 @@ def calculate_assets(
                     ), 0)
                 ), whats_left_to_withdrawal())
 
+            #
+            # If we didn't get enough from the traditional 401k, the next best
+            # option is taxable. Up until the $80k mark for married folk. This
+            # is a lot of space.
+            #
+            # If we're younger than 60, we want to do this before we try to
+            # withdrawal from IRAs, because those will be penalized.
+            #
+            if current_age < 60:
+                taxable_withdrawal += min(min(
+                    taxable_account.get_value() - taxable_withdrawal,
+                    whats_left_to_withdrawal()
+                ), max(federal_taxes.zero_tax_ltcg_income(married) - (
+                        this_years_income
+                        + trad_401k_withdrawal
+                        + trad_ira_withdrawal
+                        - tax_deductions
+                    ), 0)
+                )
+
+            #
+            # Next, if we didn't have enough in taxable, we should take from the
+            # traditional IRA up to the standard deduction, so it's not taxed.
+            #
             if current_age >= 60:
                 trad_ira_withdrawal += min(min(
                     trad_ira.get_value() - trad_ira_withdrawal,
@@ -481,22 +531,50 @@ def calculate_assets(
                     ), 0)
                 ), whats_left_to_withdrawal())
 
-            taxable_withdrawal += min(
+            #
+            # This will withdrawal whatever we need from the LTCG zero bracket
+            # regardless of age.
+            #
+            taxable_withdrawal += min(min(
                 taxable_account.get_value() - taxable_withdrawal,
                 whats_left_to_withdrawal()
+            ), max(federal_taxes.zero_tax_ltcg_income(married) - (
+                    this_years_income
+                    + trad_401k_withdrawal
+                    + trad_ira_withdrawal
+                    - tax_deductions
+                ), 0)
             )
 
-            ltcg_taxes = 0
-            if taxable_withdrawal:
-                withdrawal = taxable_account.withdrawal(
-                    taxable_withdrawal,
-                    dry_run=True
-                )
-                ltcg_taxes = federal_taxes.calculate_federal_income_tax(
-                    this_years_income, married,
-                    ltcg=withdrawal.get_gains(), just_ltcg=True
-                )
+            #
+            # Next, regardless of penalty, take the standard deduction.
+            #
+            trad_401k_withdrawal += min(min(
+                trad_401k.get_value() - trad_401k_withdrawal,
+                max((
+                    federal_taxes.get_standard_deduction(married)
+                    - this_years_income
+                    - trad_401k_withdrawal
+                    - trad_ira_withdrawal
+                ), 0)
+            ), whats_left_to_withdrawal())
 
+            #
+            # If the trad 401k runs out of money, this will cover the rest.
+            #
+            trad_ira_withdrawal += min(min(
+                trad_ira.get_value() - trad_ira_withdrawal,
+                max((
+                    federal_taxes.get_standard_deduction(married)
+                    - this_years_income
+                    - trad_401k_withdrawal
+                    - trad_ira_withdrawal
+                ), 0)
+            ), whats_left_to_withdrawal())
+
+            #
+            # This will be penalty free.
+            #
             roth_401k_withdrawal += min(
                 roth_401k.get_contributions() - roth_401k_withdrawal,
                 whats_left_to_withdrawal()
@@ -506,6 +584,18 @@ def calculate_assets(
                 whats_left_to_withdrawal()
             )
 
+            #
+            # Time to drain our taxable account. Everything else will cost us.
+            # LTCG will be cheaper than income tax.
+            #
+            taxable_withdrawal += min(
+                taxable_account.get_value() - taxable_withdrawal,
+                whats_left_to_withdrawal()
+            )
+
+            #
+            # We'll have to pay some level of income tax on this.
+            #
             trad_401k_withdrawal += min(
                 trad_401k.get_value() - trad_401k_withdrawal,
                 whats_left_to_withdrawal()
@@ -515,6 +605,12 @@ def calculate_assets(
                 whats_left_to_withdrawal()
             )
 
+            #
+            # Unless we're younger than 60, we'll have to pay income tax on the
+            # gains. If we're this far, that means we have already extracted all
+            # of our contributions, meaning this whole thing will be treated as
+            # income.
+            #
             roth_401k_with_interest_withdrawal += min(
                 roth_401k.get_value() - roth_401k_withdrawal,
                 whats_left_to_withdrawal()
@@ -523,40 +619,6 @@ def calculate_assets(
                 roth_ira.get_value() - roth_ira_withdrawal,
                 whats_left_to_withdrawal()
             )
-
-            roth_gains = 0
-            if current_age < 72:
-                roth_gains += roth_401k.withdrawal(
-                    roth_401k_with_interest_withdrawal,
-                    dry_run=True
-                ).get_gains()
-                roth_gains += roth_ira.withdrawal(
-                    roth_ira_with_interest_withdrawal,
-                    dry_run=True
-                ).get_gains()
-
-            #
-            # Roth conversions. While we're retired, but before RMDs, let's do
-            # some rollovers from our traditional to Roth accounts. This will
-            # allow the money to grow tax free in Roth accounts.
-            #
-            # TODO: Be sure to enforce the 5 year maturity rule.
-            #
-            conversion_amount = 0
-            if retired and current_age < age_to_start_rmds:
-                desired_conversion_amount = roth_conversion_amount
-                trad_401k_conversion = min(
-                    trad_401k.get_value() - trad_401k_withdrawal,
-                    desired_conversion_amount
-                )
-                trad_ira_conversion = min(
-                    trad_ira.get_value() - trad_ira_withdrawal,
-                    desired_conversion_amount - trad_401k_conversion
-                )
-
-                conversion_amount = trad_401k_conversion + trad_ira_conversion
-                trad_401k_withdrawal += trad_401k_conversion
-                trad_ira_withdrawal += trad_ira_conversion
 
             #
             # Police officers, firefighters, EMTs, and air traffic controllers
@@ -575,6 +637,21 @@ def calculate_assets(
                     penalty_fees += roth_401k_withdrawal * 0.10
                     penalty_fees += trad_401k_withdrawal * 0.10
 
+            #
+            # If you’re over 59½ and your account is at least five years old,
+            # you can withdraw contributions and earnings with no tax or
+            # penalty. We don't support half ages.
+            #
+            if current_age < 60:
+                roth_gains += roth_401k.withdrawal(
+                    roth_401k_with_interest_withdrawal,
+                    dry_run=True
+                ).get_gains()
+                roth_gains += roth_ira.withdrawal(
+                    roth_ira_with_interest_withdrawal,
+                    dry_run=True
+                ).get_gains()
+
             taxable_income = (
                 this_years_income
                 + trad_401k_withdrawal
@@ -582,6 +659,19 @@ def calculate_assets(
                 + roth_gains
                 - tax_deductions
             )
+
+            #
+            # Now that we know our taxable income, we can calculate LTCG tax.
+            #
+            if taxable_withdrawal:
+                withdrawal = taxable_account.withdrawal(
+                    taxable_withdrawal,
+                    dry_run=True
+                )
+                ltcg_taxes = federal_taxes.calculate_federal_income_tax(
+                    taxable_income, married, ltcg=withdrawal.get_gains(),
+                    just_ltcg=True
+                )
 
             #
             # When calculating the FICA tax, we must not include retirement
@@ -606,7 +696,6 @@ def calculate_assets(
             # Calculate saver's credit. This provides tax credits if you are low
             # income and made retirement contributions.
             #
-            savers_credit = 0
             if not retired:
                 savers_credit = federal_taxes.calculate_savers_credit(
                     taxable_income,
@@ -720,28 +809,16 @@ def calculate_assets(
         # Now is the time to do the Roth conversion.
         #
         roth_ira_contribution += conversion_amount
-        roth_ira.contribute(conversion_amount)
+        roth_ira.contribute(conversion_amount, rollover=True)
 
+        #
+        # Now that we've finalized our withdrawals, we know our taxes.
+        #
         total_taxes += this_years_taxes
 
         ########################################################################
         # Data Collection
         ########################################################################
-
-        #
-        # Calculate the effective tax rate.
-        #
-        try:
-            tax_rate = (
-                this_years_taxes /
-                (
-                    this_years_income
-                    + trad_401k_withdrawal
-                    + trad_ira_withdrawal
-                )
-            ) * 100
-        except ZeroDivisionError:
-            tax_rate = 0
 
         this_years_federal_taxes = federal_income_tax + fica_tax
 
@@ -772,7 +849,6 @@ def calculate_assets(
             f"[red]{state_tax:,.2f}[/red]" if state_tax else "",
             f"[red]{penalty_fees:,.2f}[/red]" if penalty_fees else "",
             f"[red]{this_years_federal_taxes:,.2f}[/red]" if this_years_federal_taxes else "",
-            f"{tax_rate:,.2f}",
             f"[purple]{total_taxes:,.2f}[/purple]",
         )
 
@@ -809,9 +885,9 @@ def calculate_assets(
         console.print(table, justify="left")
 
     if print_summary and needed_to_continue:
-        console.print(":fire::fire::fire: "
-                      f"Please enter [underline]{needed_to_continue:,.2f}[/underline] to continue playing."
-                      " :fire::fire::fire:")
+        console.print(":fire::fire::fire: Please enter "
+                      f"[underline]{needed_to_continue:,.2f}[/underline]"
+                      " to continue playing. :fire::fire::fire:")
 
     #
     # Do not sell stocks before death. They get a "step up in basis" meaning the
@@ -1119,7 +1195,7 @@ def main():
                 args.public_safety_employee,
                 debug=False
             )
-            if assets > most_assets:
+            if round(assets, 2) >= round(most_assets, 2):
                 best_roth_conversion_amount = roth_conversion_amount
                 most_assets = assets
             if round(traditional, 2) == 0:

@@ -45,6 +45,11 @@ married_ltcg_brackets = [
     (0.20, sys.float_info.max),
 ]
 
+def zero_tax_ltcg_income(married):
+    if married:
+        return married_ltcg_brackets[0][1]
+    return single_ltcg_brackets[0][1]
+
 estate_tax_brackets = [
     (0,       0,      0.18),
     (10000,   1800,   0.20),
