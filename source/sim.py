@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-
+#
 import argparse
-from rich.console import Console
+
 from rich.table import Table
+from rich.live import Live
+from rich.console import Console
 
 import federal_taxes
 import state_taxes
@@ -10,7 +12,20 @@ import ult
 
 from account import Account
 
-console = Console()
+
+class SimulationResults:
+    """
+    This is a container for all of the return values.
+    """
+    def __init__(self, assets, traditional, params_table, math_table,
+                 summary_table, needed_to_continue):
+        self.assets = assets
+        self.traditional = traditional
+        self.params_table = params_table
+        self.math_table = math_table
+        self.summary_table = summary_table
+        self.needed_to_continue = needed_to_continue
+
 
 def calculate_assets(
         starting_balance_taxable,
@@ -39,10 +54,7 @@ def calculate_assets(
         work_state,
         retirement_state,
         dependents,
-        public_safety_employee,
-        show_params=False,
-        show_math=False,
-        show_summary=False
+        public_safety_employee
     ):
     """Simulate the state of finances for every year until you die."""
     assert current_age <= 115
@@ -82,9 +94,6 @@ def calculate_assets(
     params_table.add_row("Do Mega-Backdoor Roth After Tax-Advantaged Limit?", str(do_mega_backdoor_roth))
     params_table.add_row("Work State", work_state)
     params_table.add_row("Retirement State", retirement_state)
-
-    if show_summary and show_params:
-        console.print(params_table)
 
     #
     # These are life-time counters.
@@ -877,17 +886,6 @@ def calculate_assets(
                 income = min(income, max_income)
 
     #
-    # We have finished the simulation. Print the table.
-    #
-    if show_summary and show_math:
-        console.print(table, justify="left")
-
-    if show_summary and needed_to_continue:
-        console.print(":fire::fire::fire: Please enter "
-                      f"[underline]{needed_to_continue:,.2f}[/underline]"
-                      " to continue playing. :fire::fire::fire:")
-
-    #
     # Do not sell stocks before death. They get a "step up in basis" meaning the
     # basis changes. The heir will only be responsible for gains after
     # inheritance.
@@ -941,13 +939,15 @@ def calculate_assets(
     summary_table.add_row("Total Assets After Taxes", f"{max(total_assets - death_tax, 0):,.2f}")
     summary_table.add_row("Tax/Asset Ratio", f"{tax_to_asset_ratio:,.2f}" if tax_to_asset_ratio else "")
 
-    if show_summary and not stop_simulation:
-        console.print(summary_table)
-
-    return total_assets - death_tax, (
-        trad_401k.get_value()
-        + trad_ira.get_value()
+    return SimulationResults(
+        total_assets - death_tax,
+        trad_401k.get_value() + trad_ira.get_value(),
+        params_table,
+        table,
+        summary_table,
+        needed_to_continue
     )
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -1156,6 +1156,11 @@ def main():
         help="Show the calculation table.",
         action="store_true"
     )
+    parser.add_argument(
+        "--show-summary",
+        help="Show the summary table.",
+        action="store_true"
+    )
 
     args = parser.parse_args()
 
@@ -1166,9 +1171,13 @@ def main():
     roth_conversion_amount = 0
     best_roth_conversion_amount = 0
 
-    if args.age_of_death > args.age_of_retirement:
+    if not args.age_of_death > args.age_of_retirement:
+        print("Retirement cannot be after death")
+        return
+
+    with Live(transient=True, refresh_per_second=144) as live:
         while True:
-            assets, traditional = calculate_assets(
+            results = calculate_assets(
                 args.starting_balance_taxable,
                 args.starting_balance_trad_401k,
                 args.starting_balance_trad_ira,
@@ -1195,21 +1204,20 @@ def main():
                 args.work_state,
                 args.retirement_state,
                 args.add_dependent,
-                args.public_safety_employee,
-                show_params=args.show_params,
-                show_math=args.show_math
+                args.public_safety_employee
             )
-            if round(assets, 2) >= round(most_assets, 2):
+            live.update(f"Simulating with Roth conversion: {roth_conversion_amount:,.2f}")
+            if round(results.assets, 2) >= round(most_assets, 2):
                 best_roth_conversion_amount = roth_conversion_amount
-                most_assets = assets
-            if round(traditional, 2) == 0:
+                most_assets = results.assets
+            if round(results.traditional, 2) == 0:
                 break
             roth_conversion_amount += args.roth_conversion_unit
 
     #
     # Now that we know all of the variables, run the simulation.
     #
-    calculate_assets(
+    results = calculate_assets(
         args.starting_balance_taxable,
         args.starting_balance_trad_401k,
         args.starting_balance_trad_ira,
@@ -1237,10 +1245,26 @@ def main():
         args.retirement_state,
         args.add_dependent,
         args.public_safety_employee,
-        show_params=args.show_params,
-        show_math=args.show_math,
-        show_summary=True
     )
+
+    console = Console()
+    if args.show_params:
+        console.print(results.params_table)
+    if args.show_math:
+        console.print(results.math_table)
+    if args.show_summary:
+        console.print(results.summary_table)
+
+    #
+    # If the user didn't specify to show anything, print the math table.
+    #
+    if not any([args.show_params, args.show_math, args.show_summary]):
+        console.print(results.math_table)
+
+    if results.needed_to_continue:
+        console.print(":fire::fire::fire: Please enter "
+                      f"[underline]{needed_to_continue:,.2f}[/underline]"
+                      " to continue playing. :fire::fire::fire:")
 
 if __name__ == "__main__":
     main()
