@@ -230,8 +230,7 @@ def main():
                     args.work_state,
                     args.retirement_state,
                     args.add_dependent,
-                    args.public_safety_employee,
-                    debug=False
+                    args.public_safety_employee
                 )
                 if round(assets, 2) >= round(most_assets, 2):
                     best_roth_conversion_amount = roth_conversion_amount
@@ -267,8 +266,7 @@ def main():
             args.work_state,
             args.retirement_state,
             args.add_dependent,
-            args.public_safety_employee,
-            debug=False
+            args.public_safety_employee
         )[0]
 
     def scale(values):
