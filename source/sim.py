@@ -80,11 +80,15 @@ class Simulation:
         self.params_table.add_row("Starting Balance Roth IRA", f"{starting_balance_roth_ira:,.2f}")
         self.params_table.add_row("Yearly Roth Conversion Amount", f"{roth_conversion_amount:,.2f}")
         self.params_table.add_row("Years to Prefer Roth Contributions", str(years_to_wait))
-        self.params_table.add_row("Yearly Spending", f"{spending:,.2f}")
-        self.params_table.add_row("Yearly HSA Contribution Limit", f"{yearly_hsa_contribution_limit:,.2f}")
-        self.params_table.add_row("Yearly 401k Normal Contribution Limit", f"{yearly_401k_normal_contribution_limit:,.2f}")
-        self.params_table.add_row("Yearly 401k Total Contribution Limit", f"{yearly_401k_total_contribution_limit:,.2f}")
-        self.params_table.add_row("Yearly IRA Contribution Limit", f"{yearly_ira_contribution_limit:,.2f}")
+        self.params_table.add_row("Spending", f"{spending:,.2f}")
+        self.params_table.add_row("HSA Contribution Limit", f"{yearly_hsa_contribution_limit:,.2f}")
+        self.params_table.add_row("HSA Catch-up Contribution", f"{hsa_contribution_catch_up:,.2f}")
+        self.params_table.add_row("HSA Catch-up Contribution Age", f"{hsa_contribution_catch_up_age:d}")
+        self.params_table.add_row("401k Normal Contribution Limit", f"{yearly_401k_normal_contribution_limit:,.2f}")
+        self.params_table.add_row("401k Total Contribution Limit", f"{yearly_401k_total_contribution_limit:,.2f}")
+        self.params_table.add_row("IRA Contribution Limit", f"{yearly_ira_contribution_limit:,.2f}")
+        self.params_table.add_row("IRA Catch-up Contribution", f"{ira_contribution_catch_up:,.2f}")
+        self.params_table.add_row("IRA Catch-up Contribution Age", f"{ira_contribution_catch_up_age:d}")
         self.params_table.add_row("Do Mega-Backdoor Roth After Tax-Advantaged Limit?", str(mega_backdoor_roth))
         self.params_table.add_row("Work State", work_state)
         self.params_table.add_row("Retirement State", retirement_state)
@@ -423,33 +427,36 @@ class Simulation:
         """
         return self.roth_conversion_amount
 
-    def get_death_tax(self):
-        """
-        This calculates how much we would owe if we died right now.
-        """
-        #
-        # XXX: Do not sell stocks before death. They get a "step up in basis"
-        # meaning the basis changes. The heir will only be responsible for gains
-        # after inheritance.
-        #
-        estate_tax = federal_taxes.calculate_estate_tax(self.get_total_assets())
+    def get_estate_tax(self):
+        return federal_taxes.calculate_estate_tax(self.get_total_assets())
 
-        #
-        # This calculates the minimum tax your heir will be expected to pay as a
-        # result of RMDs. This assumes they have no income.
+    def get_taxes_for_heir(self):
+        """
+        This calculates the minimum tax your heir will be expected to pay as a
+        result of RMDs. This assumes they have no income.
+        """
         #
         # TODO: If the user specifies a dependent, use that to determine the
         # difference in age, rather than a hardcoded value. To simplify our
         # calculation, we can assume everything goes to the eldest child.
         #
-        taxes_for_heir = federal_taxes.calculate_minimum_remaining_tax_for_heir(
+        return federal_taxes.calculate_minimum_remaining_tax_for_heir(
             (
                 self.accounts.trad_401k.get_value()
                 + self.accounts.trad_ira.get_value()
             ),
             self.get_current_age() - 30
         )
-        return estate_tax + taxes_for_heir
+
+    def get_death_tax(self):
+        """
+        This calculates how much we would owe if we died right now.
+
+        Note: Do not sell stocks before death. They get a "step up in basis"
+        meaning the basis changes. The heir will only be responsible for gains
+        after inheritance.
+        """
+        return self.get_estate_tax() + self.get_taxes_for_heir()
 
     def get_total_taxes(self):
         return self.total_taxes
@@ -586,10 +593,13 @@ class Simulation:
 
                 #
                 # We know about all of our tax deductions, we can accurately
-                # calculate our taxes now.
+                # calculate our taxes now. HSAs are not taxed by FICA.
                 #
                 taxable_income = this_years_income - tax_deductions
-                fica_tax = federal_taxes.calculate_fica_tax(this_years_income, self.is_married())
+                fica_tax = federal_taxes.calculate_fica_tax(
+                    this_years_income - hsa_contribution,
+                    self.is_married()
+                )
                 federal_income_tax = federal_taxes.calculate_federal_income_tax(
                     taxable_income,
                     self.is_married(),
@@ -973,7 +983,7 @@ class Simulation:
             # distributions. These have already been taxed by FICA.
             #
             fica_tax = federal_taxes.calculate_fica_tax(
-                max(this_years_income, 0),
+                this_years_income - hsa_contribution,
                 self.is_married()
             )
 
@@ -1205,8 +1215,8 @@ class Simulation:
         summary_table.add_row("Trad IRA", f"{self.accounts.trad_ira.get_value():,.2f}")
         summary_table.add_row("Roth 401k", f"{self.accounts.roth_401k.get_value():,.2f}")
         summary_table.add_row("Roth IRA", f"{self.accounts.roth_ira.get_value():,.2f}")
-        summary_table.add_row("Min Tax for Heir", f"{taxes_for_heir:,.2f}")
-        summary_table.add_row("Estate Taxes", f"{estate_tax:,.2f}")
+        summary_table.add_row("Min Tax for Heir", f"{self.get_taxes_for_heir():,.2f}")
+        summary_table.add_row("Estate Taxes", f"{self.get_estate_tax():,.2f}")
         summary_table.add_row("Total Taxes", f"{self.get_total_taxes():,.2f}")
         summary_table.add_row("Total Assets", f"{self.get_total_assets():,.2f}")
         summary_table.add_row("Total Assets After Taxes", f"{max(self.get_total_assets_after_death(), 0):,.2f}")
@@ -1557,7 +1567,7 @@ def main():
             args.work_state,
             args.retirement_state,
             args.add_dependent,
-            args.public_safety_employee,
+            args.public_safety_employee
         )
         simulation.simulate()
     except KeyboardInterrupt:
