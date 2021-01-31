@@ -65,6 +65,7 @@ class Account:
         return self.name
 
     def contribute(self, money, rollover=False):
+        assert money >= 0, money
         self.basis += money
         self.value += money
         self.yearly_diff[self.account_age] += money

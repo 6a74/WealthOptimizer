@@ -413,7 +413,6 @@ class Simulation:
             + self.accounts.roth_ira.get_value()
             + self.accounts.roth_401k.get_value()
         )
-
     def do_roth_conversion(self):
         return self.is_retired() and not self.must_take_rmds()
 
@@ -469,9 +468,10 @@ class Simulation:
         tax_deductions = 0
         this_years_income = 0
 
-        #
-        # Our contributions for this year.
-        #
+        ########################################################################
+        # Contributions
+        ########################################################################
+
         hsa_contribution = 0
         taxable_contribution = 0
         roth_401k_contribution = 0
@@ -506,6 +506,16 @@ class Simulation:
                 trad_401k_contribution = 0
                 trad_ira_contribution = 0
 
+                def whats_left_to_contribute():
+                    return (
+                        total_contribution_limit
+                        - hsa_contribution
+                        - roth_401k_contribution
+                        - roth_ira_contribution
+                        - trad_401k_contribution
+                        - trad_ira_contribution
+                    )
+
                 #
                 # Since HSAs are the ultimate retirement account, contribute to
                 # them first.
@@ -515,7 +525,7 @@ class Simulation:
                 hsa_contribution += min(min(
                     this_years_income,
                     self.get_hsa_contribution_limit()
-                ), total_contribution_limit)
+                ), whats_left_to_contribute())
 
                 #
                 # Calculate 401k contribution.
@@ -524,12 +534,12 @@ class Simulation:
                     roth_401k_contribution += min(min(
                         this_years_income,
                         self.get_401k_normal_contribution_limit()
-                    ), total_contribution_limit)
+                    ), whats_left_to_contribute())
                 else:
                     trad_401k_contribution += min(min(
                         this_years_income,
                         self.get_401k_normal_contribution_limit()
-                    ), total_contribution_limit)
+                    ), whats_left_to_contribute())
 
                 #
                 # Calculate IRA contribution. If there are no tax deductions for
@@ -538,15 +548,12 @@ class Simulation:
                 #
                 would_be_ira_contribution = min(
                     min(this_years_income, self.get_ira_contribution_limit()),
-                    (
-                        total_contribution_limit
-                        - roth_401k_contribution
-                        - trad_401k_contribution
-                    )
+                    whats_left_to_contribute()
                 )
 
                 would_be_agi_if_trad = (
                     this_years_income
+                    - hsa_contribution
                     - trad_401k_contribution
                     - would_be_ira_contribution
                 )
@@ -567,13 +574,7 @@ class Simulation:
                 if self.do_mega_backdoor_roth():
                     after_tax_contribution = min(
                         min(this_years_income, self.get_401k_total_contribution_limit()),
-                        (
-                            total_contribution_limit
-                            - roth_401k_contribution
-                            - trad_401k_contribution
-                            - roth_ira_contribution
-                            - trad_ira_contribution
-                        )
+                        whats_left_to_contribute()
                     )
                     roth_ira_contribution += after_tax_contribution
 
@@ -597,6 +598,9 @@ class Simulation:
                 federal_income_tax -= federal_taxes.calculate_savers_credit(
                     taxable_income,
                     (
+                        #
+                        # HSA is not to be included in this list.
+                        #
                         roth_401k_contribution
                         + trad_401k_contribution
                         + roth_ira_contribution
@@ -623,6 +627,7 @@ class Simulation:
                     - fica_tax
                     - federal_income_tax
                     - state_tax
+                    - hsa_contribution
                     - roth_401k_contribution
                     - trad_401k_contribution
                     - roth_ira_contribution
@@ -809,16 +814,6 @@ class Simulation:
             )
 
             #
-            # We're old, we need money, and we've run out of money in other
-            # accounts. Non-qualified withdrawals will be treated as income.
-            #
-            if self.can_make_hsa_withdrawal_penalty_free():
-                hsa_withdrawal += min(
-                    self.accounts.hsa.get_value() - hsa_withdrawal,
-                    whats_left_to_withdrawal()
-                )
-
-            #
             # Next, regardless of penalty, take the standard deduction.
             #
             trad_401k_withdrawal += min(min(
@@ -878,6 +873,16 @@ class Simulation:
             )
 
             #
+            # We're old, we need money, and we've run out of money in other
+            # accounts. Non-qualified withdrawals will be treated as income.
+            #
+            if self.can_make_hsa_withdrawal_penalty_free():
+                hsa_withdrawal += min(
+                    self.accounts.hsa.get_value() - hsa_withdrawal,
+                    whats_left_to_withdrawal()
+                )
+
+            #
             # Unless we're younger than 60, we'll have to pay income tax on the
             # gains. If we're this far, that means we have already extracted all
             # of our contributions, meaning this whole thing will be treated as
@@ -893,7 +898,7 @@ class Simulation:
             )
 
             #
-            # I think that HSA early withdrawal penalties are the worse, and as
+            # I think that HSA early withdrawal penalties are the worse and, as
             # of 2021, you must be five years older than other retirement
             # accounts.
             #
