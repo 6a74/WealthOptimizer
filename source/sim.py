@@ -13,28 +13,19 @@ import ult
 from account import Account
 
 
-class SimulationResults:
+class Simulation:
     """
-    This is a container for all of the return values.
+    Simulate the state of finances for every year until you die.
     """
-    def __init__(self, assets, traditional, params_table, math_table,
-                 summary_table, needed_to_continue):
-        self.assets = assets
-        self.traditional = traditional
-        self.params_table = params_table
-        self.math_table = math_table
-        self.summary_table = summary_table
-        self.needed_to_continue = needed_to_continue
 
-
-def calculate_assets(
+    def __init__(self,
         starting_balance_taxable,
         starting_balance_trad_401k,
         starting_balance_trad_ira,
         starting_balance_roth_401k,
         starting_balance_roth_ira,
         rate_of_return,
-        years_until_transition_to_pretax_contributions,
+        years_to_wait,
         current_age,
         age_of_retirement,
         age_to_start_rmds,
@@ -50,179 +41,388 @@ def calculate_assets(
         yearly_ira_contribution_limit,
         ira_contribution_catch_up,
         ira_contribution_catch_up_age,
-        do_mega_backdoor_roth,
+        mega_backdoor_roth,
         work_state,
         retirement_state,
         dependents,
         public_safety_employee
     ):
-    """Simulate the state of finances for every year until you die."""
-    assert current_age <= 115
-    assert age_of_death <= 115
-    assert income >= 0
-    if max_income:
-        assert max_income >= income
-    assert current_age < age_of_death
-    assert yearly_401k_total_contribution_limit >= yearly_401k_normal_contribution_limit
+        assert 0 <= current_age <= age_of_death <= 115
+        assert income >= 0
+        if max_income:
+            assert max_income >= income
+        assert yearly_401k_total_contribution_limit >= yearly_401k_normal_contribution_limit
 
-    #
-    # Input parameters:
-    #
-    params_table = Table(show_header=True, header_style="bold magenta")
-    params_table.add_column("Field")
-    params_table.add_column("Value", justify="right")
-    params_table.add_row("Starting Age", str(current_age))
-    params_table.add_row("Age of Death", str(age_of_death))
-    params_table.add_row("Age of Marriage", str(age_of_marriage))
-    params_table.add_row("Age of Retirement", str(age_of_retirement))
-    params_table.add_row("Age to Start RMDs", str(age_to_start_rmds))
-    params_table.add_row("Starting Income", f"{income:,.2f}")
-    params_table.add_row("Max Income", f"{max_income:,.2f}" if max_income else None)
-    params_table.add_row("Yearly Rate of Return", f"{(rate_of_return-1)*100:.2f}%")
-    params_table.add_row("Yearly Income Raise", f"{(yearly_income_raise-1)*100:.2f}%")
-    params_table.add_row("Starting Balance Taxable", f"{starting_balance_taxable:,.2f}")
-    params_table.add_row("Starting Balance Trad 401k", f"{starting_balance_trad_401k:,.2f}")
-    params_table.add_row("Starting Balance Trad IRA", f"{starting_balance_trad_ira:,.2f}")
-    params_table.add_row("Starting Balance Roth 401k", f"{starting_balance_roth_401k:,.2f}")
-    params_table.add_row("Starting Balance Roth IRA", f"{starting_balance_roth_ira:,.2f}")
-    params_table.add_row("Yearly Roth Conversion Amount", f"{roth_conversion_amount:,.2f}")
-    params_table.add_row("Years to Prefer Roth Contributions", str(years_until_transition_to_pretax_contributions))
-    params_table.add_row("Yearly Spending", f"{spending:,.2f}")
-    params_table.add_row("Yearly 401k Pre-tax Limit", f"{yearly_401k_normal_contribution_limit:,.2f}")
-    params_table.add_row("Yearly 401k Contribution Limit", f"{yearly_401k_total_contribution_limit:,.2f}")
-    params_table.add_row("Yearly IRA Contribution Limit", f"{yearly_ira_contribution_limit:,.2f}")
-    params_table.add_row("Do Mega-Backdoor Roth After Tax-Advantaged Limit?", str(do_mega_backdoor_roth))
-    params_table.add_row("Work State", work_state)
-    params_table.add_row("Retirement State", retirement_state)
+        #
+        # Input parameters:
+        #
+        self.params_table = Table(show_header=True, header_style="bold magenta")
+        self.params_table.add_column("Field")
+        self.params_table.add_column("Value", justify="right")
+        self.params_table.add_row("Starting Age", str(current_age))
+        self.params_table.add_row("Age of Death", str(age_of_death))
+        self.params_table.add_row("Age of Marriage", str(age_of_marriage))
+        self.params_table.add_row("Age of Retirement", str(age_of_retirement))
+        self.params_table.add_row("Age to Start RMDs", str(age_to_start_rmds))
+        self.params_table.add_row("Starting Income", f"{income:,.2f}")
+        self.params_table.add_row("Max Income", f"{max_income:,.2f}" if max_income else None)
+        self.params_table.add_row("Yearly Rate of Return", f"{(rate_of_return-1)*100:.2f}%")
+        self.params_table.add_row("Yearly Income Raise", f"{(yearly_income_raise-1)*100:.2f}%")
+        self.params_table.add_row("Starting Balance Taxable", f"{starting_balance_taxable:,.2f}")
+        self.params_table.add_row("Starting Balance Trad 401k", f"{starting_balance_trad_401k:,.2f}")
+        self.params_table.add_row("Starting Balance Trad IRA", f"{starting_balance_trad_ira:,.2f}")
+        self.params_table.add_row("Starting Balance Roth 401k", f"{starting_balance_roth_401k:,.2f}")
+        self.params_table.add_row("Starting Balance Roth IRA", f"{starting_balance_roth_ira:,.2f}")
+        self.params_table.add_row("Yearly Roth Conversion Amount", f"{roth_conversion_amount:,.2f}")
+        self.params_table.add_row("Years to Prefer Roth Contributions", str(years_to_wait))
+        self.params_table.add_row("Yearly Spending", f"{spending:,.2f}")
+        self.params_table.add_row("Yearly 401k Pre-tax Limit", f"{yearly_401k_normal_contribution_limit:,.2f}")
+        self.params_table.add_row("Yearly 401k Contribution Limit", f"{yearly_401k_total_contribution_limit:,.2f}")
+        self.params_table.add_row("Yearly IRA Contribution Limit", f"{yearly_ira_contribution_limit:,.2f}")
+        self.params_table.add_row("Do Mega-Backdoor Roth After Tax-Advantaged Limit?", str(mega_backdoor_roth))
+        self.params_table.add_row("Work State", work_state)
+        self.params_table.add_row("Retirement State", retirement_state)
 
-    #
-    # These are life-time counters.
-    #
-    total_taxes = 0
+        class Accounts:
+            """This class is just used as a container."""
 
-    #
-    # These are our accounts:
-    #
-    taxable_account = Account(
-        name="Taxable",
-        rate_of_return=rate_of_return,
-        starting_balance=starting_balance_taxable,
-        withdrawal_contributions_first=False
-    )
-    roth_401k = Account(
-        name="Roth 401k",
-        rate_of_return=rate_of_return,
-        starting_balance=starting_balance_roth_401k,
-        withdrawal_contributions_first=True
-    )
-    roth_ira = Account(
-        name="Roth IRA",
-        rate_of_return=rate_of_return,
-        starting_balance=starting_balance_roth_ira,
-        withdrawal_contributions_first=True
-    )
-    trad_401k = Account(
-        name="Traditional 401k",
-        rate_of_return=rate_of_return,
-        starting_balance=starting_balance_trad_401k,
-        withdrawal_contributions_first=False
-    )
-    trad_ira = Account(
-        name="Traditional IRA",
-        rate_of_return=rate_of_return,
-        starting_balance=starting_balance_trad_ira,
-        withdrawal_contributions_first=False
-    )
+        #
+        # These are our accounts:
+        #
+        self.accounts = Accounts()
+        self.accounts.taxable = Account(
+            name="Taxable",
+            rate_of_return=rate_of_return,
+            starting_balance=starting_balance_taxable,
+            withdrawal_contributions_first=False
+        )
+        self.accounts.roth_401k = Account(
+            name="Roth 401k",
+            rate_of_return=rate_of_return,
+            starting_balance=starting_balance_roth_401k,
+            withdrawal_contributions_first=True
+        )
+        self.accounts.roth_ira = Account(
+            name="Roth IRA",
+            rate_of_return=rate_of_return,
+            starting_balance=starting_balance_roth_ira,
+            withdrawal_contributions_first=True
+        )
+        self.accounts.trad_401k = Account(
+            name="Traditional 401k",
+            rate_of_return=rate_of_return,
+            starting_balance=starting_balance_trad_401k,
+            withdrawal_contributions_first=False
+        )
+        self.accounts.trad_ira = Account(
+            name="Traditional IRA",
+            rate_of_return=rate_of_return,
+            starting_balance=starting_balance_trad_ira,
+            withdrawal_contributions_first=False
+        )
 
-    #
-    # The initial values for life events.
-    #
-    married = age_of_marriage < current_age
-    retired = False
-    prefer_roth = True
-    rule_of_55_age = 50 if public_safety_employee else 55
+        #
+        # Static variables:
+        #
+        self.age_of_death = age_of_death
+        self.age_of_marriage = age_of_marriage
+        self.age_of_retirement = age_of_retirement
+        self.age_to_start_rmds = age_to_start_rmds
+        self.dependents = dependents
+        self.max_income = max_income
+        self.mega_backdoor_roth = mega_backdoor_roth
+        self.public_safety_employee = public_safety_employee
+        self.retirement_state = retirement_state
+        self.roth_conversion_amount = roth_conversion_amount
+        self.spending = spending
+        self.starting_age = current_age
+        self.starting_income = income
+        self.work_state = work_state
+        self.yearly_income_raise = yearly_income_raise
+        self.years_to_wait = years_to_wait
 
-    def num_dependents(current_age):
-        if dependents is None:
+        #
+        # Dynamic variables:
+        #
+        self.year = 0
+        self.total_taxes = 0
+        self.needed_to_continue = 0
+
+        #
+        # Contribution limits:
+        #
+        self.yearly_401k_normal_contribution_limit = yearly_401k_normal_contribution_limit
+        self.yearly_401k_total_contribution_limit = yearly_401k_total_contribution_limit
+        self.yearly_ira_contribution_limit = yearly_ira_contribution_limit
+        self.ira_contribution_catch_up = ira_contribution_catch_up
+        self.ira_contribution_catch_up_age = ira_contribution_catch_up_age
+
+        #
+        # This will contain a table with all of our math.
+        #
+        self.table = Table(show_header=True, header_style="bold magenta")
+        self.table.add_column("Age", justify="right")
+        self.table.add_column("M", justify="center")
+        self.table.add_column("R", justify="center")
+        self.table.add_column("Roth 401k", justify="right")
+        self.table.add_column("Diff", justify="right")
+        self.table.add_column("Roth IRA", justify="right")
+        self.table.add_column("Diff", justify="right")
+        self.table.add_column("Taxable", justify="right")
+        self.table.add_column("Diff", justify="right")
+        self.table.add_column("Trad 401k", justify="right")
+        self.table.add_column("Diff", justify="right")
+        self.table.add_column("RMD", justify="right")
+        self.table.add_column("Trad IRA", justify="right")
+        self.table.add_column("Diff", justify="right")
+        self.table.add_column("RMD", justify="right")
+        self.table.add_column("MAGI", justify="right")
+        self.table.add_column("Spending", justify="right")
+        self.table.add_column("Deps", justify="center")
+        self.table.add_column("State", justify="center")
+        self.table.add_column("State Tax", justify="right")
+        self.table.add_column("Penalties", justify="right")
+        self.table.add_column("Federal Tax", justify="right")
+        self.table.add_column("Total Taxes", justify="right")
+
+    def get_needed_to_continue(self):
+        """
+        During the simulation, if you run out of money, this variable will be
+        set to a positive value. If this variable is zero when the simulation is
+        complete, that means you died with money remaining. This is ideal. But
+        if this variable is non-zero, that means you were unable to meet your
+        financial obligations.
+        """
+        return self.needed_to_continue
+
+    def stop_simulation(self):
+        """
+        We should stop the simulation if we run out of money or we are dead.
+        """
+        if self.get_needed_to_continue():
+            return True
+        return not self.is_alive()
+
+    def get_simulation_year(self):
+        """
+        This is the current year in the simulation. This will range between zero
+        and (age of death - starting age).
+        """
+        return self.year
+
+    def is_alive(self):
+        return self.get_current_age() < self.age_of_death
+
+    def get_current_age(self):
+        return self.starting_age + self.year
+
+    def is_married(self):
+        return self.get_current_age() >= self.age_of_marriage
+
+    def get_age_of_retirement(self):
+        return self.age_of_retirement
+
+    def is_retired(self):
+        return self.get_current_age() >= self.get_age_of_retirement()
+
+    def get_current_state(self):
+        return self.retirement_state if self.is_retired() else self.work_state
+
+    def get_income(self):
+        """
+        This is calculated based on what the simulation year is. If you have a
+        yearly income raise, your income will be compounded until it hits the
+        income ceiling.
+        """
+        if self.is_retired():
+            return 0
+        multiplier = self.yearly_income_raise ** self.get_simulation_year()
+        return max(self.starting_income * multiplier, self.max_income)
+
+    def get_spending(self):
+        return self.spending
+
+    def get_rule_of_55_age(self):
+        """
+        Under the terms of this rule, you can withdraw funds from your current
+        job’s 401(k) or 403(b) plan with no 10% tax penalty if you leave that
+        job in or after the year you turn 55. (Qualified public safety workers
+        can start even earlier, at 50.) It doesn’t matter whether you were laid
+        off, fired, or just quit.
+
+        https://smartasset.com/retirement/401k-55-rule
+        """
+        return 50 if self.public_safety_employee else 55
+
+    def can_make_401k_withdrawal_penalty_free(self):
+        """
+        Check if we can withdrawal without penalty. This depends on how old we
+        are, when we retired, and what our profession is.
+        """
+        if self.get_current_age() >= 60:
+            return True
+        if self.is_retired():
+            if self.age_of_retirement >= self.get_rule_of_55_age():
+                return True
+        return False
+
+    def can_make_ira_withdrawal_penalty_free(self):
+        """
+        IRA withdrawal rules are pretty simple. There are no exceptions that I
+        am aware of.
+        """
+        return self.get_current_age() >= 60
+
+    def roth_gains_are_taxable(self):
+        """
+        You can withdrawal Roth contributions at anytime without penalty, but
+        you cannot always withdraw the gains. Like IRA rules, this is pretty
+        simple. There are no exceptions to this.
+        """
+        return self.get_current_age() < 60
+
+    def prefer_roth(self):
+        """
+        The "years to wait" variable is how many years we wait until start to
+        prefer traditional contributions. This is a bit confusing, I'm sorry.
+        """
+        return self.years_to_wait > self.get_simulation_year()
+
+    def must_take_rmds(self):
+        return self.get_current_age() >= self.age_to_start_rmds
+
+    def get_rmd(self, value):
+        return round(value/ult.withdrawal_factors[self.get_current_age()], 2)
+
+    def get_num_dependents(self):
+        """
+        The dependents variable is a list of ages that you introduce a new
+        dependent (presumably a child) into your life. We assume that these
+        people are only dependents for 16 years. There are many rules and
+        exceptions to this, so I apoligize for simplifying it too much.
+        """
+        if self.dependents is None:
             return 0
         count = 0
-        for dep in dependents:
+        for dep in self.dependents:
             #
             # Taxpayers may be able to claim the child tax credit if they have a
             # qualifying child under the age of 17. Part of this credit can be
             # refundable, so it may give a taxpayer a refund even if they don't
             # owe any tax.
             #
-            if dep <= current_age < (dep + 17):
+            if dep <= self.get_current_age() < (dep + 17):
                 count += 1
         return count
 
-    if married:
-        yearly_ira_contribution_limit *= 2
-    if current_age > ira_contribution_catch_up_age:
-        yearly_ira_contribution_limit += ira_contribution_catch_up
+    def get_ira_contribution_limit(self):
+        """
+        The IRA contribution limit variable should be per person. This function
+        will calculate any exceptions based on your age or marriage.
+        """
+        limit = self.yearly_ira_contribution_limit
+        if self.get_current_age() >= self.ira_contribution_catch_up_age:
+            limit += self.ira_contribution_catch_up
+        if self.is_married():
+            limit *= 2
+        return limit
 
-    table = Table(show_header=True, header_style="bold magenta")
-    table.add_column("Age", justify="right")
-    table.add_column("M", justify="center")
-    table.add_column("R", justify="center")
-    table.add_column("Roth 401k", justify="right")
-    table.add_column("Diff", justify="right")
-    table.add_column("Roth IRA", justify="right")
-    table.add_column("Diff", justify="right")
-    table.add_column("Taxable", justify="right")
-    table.add_column("Diff", justify="right")
-    table.add_column("Trad 401k", justify="right")
-    table.add_column("Diff", justify="right")
-    table.add_column("RMD", justify="right")
-    table.add_column("Trad IRA", justify="right")
-    table.add_column("Diff", justify="right")
-    table.add_column("RMD", justify="right")
-    table.add_column("MAGI", justify="right")
-    table.add_column("Spending", justify="right")
-    table.add_column("Deps", justify="center")
-    table.add_column("State", justify="center")
-    table.add_column("State Tax", justify="right")
-    table.add_column("Penalties", justify="right")
-    table.add_column("Federal Tax", justify="right")
-    table.add_column("Total Taxes", justify="right")
+    def get_401k_normal_contribution_limit(self):
+        """
+        This is the "normal" contribution limit for traditional/Roth 401k's. It
+        is not the total employee + employer contribution limit. That is the
+        following function.
+        """
+        return self.yearly_401k_normal_contribution_limit
 
-    needed_to_continue = 0
+    def get_401k_total_contribution_limit(self):
+        return self.yearly_401k_total_contribution_limit
 
-    #
-    # Iterate over each year in our life.
-    #
-    for year in range(age_of_death - current_age + 1):
+    def do_mega_backdoor_roth(self):
+        return self.mega_backdoor_roth
 
-        ########################################################################
-        # Life Events
-        ########################################################################
+    def get_tax_advantaged_space(self):
+        """
+        This calculates the total tax advantaged space that you have during the
+        current simulation year. It includes 401k and IRA contributions.
+        """
+        space = self.get_ira_contribution_limit()
+        if self.do_mega_backdoor_roth():
+            space += self.get_401k_total_contribution_limit()
+        else:
+            space += self.get_401k_normal_contribution_limit()
+        return space
 
-        if current_age == age_of_retirement:
-            retired = True
-        if current_age == age_of_marriage:
-            married = True
-            yearly_ira_contribution_limit *= 2
-        if year >= years_until_transition_to_pretax_contributions:
-            prefer_roth = False
+    def get_total_assets(self):
+        """
+        This is everything you own!
+        """
+        return (
+            self.accounts.taxable.get_value()
+            + self.accounts.trad_ira.get_value()
+            + self.accounts.trad_401k.get_value()
+            + self.accounts.roth_ira.get_value()
+            + self.accounts.roth_401k.get_value()
+        )
 
-        if current_age == ira_contribution_catch_up_age:
-            yearly_ira_contribution_limit += ira_contribution_catch_up
-            if married:
-                yearly_ira_contribution_limit += ira_contribution_catch_up
+    def do_roth_conversion(self):
+        return self.is_retired() and not self.must_take_rmds()
+
+    def get_roth_conversion_amount(self):
+        """
+        This is how much we will transfer from traditional 401k/IRA to your Roth
+        IRA after retirement but before RMDs are required.
+        """
+        return self.roth_conversion_amount
+
+    def get_death_tax(self):
+        """
+        This calculates how much we would owe if we died right now.
+        """
+        #
+        # XXX: Do not sell stocks before death. They get a "step up in basis"
+        # meaning the basis changes. The heir will only be responsible for gains
+        # after inheritance.
+        #
+        estate_tax = federal_taxes.calculate_estate_tax(self.get_total_assets())
 
         #
-        # If we have a different state set.
+        # This calculates the minimum tax your heir will be expected to pay as a
+        # result of RMDs. This assumes they have no income.
         #
-        current_state = retirement_state if retired else work_state
+        # TODO: If the user specifies a dependent, use that to determine the
+        # difference in age, rather than a hardcoded value. To simplify our
+        # calculation, we can assume everything goes to the eldest child.
+        #
+        taxes_for_heir = federal_taxes.calculate_minimum_remaining_tax_for_heir(
+            (
+                self.accounts.trad_401k.get_value()
+                + self.accounts.trad_ira.get_value()
+            ),
+            self.get_current_age() - 30
+        )
+        return estate_tax + taxes_for_heir
 
-        ########################################################################
-        # Retirement Contribution Calculations
-        ########################################################################
+    def get_total_taxes(self):
+        return self.total_taxes
 
+    def get_total_assets_after_death(self):
+        return self.get_total_assets() - self.get_death_tax()
+
+    def simulate_year(self):
+        """
+        This is a very long and complex function. It is hard to break it up into
+        smaller chunks. There are basically two parts: contributions &
+        withdrawals. We calculate the most we can contribute based on spending
+        and taxes. Then, if we are retired, we withdrawal money from accounts in
+        the most tax friendly order as possible.
+        """
         tax_deductions = 0
         this_years_income = 0
 
+        #
+        # Our contributions for this year.
+        #
         taxable_contribution = 0
         roth_401k_contribution = 0
         roth_ira_contribution = 0
@@ -230,21 +430,11 @@ def calculate_assets(
         trad_ira_contribution = 0
 
         #
-        # Calculate how much tax advantaged space we have. This will be our total
-        # contribution limit for this year.
-        #
-        tax_advantaged_space = yearly_ira_contribution_limit
-        if do_mega_backdoor_roth:
-            tax_advantaged_space += yearly_401k_total_contribution_limit
-        else:
-            tax_advantaged_space += yearly_401k_normal_contribution_limit
-
-        #
         # These variables are used to binary search the maximum contribution.
         #
         minimum_contribution = 0
-        total_contribution_limit = tax_advantaged_space
-        maximum_contribution = tax_advantaged_space
+        total_contribution_limit = self.get_tax_advantaged_space()
+        maximum_contribution = total_contribution_limit
 
         #
         # Alright, if we're still working, we can make some tax-advantaged
@@ -252,8 +442,8 @@ def calculate_assets(
         # our taxes and, as a result, will allow us to contribute more! This is
         # why we must binary search the maximum contribution.
         #
-        if current_age < age_of_retirement:
-            this_years_income = income
+        if not self.is_retired():
+            this_years_income = self.get_income()
 
             #
             # We'll break out of this once the ideal amount is found.
@@ -268,15 +458,15 @@ def calculate_assets(
                 #
                 # Calculate 401k contribution.
                 #
-                if prefer_roth:
+                if self.prefer_roth():
                     roth_401k_contribution += min(min(
                         this_years_income,
-                        yearly_401k_normal_contribution_limit
+                        self.get_401k_normal_contribution_limit()
                     ), total_contribution_limit)
                 else:
                     trad_401k_contribution += min(min(
                         this_years_income,
-                        yearly_401k_normal_contribution_limit
+                        self.get_401k_normal_contribution_limit()
                     ), total_contribution_limit)
 
                 #
@@ -285,9 +475,12 @@ def calculate_assets(
                 # as well contribute to Roth.
                 #
                 would_be_ira_contribution = min(
-                    min(this_years_income, yearly_ira_contribution_limit),
-                    total_contribution_limit - roth_401k_contribution -
-                        trad_401k_contribution
+                    min(this_years_income, self.get_ira_contribution_limit()),
+                    (
+                        total_contribution_limit
+                        - roth_401k_contribution
+                        - trad_401k_contribution
+                    )
                 )
 
                 would_be_agi_if_trad = (
@@ -300,8 +493,8 @@ def calculate_assets(
                 # TODO: Maybe add a more granular approach, rather than an all
                 # or nothing approach.
                 #
-                if prefer_roth or not federal_taxes.fully_tax_deductible_ira(
-                        would_be_agi_if_trad, married):
+                if self.prefer_roth() or not federal_taxes.fully_tax_deductible_ira(
+                        would_be_agi_if_trad, self.is_married()):
                     roth_ira_contribution += would_be_ira_contribution
                 else:
                     trad_ira_contribution += would_be_ira_contribution
@@ -309,12 +502,16 @@ def calculate_assets(
                 #
                 # Calculate Mega-Backdoor Roth contribution, if applicable.
                 #
-                if do_mega_backdoor_roth:
+                if self.do_mega_backdoor_roth():
                     after_tax_contribution = min(
-                        min(this_years_income, yearly_401k_total_contribution_limit),
-                        total_contribution_limit - roth_401k_contribution -
-                            trad_401k_contribution - roth_ira_contribution -
-                            trad_ira_contribution
+                        min(this_years_income, self.get_401k_total_contribution_limit()),
+                        (
+                            total_contribution_limit
+                            - roth_401k_contribution
+                            - trad_401k_contribution
+                            - roth_ira_contribution
+                            - trad_ira_contribution
+                        )
                     )
                     roth_ira_contribution += after_tax_contribution
 
@@ -328,11 +525,11 @@ def calculate_assets(
                 # calculate our taxes now.
                 #
                 taxable_income = this_years_income - tax_deductions
-                fica_tax = federal_taxes.calculate_fica_tax(this_years_income, married)
+                fica_tax = federal_taxes.calculate_fica_tax(this_years_income, self.is_married())
                 federal_income_tax = federal_taxes.calculate_federal_income_tax(
                     taxable_income,
-                    married,
-                    num_dependents(current_age)
+                    self.is_married(),
+                    self.get_num_dependents()
                 )
                 federal_income_tax -= federal_taxes.calculate_savers_credit(
                     taxable_income,
@@ -342,13 +539,13 @@ def calculate_assets(
                         + roth_ira_contribution
                         + trad_ira_contribution
                     ),
-                    married
+                    self.is_married()
                 )
                 state_tax = state_taxes.calculate_state_tax(
                     taxable_income,
-                    married,
-                    current_state,
-                    num_dependents(current_age)
+                    self.is_married(),
+                    self.get_current_state(),
+                    self.get_num_dependents()
                 )
 
                 #
@@ -359,7 +556,7 @@ def calculate_assets(
 
                 result = (
                     this_years_income
-                    - spending
+                    - self.get_spending()
                     - fica_tax
                     - federal_income_tax
                     - state_tax
@@ -375,7 +572,7 @@ def calculate_assets(
                 # money after taxes.
                 #
                 if result > 0:
-                    if total_contribution_limit == tax_advantaged_space:
+                    if total_contribution_limit == self.get_tax_advantaged_space():
                         break
                     minimum_contribution = total_contribution_limit
                     total_contribution_limit = (
@@ -393,10 +590,10 @@ def calculate_assets(
                 else:
                     break
 
-            roth_401k.contribute(roth_401k_contribution)
-            trad_401k.contribute(trad_401k_contribution)
-            roth_ira.contribute(roth_ira_contribution)
-            trad_ira.contribute(trad_ira_contribution)
+            self.accounts.roth_401k.contribute(roth_401k_contribution)
+            self.accounts.trad_401k.contribute(trad_401k_contribution)
+            self.accounts.roth_ira.contribute(roth_ira_contribution)
+            self.accounts.trad_ira.contribute(trad_ira_contribution)
 
         ########################################################################
         # Required Minimum Distribution (RMD) Calculations
@@ -404,35 +601,22 @@ def calculate_assets(
 
         trad_401k_rmd = 0
         trad_ira_rmd = 0
-        if current_age >= age_to_start_rmds:
-            trad_401k_rmd = round(trad_401k.get_value()/ult.withdrawal_factors[current_age], 2)
-            trad_ira_rmd = round(trad_ira.get_value()/ult.withdrawal_factors[current_age], 2)
+        if self.must_take_rmds():
+            trad_401k_rmd = self.get_rmd(self.accounts.trad_401k.get_value())
+            trad_ira_rmd = self.get_rmd(self.accounts.trad_ira.get_value())
 
         ########################################################################
         # Withdrawals
         ########################################################################
 
-        total_assets = (
-            taxable_account.get_value()
-            + trad_ira.get_value()
-            + trad_401k.get_value()
-            + roth_ira.get_value()
-            + roth_401k.get_value()
-        )
-
         bare_minimum_withdrawal = trad_401k_rmd + trad_ira_rmd
-        if retired and (current_age < age_to_start_rmds):
-            bare_minimum_withdrawal += roth_conversion_amount
+        if self.do_roth_conversion():
+            bare_minimum_withdrawal += self.get_roth_conversion_amount()
         minimum_withdrawal = bare_minimum_withdrawal
         total_withdrawal = bare_minimum_withdrawal
-        maximum_withdrawal = total_assets
+        maximum_withdrawal = self.get_total_assets()
         penalty_fees = 0
 
-        stop_simulation = False
-
-        #
-        # TODO: Order withdrawals based on situation.
-        #
         while True:
             taxable_withdrawal = 0
             roth_401k_withdrawal = 0
@@ -471,16 +655,16 @@ def calculate_assets(
             # some rollovers from our traditional to Roth accounts. This will
             # allow the money to grow tax free in Roth accounts.
             #
-            # TODO: Be sure to enforce the 5 year maturity rule.
+            # TODO: Enforce the 5 year maturity rule.
             #
-            if retired and (current_age < age_to_start_rmds):
+            if self.do_roth_conversion():
                 trad_401k_conversion = min(
-                    trad_401k.get_value() - trad_401k_withdrawal,
-                    roth_conversion_amount
+                    self.accounts.trad_401k.get_value() - trad_401k_withdrawal,
+                    self.get_roth_conversion_amount()
                 )
                 trad_ira_conversion = min(
-                    trad_ira.get_value() - trad_ira_withdrawal,
-                    roth_conversion_amount - trad_401k_conversion
+                    self.accounts.trad_ira.get_value() - trad_ira_withdrawal,
+                    self.get_roth_conversion_amount() - trad_401k_conversion
                 )
 
                 conversion_amount = trad_401k_conversion + trad_ira_conversion
@@ -492,11 +676,11 @@ def calculate_assets(
             # withdrawal the standard deduction, because this will not have
             # federal income taxes.
             #
-            if (current_age >= rule_of_55_age >= age_of_retirement) or current_age >= 60:
+            if self.can_make_401k_withdrawal_penalty_free():
                 trad_401k_withdrawal += min(min(
-                    trad_401k.get_value() - trad_401k_withdrawal,
+                    self.accounts.trad_401k.get_value() - trad_401k_withdrawal,
                     max((
-                        federal_taxes.get_standard_deduction(married)
+                        federal_taxes.get_standard_deduction(self.is_married())
                         - this_years_income
                         - trad_401k_withdrawal
                         - trad_ira_withdrawal
@@ -511,11 +695,11 @@ def calculate_assets(
             # If we're younger than 60, we want to do this before we try to
             # withdrawal from IRAs, because those will be penalized.
             #
-            if current_age < 60:
+            if self.can_make_ira_withdrawal_penalty_free():
                 taxable_withdrawal += min(min(
-                    taxable_account.get_value() - taxable_withdrawal,
+                    self.accounts.taxable.get_value() - taxable_withdrawal,
                     whats_left_to_withdrawal()
-                ), max(federal_taxes.zero_tax_ltcg_income(married) - (
+                ), max(federal_taxes.zero_tax_ltcg_income(self.is_married()) - (
                         this_years_income
                         + trad_401k_withdrawal
                         + trad_ira_withdrawal
@@ -527,11 +711,11 @@ def calculate_assets(
             # Next, if we didn't have enough in taxable, we should take from the
             # traditional IRA up to the standard deduction, so it's not taxed.
             #
-            if current_age >= 60:
+            if self.can_make_ira_withdrawal_penalty_free():
                 trad_ira_withdrawal += min(min(
-                    trad_ira.get_value() - trad_ira_withdrawal,
+                    self.accounts.trad_ira.get_value() - trad_ira_withdrawal,
                     max((
-                        federal_taxes.get_standard_deduction(married)
+                        federal_taxes.get_standard_deduction(self.is_married())
                         - this_years_income
                         - trad_401k_withdrawal
                         - trad_ira_withdrawal
@@ -543,9 +727,9 @@ def calculate_assets(
             # regardless of age.
             #
             taxable_withdrawal += min(min(
-                taxable_account.get_value() - taxable_withdrawal,
+                self.accounts.taxable.get_value() - taxable_withdrawal,
                 whats_left_to_withdrawal()
-            ), max(federal_taxes.zero_tax_ltcg_income(married) - (
+            ), max(federal_taxes.zero_tax_ltcg_income(self.is_married()) - (
                     this_years_income
                     + trad_401k_withdrawal
                     + trad_ira_withdrawal
@@ -557,9 +741,9 @@ def calculate_assets(
             # Next, regardless of penalty, take the standard deduction.
             #
             trad_401k_withdrawal += min(min(
-                trad_401k.get_value() - trad_401k_withdrawal,
+                self.accounts.trad_401k.get_value() - trad_401k_withdrawal,
                 max((
-                    federal_taxes.get_standard_deduction(married)
+                    federal_taxes.get_standard_deduction(self.is_married())
                     - this_years_income
                     - trad_401k_withdrawal
                     - trad_ira_withdrawal
@@ -570,9 +754,9 @@ def calculate_assets(
             # If the trad 401k runs out of money, this will cover the rest.
             #
             trad_ira_withdrawal += min(min(
-                trad_ira.get_value() - trad_ira_withdrawal,
+                self.accounts.trad_ira.get_value() - trad_ira_withdrawal,
                 max((
-                    federal_taxes.get_standard_deduction(married)
+                    federal_taxes.get_standard_deduction(self.is_married())
                     - this_years_income
                     - trad_401k_withdrawal
                     - trad_ira_withdrawal
@@ -583,11 +767,11 @@ def calculate_assets(
             # This will be penalty free.
             #
             roth_401k_withdrawal += min(
-                roth_401k.get_contributions() - roth_401k_withdrawal,
+                self.accounts.roth_401k.get_contributions() - roth_401k_withdrawal,
                 whats_left_to_withdrawal()
             )
             roth_ira_withdrawal += min(
-                roth_ira.get_contributions() - roth_ira_withdrawal,
+                self.accounts.roth_ira.get_contributions() - roth_ira_withdrawal,
                 whats_left_to_withdrawal()
             )
 
@@ -596,7 +780,7 @@ def calculate_assets(
             # LTCG will be cheaper than income tax.
             #
             taxable_withdrawal += min(
-                taxable_account.get_value() - taxable_withdrawal,
+                self.accounts.taxable.get_value() - taxable_withdrawal,
                 whats_left_to_withdrawal()
             )
 
@@ -604,11 +788,11 @@ def calculate_assets(
             # We'll have to pay some level of income tax on this.
             #
             trad_401k_withdrawal += min(
-                trad_401k.get_value() - trad_401k_withdrawal,
+                self.accounts.trad_401k.get_value() - trad_401k_withdrawal,
                 whats_left_to_withdrawal()
             )
             trad_ira_withdrawal += min(
-                trad_ira.get_value() - trad_ira_withdrawal,
+                self.accounts.trad_ira.get_value() - trad_ira_withdrawal,
                 whats_left_to_withdrawal()
             )
 
@@ -619,11 +803,11 @@ def calculate_assets(
             # income.
             #
             roth_401k_with_interest_withdrawal += min(
-                roth_401k.get_value() - roth_401k_withdrawal,
+                self.accounts.roth_401k.get_value() - roth_401k_withdrawal,
                 whats_left_to_withdrawal()
             )
             roth_ira_with_interest_withdrawal += min(
-                roth_ira.get_value() - roth_ira_withdrawal,
+                self.accounts.roth_ira.get_value() - roth_ira_withdrawal,
                 whats_left_to_withdrawal()
             )
 
@@ -635,26 +819,24 @@ def calculate_assets(
             #
             # TODO: Check that these are right.
             #
-            rule_of_55_age = 50 if public_safety_employee else 55
-            if current_age < 60:
+            if not self.can_make_ira_withdrawal_penalty_free():
                 penalty_fees += roth_ira_withdrawal * 0.10
                 penalty_fees += trad_ira_withdrawal * 0.10
-            if current_age < 60:
-                if not current_age >= rule_of_55_age >= age_of_retirement:
-                    penalty_fees += roth_401k_withdrawal * 0.10
-                    penalty_fees += trad_401k_withdrawal * 0.10
+            if not self.can_make_401k_withdrawal_penalty_free():
+                penalty_fees += roth_401k_withdrawal * 0.10
+                penalty_fees += trad_401k_withdrawal * 0.10
 
             #
             # If you’re over 59½ and your account is at least five years old,
             # you can withdraw contributions and earnings with no tax or
             # penalty. We don't support half ages.
             #
-            if current_age < 60:
-                roth_gains += roth_401k.withdrawal(
+            if self.roth_gains_are_taxable():
+                roth_gains += self.accounts.roth_401k.withdrawal(
                     roth_401k_with_interest_withdrawal,
                     dry_run=True
                 ).get_gains()
-                roth_gains += roth_ira.withdrawal(
+                roth_gains += self.accounts.roth_ira.withdrawal(
                     roth_ira_with_interest_withdrawal,
                     dry_run=True
                 ).get_gains()
@@ -672,12 +854,13 @@ def calculate_assets(
             # Now that we know our taxable income, we can calculate LTCG tax.
             #
             if taxable_withdrawal:
-                withdrawal = taxable_account.withdrawal(
+                withdrawal = self.accounts.taxable.withdrawal(
                     taxable_withdrawal,
                     dry_run=True
                 )
                 ltcg_taxes = federal_taxes.calculate_federal_income_tax(
-                    taxable_income, married, ltcg=withdrawal.get_gains(),
+                    taxable_income, self.is_married(),
+                    ltcg=withdrawal.get_gains(),
                     just_ltcg=True
                 )
 
@@ -687,7 +870,7 @@ def calculate_assets(
             #
             fica_tax = federal_taxes.calculate_fica_tax(
                 max(this_years_income, 0),
-                married
+                self.is_married()
             )
 
             #
@@ -696,15 +879,15 @@ def calculate_assets(
             #
             federal_income_tax = federal_taxes.calculate_federal_income_tax(
                 taxable_income,
-                married,
-                num_dependents(current_age)
+                self.is_married(),
+                self.get_num_dependents()
             )
 
             #
             # Calculate saver's credit. This provides tax credits if you are low
             # income and made retirement contributions.
             #
-            if not retired:
+            if not self.is_retired():
                 savers_credit = federal_taxes.calculate_savers_credit(
                     taxable_income,
                     (
@@ -713,7 +896,7 @@ def calculate_assets(
                         + trad_401k_contribution
                         + trad_ira_contribution
                     ),
-                    married
+                    self.is_married()
                 )
 
             #
@@ -726,9 +909,9 @@ def calculate_assets(
             #
             state_tax = state_taxes.calculate_state_tax(
                 taxable_income,
-                married,
-                current_state,
-                num_dependents(current_age)
+                self.is_married(),
+                self.get_current_state(),
+                self.get_num_dependents()
             )
 
             this_years_taxes = (
@@ -744,7 +927,7 @@ def calculate_assets(
             result = (
                 this_years_income
                 - this_years_taxes
-                - spending
+                - self.get_spending()
                 - taxable_contribution
                 - roth_401k_contribution
                 - roth_ira_contribution
@@ -778,7 +961,7 @@ def calculate_assets(
                 #
                 if round(total_withdrawal, 2) == round(bare_minimum_withdrawal, 2):
                     taxable_contribution = result
-                    taxable_account.contribute(taxable_contribution)
+                    self.accounts.taxable.contribute(taxable_contribution)
                     break
                 maximum_withdrawal = total_withdrawal
                 total_withdrawal = (
@@ -789,9 +972,8 @@ def calculate_assets(
                 #
                 # We need money.
                 #
-                if round(total_withdrawal, 2) == round(total_assets, 2):
-                    needed_to_continue = abs(result)
-                    stop_simulation = True
+                if round(total_withdrawal, 2) == round(self.get_total_assets(), 2):
+                    self.needed_to_continue = abs(result)
                     break
                 minimum_withdrawal = total_withdrawal
                 total_withdrawal = (
@@ -802,13 +984,13 @@ def calculate_assets(
                 break
 
         withdrawals = [
-            roth_401k.withdrawal(roth_401k_withdrawal),
-            roth_401k.withdrawal(roth_401k_with_interest_withdrawal),
-            trad_401k.withdrawal(trad_401k_withdrawal),
-            roth_ira.withdrawal(roth_ira_withdrawal),
-            roth_ira.withdrawal(roth_ira_with_interest_withdrawal),
-            trad_ira.withdrawal(trad_ira_withdrawal),
-            taxable_account.withdrawal(taxable_withdrawal)
+            self.accounts.roth_401k.withdrawal(roth_401k_withdrawal),
+            self.accounts.roth_401k.withdrawal(roth_401k_with_interest_withdrawal),
+            self.accounts.trad_401k.withdrawal(trad_401k_withdrawal),
+            self.accounts.roth_ira.withdrawal(roth_ira_withdrawal),
+            self.accounts.roth_ira.withdrawal(roth_ira_with_interest_withdrawal),
+            self.accounts.trad_ira.withdrawal(trad_ira_withdrawal),
+            self.accounts.taxable.withdrawal(taxable_withdrawal)
         ]
         for withdrawal in withdrawals:
             assert withdrawal.get_insufficient() == 0, withdrawal
@@ -817,12 +999,12 @@ def calculate_assets(
         # Now is the time to do the Roth conversion.
         #
         roth_ira_contribution += conversion_amount
-        roth_ira.contribute(conversion_amount, rollover=True)
+        self.accounts.roth_ira.contribute(conversion_amount, rollover=True)
 
         #
         # Now that we've finalized our withdrawals, we know our taxes.
         #
-        total_taxes += this_years_taxes
+        self.total_taxes += this_years_taxes
 
         ########################################################################
         # Data Collection
@@ -834,145 +1016,119 @@ def calculate_assets(
         # We have finished the year. Add an entry to the table. This will get
         # printed when the simulation is over.
         #
-        table.add_row(
-            f"{current_age}",
-            ":heart_eyes:" if married else "",
-            ":tada:" if retired else "",
-            f"{roth_401k.get_value():,.2f}",
-            f"{roth_401k.get_yearly_diff()}",
-            f"{roth_ira.get_value():,.2f}",
-            f"{roth_ira.get_yearly_diff()}",
-            f"{taxable_account.get_value():,.2f}",
-            f"{taxable_account.get_yearly_diff()}",
-            f"{trad_401k.get_value():,.2f}",
-            f"{trad_401k.get_yearly_diff()}",
+        self.table.add_row(
+            f"{self.get_current_age()}",
+            ":heart_eyes:" if self.is_married() else "",
+            ":tada:" if self.is_retired() else "",
+            f"{self.accounts.roth_401k.get_value():,.2f}",
+            f"{self.accounts.roth_401k.get_yearly_diff()}",
+            f"{self.accounts.roth_ira.get_value():,.2f}",
+            f"{self.accounts.roth_ira.get_yearly_diff()}",
+            f"{self.accounts.taxable.get_value():,.2f}",
+            f"{self.accounts.taxable.get_yearly_diff()}",
+            f"{self.accounts.trad_401k.get_value():,.2f}",
+            f"{self.accounts.trad_401k.get_yearly_diff()}",
             f"[yellow]{trad_401k_rmd:,.2f}[/yellow]" if trad_401k_rmd else "",
-            f"{trad_ira.get_value():,.2f}",
-            f"{trad_ira.get_yearly_diff()}",
+            f"{self.accounts.trad_ira.get_value():,.2f}",
+            f"{self.accounts.trad_ira.get_yearly_diff()}",
             f"[yellow]{trad_ira_rmd:,.2f}[/yellow]" if trad_ira_rmd else "",
             f"[cyan]{taxable_income:,.2f}[/cyan]",
-            f"[red]{spending:,.2f}[/red]",
-            f"{num_dependents(current_age):d}",
-            f"{current_state}",
+            f"[red]{self.get_spending():,.2f}[/red]",
+            f"{self.get_num_dependents():d}",
+            f"{self.get_current_state()}",
             f"[red]{state_tax:,.2f}[/red]" if round(state_tax, 2) else "",
             f"[red]{penalty_fees:,.2f}[/red]" if round(penalty_fees, 2) else "",
             f"[red]{this_years_federal_taxes:,.2f}[/red]" if round(this_years_federal_taxes, 2) else "",
-            f"[purple]{total_taxes:,.2f}[/purple]",
+            f"[purple]{self.get_total_taxes():,.2f}[/purple]",
         )
 
-        if stop_simulation:
-            break
-
-        ########################################################################
-        # Preparation for New Year
-        ########################################################################
+    def increment_year(self):
+        """
+        Happy new year! Apply interest to all of our accounts.
+        """
+        self.year += 1
 
         #
-        # Happy new year! It's the end of the year. Apply return, give
-        # yourself a pay raise, and happy birthday!
+        # The increment function adds this year's returns to the account.
         #
-        current_age += 1
-        if current_age > age_of_death:
-            break
+        self.accounts.taxable.increment()
+        self.accounts.roth_401k.increment()
+        self.accounts.roth_ira.increment()
+        self.accounts.trad_401k.increment()
+        self.accounts.trad_ira.increment()
 
-        taxable_account.increment()
-        roth_401k.increment()
-        roth_ira.increment()
-        trad_401k.increment()
-        trad_ira.increment()
+    def simulate(self):
+        """
+        This will simulate until we can no longer simulate.
+        """
+        while not self.stop_simulation():
+            self.simulate_year()
+            self.increment_year()
 
-        if current_age < age_of_retirement:
-            income *= yearly_income_raise
-            if max_income:
-                income = min(income, max_income)
+        #
+        # Once we are finished, we are dead or ran out of money. In either case,
+        # we should add death tax to our total taxes.
+        #
+        self.total_taxes += self.get_death_tax()
 
-    #
-    # Do not sell stocks before death. They get a "step up in basis" meaning the
-    # basis changes. The heir will only be responsible for gains after
-    # inheritance.
-    #
-    total_assets = (
-        taxable_account.get_value()
-        + trad_ira.get_value()
-        + trad_401k.get_value()
-        + roth_ira.get_value()
-        + roth_401k.get_value()
-    )
+    def get_params_table(self):
+        return self.params_table
 
-    estate_tax = federal_taxes.calculate_estate_tax(total_assets)
+    def get_math_table(self):
+        return self.table
 
-    #
-    # This calculates the minimum tax your heir will be expected to pay as a
-    # result of RMDs. This assumes they have no income.
-    #
-    # TODO: If the user specifies a dependent, use that to determine the
-    # difference in age, rather than a hardcoded value. To simplify our
-    # calculation, we can assume everything goes to the eldest child.
-    #
-    taxes_for_heir = federal_taxes.calculate_minimum_remaining_tax_for_heir(
-        trad_401k.get_value() + trad_ira.get_value(),
-        age_of_death - 30
-    )
+    def get_summary_table(self):
+        """
+        This function creates a summary of your financial life.
+        """
+        try:
+            tax_to_asset_ratio = self.get_total_taxes()/self.get_total_assets()
+        except ZeroDivisionError:
+            tax_to_asset_ratio = None
 
-    death_tax = estate_tax + taxes_for_heir
-    total_taxes += death_tax
-
-    try:
-        tax_to_asset_ratio = total_taxes/round(total_assets, 2)
-    except ZeroDivisionError:
-        tax_to_asset_ratio = None
-
-    #
-    # Print a summary of things.
-    #
-    summary_table = Table(show_header=True, header_style="bold magenta")
-    summary_table.add_column("Field")
-    summary_table.add_column("Value at Death", justify="right")
-    summary_table.add_row("Taxable", f"{taxable_account.get_value():,.2f}")
-    summary_table.add_row("Trad 401k", f"{trad_401k.get_value():,.2f}")
-    summary_table.add_row("Trad IRA", f"{trad_ira.get_value():,.2f}")
-    summary_table.add_row("Roth 401k", f"{roth_401k.get_value():,.2f}")
-    summary_table.add_row("Roth IRA", f"{roth_ira.get_value():,.2f}")
-    summary_table.add_row("Min Tax for Heir", f"{taxes_for_heir:,.2f}")
-    summary_table.add_row("Estate Taxes", f"{estate_tax:,.2f}")
-    summary_table.add_row("Total Taxes", f"{total_taxes:,.2f}")
-    summary_table.add_row("Total Assets", f"{total_assets:,.2f}")
-    summary_table.add_row("Total Assets After Taxes", f"{max(total_assets - death_tax, 0):,.2f}")
-    summary_table.add_row("Tax/Asset Ratio", f"{tax_to_asset_ratio:,.2f}" if tax_to_asset_ratio else "")
-
-    return SimulationResults(
-        total_assets - death_tax,
-        trad_401k.get_value() + trad_ira.get_value(),
-        params_table,
-        table,
-        summary_table,
-        needed_to_continue
-    )
+        summary_table = Table(show_header=True, header_style="bold magenta")
+        summary_table.add_column("Field")
+        summary_table.add_column("Value at Death", justify="right")
+        summary_table.add_row("Taxable", f"{self.accounts.taxable.get_value():,.2f}")
+        summary_table.add_row("Trad 401k", f"{self.accounts.trad_401k.get_value():,.2f}")
+        summary_table.add_row("Trad IRA", f"{self.accounts.trad_ira.get_value():,.2f}")
+        summary_table.add_row("Roth 401k", f"{self.accounts.roth_401k.get_value():,.2f}")
+        summary_table.add_row("Roth IRA", f"{self.accounts.roth_ira.get_value():,.2f}")
+        summary_table.add_row("Min Tax for Heir", f"{taxes_for_heir:,.2f}")
+        summary_table.add_row("Estate Taxes", f"{estate_tax:,.2f}")
+        summary_table.add_row("Total Taxes", f"{self.get_total_taxes():,.2f}")
+        summary_table.add_row("Total Assets", f"{self.get_total_assets():,.2f}")
+        summary_table.add_row("Total Assets After Taxes", f"{max(self.get_total_assets_after_death(), 0):,.2f}")
+        summary_table.add_row("Tax/Asset Ratio", f"{tax_to_asset_ratio:,.2f}" if tax_to_asset_ratio else "")
+        return summary_table
 
 
 def main():
+    """
+    This function parses user input and runs the simulation.
+    """
     parser = argparse.ArgumentParser(
-        description="Calculate RMDs",
+        description="Wealth Simulator",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     parser.add_argument(
         "--current-age",
-        help="Your current age",
+        help="How old are you currently?",
         required=False,
         type=int,
         default=38
     )
     parser.add_argument(
         "--income",
-        help="Your current income",
+        help="What is your current income?",
         required=False,
         type=float,
         default=63179
     )
     parser.add_argument(
         "--max-income",
-        help="Define an income ceiling",
+        help="What will your income max out at?",
         required=False,
         type=float,
         default=0
@@ -1172,14 +1328,13 @@ def main():
     roth_conversion_amount = 0
     best_roth_conversion_amount = 0
 
-    if not args.age_of_death > args.age_of_retirement:
-        print("Retirement cannot be after death")
-        return
-
     try:
+        #
+        # TODO: Use concurrent.futures to make this faster.
+        #
         with Live(transient=True, refresh_per_second=144) as live:
             while True:
-                results = calculate_assets(
+                simulation = Simulation(
                     args.starting_balance_taxable,
                     args.starting_balance_trad_401k,
                     args.starting_balance_trad_ira,
@@ -1208,19 +1363,27 @@ def main():
                     args.add_dependent,
                     args.public_safety_employee
                 )
+
                 live.update("Simulating with Roth conversion: "
                             f"{roth_conversion_amount:,.2f}")
-                if round(results.assets, 2) >= round(most_assets, 2):
+                simulation.simulate()
+
+                if round(simulation.get_total_assets_after_death(), 2) >= round(most_assets, 2):
                     best_roth_conversion_amount = roth_conversion_amount
-                    most_assets = results.assets
-                if round(results.traditional, 2) == 0:
+                    most_assets = simulation.get_total_assets_after_death()
+
+                traditional_money = (
+                    simulation.accounts.trad_401k.get_value()
+                    + simulation.accounts.trad_ira.get_value()
+                )
+                if round(traditional_money, 2) == 0:
                     break
                 roth_conversion_amount += args.roth_conversion_unit
 
         #
         # Now that we know all of the variables, run the simulation.
         #
-        results = calculate_assets(
+        simulation = Simulation(
             args.starting_balance_taxable,
             args.starting_balance_trad_401k,
             args.starting_balance_trad_ira,
@@ -1249,6 +1412,7 @@ def main():
             args.add_dependent,
             args.public_safety_employee,
         )
+        simulation.simulate()
     except KeyboardInterrupt:
         return
 
@@ -1257,19 +1421,19 @@ def main():
     #
     console = Console()
     if args.show_params:
-        console.print(results.params_table)
+        console.print(simulation.get_params_table())
     if args.show_math:
-        console.print(results.math_table)
+        console.print(simulation.get_math_table())
     if args.show_summary:
-        console.print(results.summary_table)
+        console.print(simulation.get_summary_table())
 
     #
     # If the user didn't specify to show anything, print the math table.
     #
     if not any([args.show_params, args.show_math, args.show_summary]):
-        console.print(results.math_table)
+        console.print(simulation.get_math_table())
 
-    if results.needed_to_continue:
+    if simulation.get_needed_to_continue():
         console.print(":fire::fire::fire: Please enter "
                       f"[underline]{needed_to_continue:,.2f}[/underline]"
                       " to continue playing. :fire::fire::fire:")
