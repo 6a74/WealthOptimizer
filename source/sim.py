@@ -1582,7 +1582,7 @@ def main():
 
     if simulation.get_needed_to_continue():
         console.print(":fire::fire::fire: Please enter "
-                      f"[underline]{needed_to_continue:,.2f}[/underline]"
+                      f"[underline]{simulation.get_needed_to_continue():,.2f}[/underline]"
                       " to continue playing. :fire::fire::fire:")
 
 if __name__ == "__main__":
