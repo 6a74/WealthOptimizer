@@ -19,6 +19,7 @@ class Simulation:
     """
 
     def __init__(self,
+        starting_balance_hsa,
         starting_balance_taxable,
         starting_balance_trad_401k,
         starting_balance_trad_ira,
@@ -36,6 +37,9 @@ class Simulation:
         max_income,
         age_of_marriage,
         spending,
+        yearly_hsa_contribution_limit,
+        hsa_contribution_catch_up,
+        hsa_contribution_catch_up_age,
         yearly_401k_normal_contribution_limit,
         yearly_401k_total_contribution_limit,
         yearly_ira_contribution_limit,
@@ -69,16 +73,22 @@ class Simulation:
         self.params_table.add_row("Yearly Rate of Return", f"{(rate_of_return-1)*100:.2f}%")
         self.params_table.add_row("Yearly Income Raise", f"{(yearly_income_raise-1)*100:.2f}%")
         self.params_table.add_row("Starting Balance Taxable", f"{starting_balance_taxable:,.2f}")
+        self.params_table.add_row("Starting Balance HSA", f"{starting_balance_hsa:,.2f}")
         self.params_table.add_row("Starting Balance Trad 401k", f"{starting_balance_trad_401k:,.2f}")
         self.params_table.add_row("Starting Balance Trad IRA", f"{starting_balance_trad_ira:,.2f}")
         self.params_table.add_row("Starting Balance Roth 401k", f"{starting_balance_roth_401k:,.2f}")
         self.params_table.add_row("Starting Balance Roth IRA", f"{starting_balance_roth_ira:,.2f}")
         self.params_table.add_row("Yearly Roth Conversion Amount", f"{roth_conversion_amount:,.2f}")
         self.params_table.add_row("Years to Prefer Roth Contributions", str(years_to_wait))
-        self.params_table.add_row("Yearly Spending", f"{spending:,.2f}")
-        self.params_table.add_row("Yearly 401k Pre-tax Limit", f"{yearly_401k_normal_contribution_limit:,.2f}")
-        self.params_table.add_row("Yearly 401k Contribution Limit", f"{yearly_401k_total_contribution_limit:,.2f}")
-        self.params_table.add_row("Yearly IRA Contribution Limit", f"{yearly_ira_contribution_limit:,.2f}")
+        self.params_table.add_row("Spending", f"{spending:,.2f}")
+        self.params_table.add_row("HSA Contribution Limit", f"{yearly_hsa_contribution_limit:,.2f}")
+        self.params_table.add_row("HSA Catch-up Contribution", f"{hsa_contribution_catch_up:,.2f}")
+        self.params_table.add_row("HSA Catch-up Contribution Age", f"{hsa_contribution_catch_up_age:d}")
+        self.params_table.add_row("401k Normal Contribution Limit", f"{yearly_401k_normal_contribution_limit:,.2f}")
+        self.params_table.add_row("401k Total Contribution Limit", f"{yearly_401k_total_contribution_limit:,.2f}")
+        self.params_table.add_row("IRA Contribution Limit", f"{yearly_ira_contribution_limit:,.2f}")
+        self.params_table.add_row("IRA Catch-up Contribution", f"{ira_contribution_catch_up:,.2f}")
+        self.params_table.add_row("IRA Catch-up Contribution Age", f"{ira_contribution_catch_up_age:d}")
         self.params_table.add_row("Do Mega-Backdoor Roth After Tax-Advantaged Limit?", str(mega_backdoor_roth))
         self.params_table.add_row("Work State", work_state)
         self.params_table.add_row("Retirement State", retirement_state)
@@ -90,6 +100,12 @@ class Simulation:
         # These are our accounts:
         #
         self.accounts = Accounts()
+        self.accounts.hsa = Account(
+            name="HSA",
+            rate_of_return=rate_of_return,
+            starting_balance=starting_balance_hsa,
+            withdrawal_contributions_first=False
+        )
         self.accounts.taxable = Account(
             name="Taxable",
             rate_of_return=rate_of_return,
@@ -151,6 +167,9 @@ class Simulation:
         #
         # Contribution limits:
         #
+        self.yearly_hsa_contribution_limit = yearly_hsa_contribution_limit
+        self.hsa_contribution_catch_up = hsa_contribution_catch_up
+        self.hsa_contribution_catch_up_age = hsa_contribution_catch_up_age
         self.yearly_401k_normal_contribution_limit = yearly_401k_normal_contribution_limit
         self.yearly_401k_total_contribution_limit = yearly_401k_total_contribution_limit
         self.yearly_ira_contribution_limit = yearly_ira_contribution_limit
@@ -164,6 +183,8 @@ class Simulation:
         self.table.add_column("Age", justify="right")
         self.table.add_column("M", justify="center")
         self.table.add_column("R", justify="center")
+        self.table.add_column("HSA", justify="right")
+        self.table.add_column("Diff", justify="right")
         self.table.add_column("Roth 401k", justify="right")
         self.table.add_column("Diff", justify="right")
         self.table.add_column("Roth IRA", justify="right")
@@ -266,6 +287,15 @@ class Simulation:
                 return True
         return False
 
+    def can_make_hsa_withdrawal_penalty_free(self):
+        """
+        There is no additional tax on distributions made after the date you are
+        disabled, reach age 65, or die.
+
+        https://www.fidelity.com/viewpoints/wealth-management/hsas-and-your-retirement
+        """
+        return self.get_current_age() >= 65
+
     def can_make_ira_withdrawal_penalty_free(self):
         """
         IRA withdrawal rules are pretty simple. There are no exceptions that I
@@ -315,6 +345,27 @@ class Simulation:
                 count += 1
         return count
 
+    def get_hsa_contribution_limit(self):
+        """
+        In any case, the IRS treats married couples as a single tax unit, which
+        means they must share one family HSA contribution limit of $7,200. In
+        cases where both spouses have self-only coverage, each spouse may
+        contribute up to $3,600 each year in separate accounts.
+
+        If both spouses are 55 or older and not enrolled in Medicare, each
+        spouse’s contribution limit is increased by the additional contribution.
+        If both spouses meet the age requirement, the total contributions under
+        family coverage can’t be more than $9,200. Each spouse must make the
+        additional contribution to his or her own HSA. So let's assume if you're
+        married you have separate HSA accounts and know you can do this.
+        """
+        limit = self.yearly_hsa_contribution_limit
+        if self.get_current_age() >= self.hsa_contribution_catch_up_age:
+            limit += self.hsa_contribution_catch_up
+        if self.is_married():
+            limit *= 2
+        return limit
+
     def get_ira_contribution_limit(self):
         """
         The IRA contribution limit variable should be per person. This function
@@ -347,6 +398,7 @@ class Simulation:
         current simulation year. It includes 401k and IRA contributions.
         """
         space = self.get_ira_contribution_limit()
+        space += self.get_hsa_contribution_limit()
         if self.do_mega_backdoor_roth():
             space += self.get_401k_total_contribution_limit()
         else:
@@ -358,13 +410,13 @@ class Simulation:
         This is everything you own!
         """
         return (
-            self.accounts.taxable.get_value()
+            self.accounts.hsa.get_value()
+            + self.accounts.taxable.get_value()
             + self.accounts.trad_ira.get_value()
             + self.accounts.trad_401k.get_value()
             + self.accounts.roth_ira.get_value()
             + self.accounts.roth_401k.get_value()
         )
-
     def do_roth_conversion(self):
         return self.is_retired() and not self.must_take_rmds()
 
@@ -375,33 +427,36 @@ class Simulation:
         """
         return self.roth_conversion_amount
 
-    def get_death_tax(self):
-        """
-        This calculates how much we would owe if we died right now.
-        """
-        #
-        # XXX: Do not sell stocks before death. They get a "step up in basis"
-        # meaning the basis changes. The heir will only be responsible for gains
-        # after inheritance.
-        #
-        estate_tax = federal_taxes.calculate_estate_tax(self.get_total_assets())
+    def get_estate_tax(self):
+        return federal_taxes.calculate_estate_tax(self.get_total_assets())
 
-        #
-        # This calculates the minimum tax your heir will be expected to pay as a
-        # result of RMDs. This assumes they have no income.
+    def get_taxes_for_heir(self):
+        """
+        This calculates the minimum tax your heir will be expected to pay as a
+        result of RMDs. This assumes they have no income.
+        """
         #
         # TODO: If the user specifies a dependent, use that to determine the
         # difference in age, rather than a hardcoded value. To simplify our
         # calculation, we can assume everything goes to the eldest child.
         #
-        taxes_for_heir = federal_taxes.calculate_minimum_remaining_tax_for_heir(
+        return federal_taxes.calculate_minimum_remaining_tax_for_heir(
             (
                 self.accounts.trad_401k.get_value()
                 + self.accounts.trad_ira.get_value()
             ),
             self.get_current_age() - 30
         )
-        return estate_tax + taxes_for_heir
+
+    def get_death_tax(self):
+        """
+        This calculates how much we would owe if we died right now.
+
+        Note: Do not sell stocks before death. They get a "step up in basis"
+        meaning the basis changes. The heir will only be responsible for gains
+        after inheritance.
+        """
+        return self.get_estate_tax() + self.get_taxes_for_heir()
 
     def get_total_taxes(self):
         return self.total_taxes
@@ -420,9 +475,11 @@ class Simulation:
         tax_deductions = 0
         this_years_income = 0
 
-        #
-        # Our contributions for this year.
-        #
+        ########################################################################
+        # Contributions
+        ########################################################################
+
+        hsa_contribution = 0
         taxable_contribution = 0
         roth_401k_contribution = 0
         roth_ira_contribution = 0
@@ -449,11 +506,33 @@ class Simulation:
             # We'll break out of this once the ideal amount is found.
             #
             while True:
+                hsa_contribution = 0
                 taxable_contribution = 0
                 roth_401k_contribution = 0
                 roth_ira_contribution = 0
                 trad_401k_contribution = 0
                 trad_ira_contribution = 0
+
+                def whats_left_to_contribute():
+                    return (
+                        total_contribution_limit
+                        - hsa_contribution
+                        - roth_401k_contribution
+                        - roth_ira_contribution
+                        - trad_401k_contribution
+                        - trad_ira_contribution
+                    )
+
+                #
+                # Since HSAs are the ultimate retirement account, contribute to
+                # them first.
+                #
+                # https://www.madfientist.com/ultimate-retirement-account/
+                #
+                hsa_contribution += min(min(
+                    this_years_income,
+                    self.get_hsa_contribution_limit()
+                ), whats_left_to_contribute())
 
                 #
                 # Calculate 401k contribution.
@@ -462,12 +541,12 @@ class Simulation:
                     roth_401k_contribution += min(min(
                         this_years_income,
                         self.get_401k_normal_contribution_limit()
-                    ), total_contribution_limit)
+                    ), whats_left_to_contribute())
                 else:
                     trad_401k_contribution += min(min(
                         this_years_income,
                         self.get_401k_normal_contribution_limit()
-                    ), total_contribution_limit)
+                    ), whats_left_to_contribute())
 
                 #
                 # Calculate IRA contribution. If there are no tax deductions for
@@ -476,15 +555,12 @@ class Simulation:
                 #
                 would_be_ira_contribution = min(
                     min(this_years_income, self.get_ira_contribution_limit()),
-                    (
-                        total_contribution_limit
-                        - roth_401k_contribution
-                        - trad_401k_contribution
-                    )
+                    whats_left_to_contribute()
                 )
 
                 would_be_agi_if_trad = (
                     this_years_income
+                    - hsa_contribution
                     - trad_401k_contribution
                     - would_be_ira_contribution
                 )
@@ -505,27 +581,25 @@ class Simulation:
                 if self.do_mega_backdoor_roth():
                     after_tax_contribution = min(
                         min(this_years_income, self.get_401k_total_contribution_limit()),
-                        (
-                            total_contribution_limit
-                            - roth_401k_contribution
-                            - trad_401k_contribution
-                            - roth_ira_contribution
-                            - trad_ira_contribution
-                        )
+                        whats_left_to_contribute()
                     )
                     roth_ira_contribution += after_tax_contribution
 
                 tax_deductions = (
-                    trad_401k_contribution
+                    hsa_contribution
+                    + trad_401k_contribution
                     + trad_ira_contribution
                 )
 
                 #
                 # We know about all of our tax deductions, we can accurately
-                # calculate our taxes now.
+                # calculate our taxes now. HSAs are not taxed by FICA.
                 #
                 taxable_income = this_years_income - tax_deductions
-                fica_tax = federal_taxes.calculate_fica_tax(this_years_income, self.is_married())
+                fica_tax = federal_taxes.calculate_fica_tax(
+                    this_years_income - hsa_contribution,
+                    self.is_married()
+                )
                 federal_income_tax = federal_taxes.calculate_federal_income_tax(
                     taxable_income,
                     self.is_married(),
@@ -534,6 +608,9 @@ class Simulation:
                 federal_income_tax -= federal_taxes.calculate_savers_credit(
                     taxable_income,
                     (
+                        #
+                        # HSA is not to be included in this list.
+                        #
                         roth_401k_contribution
                         + trad_401k_contribution
                         + roth_ira_contribution
@@ -560,6 +637,7 @@ class Simulation:
                     - fica_tax
                     - federal_income_tax
                     - state_tax
+                    - hsa_contribution
                     - roth_401k_contribution
                     - trad_401k_contribution
                     - roth_ira_contribution
@@ -590,6 +668,12 @@ class Simulation:
                 else:
                     break
 
+            #
+            # XXX: We'll handle taxable contributions later, in the withdrawals
+            # section. But now that I think about it, maybe we should move it up
+            # here. It would make more sense.
+            #
+            self.accounts.hsa.contribute(hsa_contribution)
             self.accounts.roth_401k.contribute(roth_401k_contribution)
             self.accounts.trad_401k.contribute(trad_401k_contribution)
             self.accounts.roth_ira.contribute(roth_ira_contribution)
@@ -618,6 +702,7 @@ class Simulation:
         penalty_fees = 0
 
         while True:
+            hsa_withdrawal = 0
             taxable_withdrawal = 0
             roth_401k_withdrawal = 0
             roth_ira_withdrawal = 0
@@ -635,6 +720,7 @@ class Simulation:
             def whats_left_to_withdrawal():
                 return (
                     total_withdrawal
+                    - hsa_withdrawal
                     - taxable_withdrawal
                     - roth_401k_withdrawal
                     - roth_ira_withdrawal
@@ -674,7 +760,7 @@ class Simulation:
             #
             # If we can withdrawal money without penalty, we should at least
             # withdrawal the standard deduction, because this will not have
-            # federal income taxes.
+            # federal income taxes and it will reduce our RMDs later.
             #
             if self.can_make_401k_withdrawal_penalty_free():
                 trad_401k_withdrawal += min(min(
@@ -797,6 +883,16 @@ class Simulation:
             )
 
             #
+            # We're old, we need money, and we've run out of money in other
+            # accounts. Non-qualified withdrawals will be treated as income.
+            #
+            if self.can_make_hsa_withdrawal_penalty_free():
+                hsa_withdrawal += min(
+                    self.accounts.hsa.get_value() - hsa_withdrawal,
+                    whats_left_to_withdrawal()
+                )
+
+            #
             # Unless we're younger than 60, we'll have to pay income tax on the
             # gains. If we're this far, that means we have already extracted all
             # of our contributions, meaning this whole thing will be treated as
@@ -808,6 +904,16 @@ class Simulation:
             )
             roth_ira_with_interest_withdrawal += min(
                 self.accounts.roth_ira.get_value() - roth_ira_withdrawal,
+                whats_left_to_withdrawal()
+            )
+
+            #
+            # I think that HSA early withdrawal penalties are the worse and, as
+            # of 2021, you must be five years older than other retirement
+            # accounts.
+            #
+            hsa_withdrawal += min(
+                self.accounts.hsa.get_value() - hsa_withdrawal,
                 whats_left_to_withdrawal()
             )
 
@@ -825,6 +931,13 @@ class Simulation:
             if not self.can_make_401k_withdrawal_penalty_free():
                 penalty_fees += roth_401k_withdrawal * 0.10
                 penalty_fees += trad_401k_withdrawal * 0.10
+
+            #
+            # If you are under age 65, you pay a 20% penalty on nonmedical
+            # withdrawals, and you pay the tax in addition to the penalty.
+            #
+            if not self.can_make_hsa_withdrawal_penalty_free():
+                penalty_fees += hsa_withdrawal * 0.20
 
             #
             # If you’re over 59½ and your account is at least five years old,
@@ -846,6 +959,7 @@ class Simulation:
                 + trad_401k_withdrawal
                 + trad_ira_withdrawal
                 + roth_gains
+                + (0 if self.can_make_hsa_withdrawal_penalty_free() else hsa_withdrawal)
                 - tax_deductions,
                 2
             )
@@ -869,7 +983,7 @@ class Simulation:
             # distributions. These have already been taxed by FICA.
             #
             fica_tax = federal_taxes.calculate_fica_tax(
-                max(this_years_income, 0),
+                this_years_income - hsa_contribution,
                 self.is_married()
             )
 
@@ -928,6 +1042,7 @@ class Simulation:
                 this_years_income
                 - this_years_taxes
                 - self.get_spending()
+                - hsa_contribution
                 - taxable_contribution
                 - roth_401k_contribution
                 - roth_ira_contribution
@@ -935,6 +1050,7 @@ class Simulation:
                 - trad_ira_contribution
                 - conversion_amount
                 - penalty_fees
+                + hsa_withdrawal
                 + taxable_withdrawal
                 + roth_401k_withdrawal
                 + roth_ira_withdrawal
@@ -984,13 +1100,14 @@ class Simulation:
                 break
 
         withdrawals = [
+            self.accounts.hsa.withdrawal(hsa_withdrawal),
+            self.accounts.taxable.withdrawal(taxable_withdrawal),
+            self.accounts.trad_401k.withdrawal(trad_401k_withdrawal),
+            self.accounts.trad_ira.withdrawal(trad_ira_withdrawal),
             self.accounts.roth_401k.withdrawal(roth_401k_withdrawal),
             self.accounts.roth_401k.withdrawal(roth_401k_with_interest_withdrawal),
-            self.accounts.trad_401k.withdrawal(trad_401k_withdrawal),
             self.accounts.roth_ira.withdrawal(roth_ira_withdrawal),
-            self.accounts.roth_ira.withdrawal(roth_ira_with_interest_withdrawal),
-            self.accounts.trad_ira.withdrawal(trad_ira_withdrawal),
-            self.accounts.taxable.withdrawal(taxable_withdrawal)
+            self.accounts.roth_ira.withdrawal(roth_ira_with_interest_withdrawal)
         ]
         for withdrawal in withdrawals:
             assert withdrawal.get_insufficient() == 0, withdrawal
@@ -1020,6 +1137,8 @@ class Simulation:
             f"{self.get_current_age()}",
             ":heart_eyes:" if self.is_married() else "",
             ":tada:" if self.is_retired() else "",
+            f"{self.accounts.hsa.get_value():,.2f}",
+            f"{self.accounts.hsa.get_yearly_diff()}",
             f"{self.accounts.roth_401k.get_value():,.2f}",
             f"{self.accounts.roth_401k.get_yearly_diff()}",
             f"{self.accounts.roth_ira.get_value():,.2f}",
@@ -1051,6 +1170,7 @@ class Simulation:
         #
         # The increment function adds this year's returns to the account.
         #
+        self.accounts.hsa.increment()
         self.accounts.taxable.increment()
         self.accounts.roth_401k.increment()
         self.accounts.roth_ira.increment()
@@ -1089,13 +1209,14 @@ class Simulation:
         summary_table = Table(show_header=True, header_style="bold magenta")
         summary_table.add_column("Field")
         summary_table.add_column("Value at Death", justify="right")
+        summary_table.add_row("HSA", f"{self.accounts.hsa.get_value():,.2f}")
         summary_table.add_row("Taxable", f"{self.accounts.taxable.get_value():,.2f}")
         summary_table.add_row("Trad 401k", f"{self.accounts.trad_401k.get_value():,.2f}")
         summary_table.add_row("Trad IRA", f"{self.accounts.trad_ira.get_value():,.2f}")
         summary_table.add_row("Roth 401k", f"{self.accounts.roth_401k.get_value():,.2f}")
         summary_table.add_row("Roth IRA", f"{self.accounts.roth_ira.get_value():,.2f}")
-        summary_table.add_row("Min Tax for Heir", f"{taxes_for_heir:,.2f}")
-        summary_table.add_row("Estate Taxes", f"{estate_tax:,.2f}")
+        summary_table.add_row("Min Tax for Heir", f"{self.get_taxes_for_heir():,.2f}")
+        summary_table.add_row("Estate Taxes", f"{self.get_estate_tax():,.2f}")
         summary_table.add_row("Total Taxes", f"{self.get_total_taxes():,.2f}")
         summary_table.add_row("Total Assets", f"{self.get_total_assets():,.2f}")
         summary_table.add_row("Total Assets After Taxes", f"{max(self.get_total_assets_after_death(), 0):,.2f}")
@@ -1129,6 +1250,13 @@ def main():
     parser.add_argument(
         "--max-income",
         help="What will your income max out at?",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
+        "--starting-balance-hsa",
+        help="Starting balance for HSA account?",
         required=False,
         type=float,
         default=0
@@ -1174,6 +1302,27 @@ def main():
         required=False,
         type=float,
         default=1.04
+    )
+    parser.add_argument(
+        "--yearly-hsa-contribution-limit",
+        help="What is the individual HSA contribution limit?",
+        required=False,
+        type=float,
+        default=3600
+    )
+    parser.add_argument(
+        "--hsa-contribution-catch-up",
+        help="How much extra can you contribute at this age?",
+        required=False,
+        type=float,
+        default=1000
+    )
+    parser.add_argument(
+        "--hsa-contribution-catch-up-age",
+        help="At what age can you do extra catch up contributions?",
+        required=False,
+        type=int,
+        default=55
     )
     parser.add_argument(
         "--yearly-401k-normal-contribution-limit",
@@ -1335,6 +1484,7 @@ def main():
         with Live(transient=True, refresh_per_second=144) as live:
             while True:
                 simulation = Simulation(
+                    args.starting_balance_hsa,
                     args.starting_balance_taxable,
                     args.starting_balance_trad_401k,
                     args.starting_balance_trad_ira,
@@ -1352,6 +1502,9 @@ def main():
                     args.max_income,
                     args.age_of_marriage,
                     args.spending,
+                    args.yearly_hsa_contribution_limit,
+                    args.hsa_contribution_catch_up,
+                    args.hsa_contribution_catch_up_age,
                     args.yearly_401k_normal_contribution_limit,
                     args.yearly_401k_total_contribution_limit,
                     args.yearly_ira_contribution_limit,
@@ -1384,6 +1537,7 @@ def main():
         # Now that we know all of the variables, run the simulation.
         #
         simulation = Simulation(
+            args.starting_balance_hsa,
             args.starting_balance_taxable,
             args.starting_balance_trad_401k,
             args.starting_balance_trad_ira,
@@ -1401,6 +1555,9 @@ def main():
             args.max_income,
             args.age_of_marriage,
             args.spending,
+            args.yearly_hsa_contribution_limit,
+            args.hsa_contribution_catch_up,
+            args.hsa_contribution_catch_up_age,
             args.yearly_401k_normal_contribution_limit,
             args.yearly_401k_total_contribution_limit,
             args.yearly_ira_contribution_limit,
@@ -1410,7 +1567,7 @@ def main():
             args.work_state,
             args.retirement_state,
             args.add_dependent,
-            args.public_safety_employee,
+            args.public_safety_employee
         )
         simulation.simulate()
     except KeyboardInterrupt:
@@ -1435,7 +1592,7 @@ def main():
 
     if simulation.get_needed_to_continue():
         console.print(":fire::fire::fire: Please enter "
-                      f"[underline]{needed_to_continue:,.2f}[/underline]"
+                      f"[underline]{simulation.get_needed_to_continue():,.2f}[/underline]"
                       " to continue playing. :fire::fire::fire:")
 
 if __name__ == "__main__":

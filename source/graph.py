@@ -27,6 +27,7 @@ def my_calculation(arguments):
 
     while True:
         simulation = Simulation(
+            args.starting_balance_hsa,
             args.starting_balance_taxable,
             args.starting_balance_trad_401k,
             args.starting_balance_trad_ira,
@@ -44,6 +45,9 @@ def my_calculation(arguments):
             args.max_income,
             args.age_of_marriage,
             args.spending,
+            args.yearly_hsa_contribution_limit,
+            args.hsa_contribution_catch_up,
+            args.hsa_contribution_catch_up_age,
             args.yearly_401k_normal_contribution_limit,
             args.yearly_401k_total_contribution_limit,
             args.yearly_ira_contribution_limit,
@@ -70,6 +74,7 @@ def my_calculation(arguments):
         roth_conversion_amount += args.roth_conversion_unit
 
     simulation = Simulation(
+        args.starting_balance_hsa,
         args.starting_balance_taxable,
         args.starting_balance_trad_401k,
         args.starting_balance_trad_ira,
@@ -87,6 +92,9 @@ def my_calculation(arguments):
         args.max_income,
         args.age_of_marriage,
         args.spending,
+        args.yearly_hsa_contribution_limit,
+        args.hsa_contribution_catch_up,
+        args.hsa_contribution_catch_up_age,
         args.yearly_401k_normal_contribution_limit,
         args.yearly_401k_total_contribution_limit,
         args.yearly_ira_contribution_limit,
@@ -130,6 +138,13 @@ def main():
         default=0
     )
     parser.add_argument(
+        "--starting-balance-hsa",
+        help="Starting balance for HSA account?",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
         "--starting-balance-taxable",
         help="Starting balance for taxable account?",
         required=False,
@@ -163,6 +178,27 @@ def main():
         required=False,
         type=float,
         default=0
+    )
+    parser.add_argument(
+        "--yearly-hsa-contribution-limit",
+        help="What is the individual HSA contribution limit?",
+        required=False,
+        type=float,
+        default=3600
+    )
+    parser.add_argument(
+        "--hsa-contribution-catch-up",
+        help="How much extra can you contribute at this age?",
+        required=False,
+        type=float,
+        default=1000
+    )
+    parser.add_argument(
+        "--hsa-contribution-catch-up-age",
+        help="At what age can you do extra catch up contributions?",
+        required=False,
+        type=int,
+        default=55
     )
     parser.add_argument(
         "--yearly-401k-normal-contribution-limit",
@@ -366,11 +402,13 @@ def main():
         ["Max Income", f"${args.max_income:,.2f}"],
         ["Yearly Spending", f"${args.spending:,.2f}"],
         ["Yearly Income Raise", f"{args.yearly_income_raise:.2f}"],
+        ["Starting Balance HSA", f"${args.starting_balance_hsa:,.2f}"],
         ["Starting Balance Taxable", f"${args.starting_balance_taxable:,.2f}"],
         ["Starting Balance Trad 401k", f"${args.starting_balance_trad_401k:,.2f}"],
         ["Starting Balance Trad IRA", f"${args.starting_balance_trad_ira:,.2f}"],
         ["Starting Balance Roth 401k", f"${args.starting_balance_roth_401k:,.2f}"],
         ["Starting Balance Roth IRA", f"${args.starting_balance_roth_ira:,.2f}"],
+        ["HSA Contribution Limit", f"${args.yearly_hsa_contribution_limit:,.2f}"],
         ["401k Normal Cont. Limit", f"${args.yearly_401k_normal_contribution_limit:,.2f}"],
         ["401k Total Cont. Limit", f"${args.yearly_401k_total_contribution_limit:,.2f}"],
         ["IRA Contribution Limit", f"${args.yearly_ira_contribution_limit:,.2f}"],
