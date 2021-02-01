@@ -65,6 +65,7 @@ class Account:
         return self.name
 
     def contribute(self, money, rollover=False):
+        money = round(money, 2)
         assert money >= 0, money
         self.basis += money
         self.value += money
