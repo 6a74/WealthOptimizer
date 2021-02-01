@@ -37,14 +37,16 @@ class Simulation:
         max_income,
         age_of_marriage,
         spending,
-        yearly_hsa_contribution_limit,
-        hsa_contribution_catch_up,
-        hsa_contribution_catch_up_age,
-        yearly_401k_normal_contribution_limit,
-        yearly_401k_total_contribution_limit,
-        yearly_ira_contribution_limit,
-        ira_contribution_catch_up,
-        ira_contribution_catch_up_age,
+        contribution_limit_hsa,
+        contribution_catch_up_amount_hsa,
+        contribution_catch_up_age_hsa,
+        contribution_limit_401k,
+        contribution_limit_401k_total,
+        contribution_catch_up_amount_401k,
+        contribution_catch_up_age_401k,
+        contribution_limit_ira,
+        contribution_catch_up_amount_ira,
+        contribution_catch_up_age_ira,
         mega_backdoor_roth,
         work_state,
         retirement_state,
@@ -55,7 +57,7 @@ class Simulation:
         assert income >= 0
         if max_income:
             assert max_income >= income
-        assert yearly_401k_total_contribution_limit >= yearly_401k_normal_contribution_limit
+        assert contribution_limit_401k_total >= contribution_limit_401k
 
         #
         # Input parameters:
@@ -81,14 +83,14 @@ class Simulation:
         self.params_table.add_row("Yearly Roth Conversion Amount", f"{roth_conversion_amount:,.2f}")
         self.params_table.add_row("Years to Prefer Roth Contributions", str(years_to_wait))
         self.params_table.add_row("Spending", f"{spending:,.2f}")
-        self.params_table.add_row("HSA Contribution Limit", f"{yearly_hsa_contribution_limit:,.2f}")
-        self.params_table.add_row("HSA Catch-up Contribution", f"{hsa_contribution_catch_up:,.2f}")
-        self.params_table.add_row("HSA Catch-up Contribution Age", f"{hsa_contribution_catch_up_age:d}")
-        self.params_table.add_row("401k Normal Contribution Limit", f"{yearly_401k_normal_contribution_limit:,.2f}")
-        self.params_table.add_row("401k Total Contribution Limit", f"{yearly_401k_total_contribution_limit:,.2f}")
-        self.params_table.add_row("IRA Contribution Limit", f"{yearly_ira_contribution_limit:,.2f}")
-        self.params_table.add_row("IRA Catch-up Contribution", f"{ira_contribution_catch_up:,.2f}")
-        self.params_table.add_row("IRA Catch-up Contribution Age", f"{ira_contribution_catch_up_age:d}")
+        self.params_table.add_row("HSA Contribution Limit", f"{contribution_limit_hsa:,.2f}")
+        self.params_table.add_row("HSA Catch-up Contribution", f"{contribution_catch_up_amount_hsa:,.2f}")
+        self.params_table.add_row("HSA Catch-up Contribution Age", f"{contribution_catch_up_age_hsa:d}")
+        self.params_table.add_row("401k Normal Contribution Limit", f"{contribution_limit_401k:,.2f}")
+        self.params_table.add_row("401k Total Contribution Limit", f"{contribution_limit_401k_total:,.2f}")
+        self.params_table.add_row("IRA Contribution Limit", f"{contribution_limit_ira:,.2f}")
+        self.params_table.add_row("IRA Catch-up Contribution", f"{contribution_catch_up_amount_ira:,.2f}")
+        self.params_table.add_row("IRA Catch-up Contribution Age", f"{contribution_catch_up_age_ira:d}")
         self.params_table.add_row("Do Mega-Backdoor Roth After Tax-Advantaged Limit?", str(mega_backdoor_roth))
         self.params_table.add_row("Work State", work_state)
         self.params_table.add_row("Retirement State", retirement_state)
@@ -167,14 +169,16 @@ class Simulation:
         #
         # Contribution limits:
         #
-        self.yearly_hsa_contribution_limit = yearly_hsa_contribution_limit
-        self.hsa_contribution_catch_up = hsa_contribution_catch_up
-        self.hsa_contribution_catch_up_age = hsa_contribution_catch_up_age
-        self.yearly_401k_normal_contribution_limit = yearly_401k_normal_contribution_limit
-        self.yearly_401k_total_contribution_limit = yearly_401k_total_contribution_limit
-        self.yearly_ira_contribution_limit = yearly_ira_contribution_limit
-        self.ira_contribution_catch_up = ira_contribution_catch_up
-        self.ira_contribution_catch_up_age = ira_contribution_catch_up_age
+        self.contribution_limit_hsa = contribution_limit_hsa
+        self.contribution_catch_up_amount_hsa = contribution_catch_up_amount_hsa
+        self.contribution_catch_up_age_hsa = contribution_catch_up_age_hsa
+        self.contribution_limit_401k = contribution_limit_401k
+        self.contribution_limit_401k_total = contribution_limit_401k_total
+        self.contribution_catch_up_amount_401k = contribution_catch_up_amount_401k
+        self.contribution_catch_up_age_401k = contribution_catch_up_age_401k
+        self.contribution_limit_ira = contribution_limit_ira
+        self.contribution_catch_up_amount_ira = contribution_catch_up_amount_ira
+        self.contribution_catch_up_age_ira = contribution_catch_up_age_ira
 
         #
         # This will contain a table with all of our math.
@@ -359,9 +363,9 @@ class Simulation:
         additional contribution to his or her own HSA. So let's assume if you're
         married you have separate HSA accounts and know you can do this.
         """
-        limit = self.yearly_hsa_contribution_limit
-        if self.get_current_age() >= self.hsa_contribution_catch_up_age:
-            limit += self.hsa_contribution_catch_up
+        limit = self.contribution_limit_hsa
+        if self.get_current_age() >= self.contribution_catch_up_age_hsa:
+            limit += self.contribution_catch_up_amount_hsa
         if self.is_married():
             limit *= 2
         return limit
@@ -371,9 +375,9 @@ class Simulation:
         The IRA contribution limit variable should be per person. This function
         will calculate any exceptions based on your age or marriage.
         """
-        limit = self.yearly_ira_contribution_limit
-        if self.get_current_age() >= self.ira_contribution_catch_up_age:
-            limit += self.ira_contribution_catch_up
+        limit = self.contribution_limit_ira
+        if self.get_current_age() >= self.contribution_catch_up_age_ira:
+            limit += self.contribution_catch_up_amount_ira
         if self.is_married():
             limit *= 2
         return limit
@@ -384,10 +388,13 @@ class Simulation:
         is not the total employee + employer contribution limit. That is the
         following function.
         """
-        return self.yearly_401k_normal_contribution_limit
+        limit = self.contribution_limit_401k
+        if self.get_current_age() >= self.contribution_catch_up_age_401k:
+            limit += self.contribution_catch_up_amount_401k
+        return limit
 
     def get_401k_total_contribution_limit(self):
-        return self.yearly_401k_total_contribution_limit
+        return self.contribution_limit_401k_total
 
     def do_mega_backdoor_roth(self):
         return self.mega_backdoor_roth
@@ -1304,56 +1311,70 @@ def main():
         default=1.04
     )
     parser.add_argument(
-        "--yearly-hsa-contribution-limit",
+        "--contribution-limit-hsa",
         help="What is the individual HSA contribution limit?",
         required=False,
         type=float,
         default=3600
     )
     parser.add_argument(
-        "--hsa-contribution-catch-up",
+        "--contribution-catch-up-amount-hsa",
         help="How much extra can you contribute at this age?",
         required=False,
         type=float,
         default=1000
     )
     parser.add_argument(
-        "--hsa-contribution-catch-up-age",
+        "--contribution-catch-up-age-hsa",
         help="At what age can you do extra catch up contributions?",
         required=False,
         type=int,
         default=55
     )
     parser.add_argument(
-        "--yearly-401k-normal-contribution-limit",
+        "--contribution-limit-401k",
         help="What is the normal 401k contribution limit?",
         required=False,
         type=float,
         default=19500
     )
     parser.add_argument(
-        "--yearly-401k-total-contribution-limit",
+        "--contribution-limit-401k-total",
         help="What is the total 401k contribution limit?",
         required=False,
         type=float,
         default=58000
     )
     parser.add_argument(
-        "--yearly-ira-contribution-limit",
+        "--contribution-catch-up-amount-401k",
+        help="How much extra can you contribute at this age?",
+        required=False,
+        type=float,
+        default=6500
+    )
+    parser.add_argument(
+        "--contribution-catch-up-age-401k",
+        help="At what age can you do 401k catch up contributions?",
+        required=False,
+        type=float,
+        default=50
+    )
+    parser.add_argument(
+        "--contribution-limit-ira",
         help="What is the IRA contribution limit?",
         required=False,
         type=float,
         default=6000
     )
     parser.add_argument(
-        "--ira-contribution-catch-up",
+        "--contribution-catch-up-amount-ira",
         help="How much extra can you contribute at this age?",
         required=False,
         type=float,
         default=1000
     )
     parser.add_argument(
-        "--ira-contribution-catch-up-age",
+        "--contribution-catch-up-age-ira",
         help="At what age can you do extra catch up contributions?",
         required=False,
         type=int,
@@ -1368,7 +1389,7 @@ def main():
     )
     parser.add_argument(
         "--years-to-wait",
-        help="Years to wait before doing Traditional (pre-tax) contributions",
+        help="Years to wait before doing traditional (pre-tax) contributions",
         metavar="YEARS",
         required=False,
         type=int,
@@ -1502,14 +1523,16 @@ def main():
                     args.max_income,
                     args.age_of_marriage,
                     args.spending,
-                    args.yearly_hsa_contribution_limit,
-                    args.hsa_contribution_catch_up,
-                    args.hsa_contribution_catch_up_age,
-                    args.yearly_401k_normal_contribution_limit,
-                    args.yearly_401k_total_contribution_limit,
-                    args.yearly_ira_contribution_limit,
-                    args.ira_contribution_catch_up,
-                    args.ira_contribution_catch_up_age,
+                    args.contribution_limit_hsa,
+                    args.contribution_catch_up_amount_hsa,
+                    args.contribution_catch_up_age_hsa,
+                    args.contribution_limit_401k,
+                    args.contribution_limit_401k_total,
+                    args.contribution_catch_up_amount_401k,
+                    args.contribution_catch_up_age_401k,
+                    args.contribution_limit_ira,
+                    args.contribution_catch_up_amount_ira,
+                    args.contribution_catch_up_age_ira,
                     args.do_mega_backdoor_roth,
                     args.work_state,
                     args.retirement_state,
@@ -1555,14 +1578,16 @@ def main():
             args.max_income,
             args.age_of_marriage,
             args.spending,
-            args.yearly_hsa_contribution_limit,
-            args.hsa_contribution_catch_up,
-            args.hsa_contribution_catch_up_age,
-            args.yearly_401k_normal_contribution_limit,
-            args.yearly_401k_total_contribution_limit,
-            args.yearly_ira_contribution_limit,
-            args.ira_contribution_catch_up,
-            args.ira_contribution_catch_up_age,
+            args.contribution_limit_hsa,
+            args.contribution_catch_up_amount_hsa,
+            args.contribution_catch_up_age_hsa,
+            args.contribution_limit_401k,
+            args.contribution_limit_401k_total,
+            args.contribution_catch_up_amount_401k,
+            args.contribution_catch_up_age_401k,
+            args.contribution_limit_ira,
+            args.contribution_catch_up_amount_ira,
+            args.contribution_catch_up_age_ira,
             args.do_mega_backdoor_roth,
             args.work_state,
             args.retirement_state,
