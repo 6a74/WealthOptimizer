@@ -61,7 +61,8 @@ def my_calculation(arguments):
             args.add_dependent,
             args.public_safety_employee,
             args.employer_match_401k,
-            args.max_contribution_percentage_401k
+            args.max_contribution_percentage_401k,
+            args.employer_contribution_hsa
         )
         simulation.simulate()
 
@@ -112,7 +113,8 @@ def my_calculation(arguments):
         args.add_dependent,
         args.public_safety_employee,
         args.employer_match_401k,
-        args.max_contribution_percentage_401k
+        args.max_contribution_percentage_401k,
+        args.employer_contribution_hsa
     )
     simulation.simulate()
     return simulation.get_total_assets_after_death()
@@ -193,6 +195,13 @@ def main():
         required=False,
         type=float,
         default=3600
+    )
+    parser.add_argument(
+        "--employer-contribution-hsa",
+        help="How much does your employer contribution to your HSA?",
+        required=False,
+        type=float,
+        default=0
     )
     parser.add_argument(
         "--contribution-catch-up-amount-hsa",
@@ -451,6 +460,7 @@ def main():
         ["Mega-Backdoor Roth", args.do_mega_backdoor_roth],
         ["Work State", f"{args.work_state}"],
         ["Retirement State", f"{args.retirement_state}"],
+        ["HSA Employer Contribution", f"{args.employer_contribution_hsa}"],
     ]
 
     the_table = plt.table(cellText=cells, bbox=[1.05, 0.25, 0.5, 0.75])
