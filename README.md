@@ -93,9 +93,9 @@ than the previous lad.
 ![Figure 4](https://github.com/6a74/finance/blob/master/figures/figure_04.png?raw=true)
 
 Next, let's say the person above has a coworker that is the same age and has the
-same income, _but_ but spend twice as much (from $30k to $60k). What would
-change? Well, not much honestly. Their tax-advantaged savings should be on par,
-just their taxable savings would be different.
+same income, _but_ spends twice as much (from $30k to $60k). What would change?
+Well, not much honestly. Their tax-advantaged savings should be on par, just
+their taxable savings would be different.
 
 ![Figure 5](https://github.com/6a74/finance/blob/master/figures/figure_05.png?raw=true)
 
@@ -129,11 +129,17 @@ going on with the 3% interest rate line. I believe that can be ignored.
 
 ![Figure 9](https://github.com/6a74/finance/blob/master/figures/figure_09.png?raw=true)
 
-Finally, let's say the same hot-shot kid decides he likes his job and wants to
-work another twenty years. The outcome is still the same. This person should
-always defer taxes. Their tax-rate is too high not to.
+Let's say the same hot-shot kid decides he likes his job and wants to work
+another twenty years. The outcome is still the same. This person should always
+defer taxes. Their tax-rate is too high not to.
 
 ![Figure 10](https://github.com/6a74/finance/blob/master/figures/figure_10.png?raw=true)
+
+What if we have a kid who's income explodes (from $63k to $300k at a rate of 20%
+increases each year) while they are young? This person would reach an income of
+$300k at the age of 34, then plateau. Well, only because this person starts off with a low income does the calculator recommend you prefer Roth for a few years.
+
+![Figure 11](https://github.com/6a74/finance/blob/master/figures/figure_11.png?raw=true)
 
 ### Key Takeaways
 
@@ -157,7 +163,7 @@ someone will inherit them. In the following figures, the following command was
 used:
 
 ```
-./sim.py --verbose
+./source/sim.py --verbose
 ```
 
 Here are all of the configurable options:
@@ -181,7 +187,7 @@ missing options like the `--start-with-roth=YEARS` option. To get started, run
 the following command:
 
 ```
-./graph.py
+./source/graph.py
 ```
 
 ![Figure 1](https://github.com/6a74/finance/blob/master/figures/figure_01.png?raw=true)

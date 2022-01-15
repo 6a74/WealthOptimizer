@@ -153,7 +153,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    def my_calculation(return_rate, start_with_roth):
+    def my_calculation(rate_of_return, years_to_wait):
         #
         # Calculate the most efficient Roth conversion amount.
         #
@@ -167,9 +167,9 @@ if __name__ == "__main__":
                     args.principal_taxable,
                     args.principal_traditional,
                     args.principal_roth,
-                    return_rate,
+                    rate_of_return,
                     args.yearly_401k_contribution,
-                    start_with_roth,
+                    years_to_wait,
                     args.current_age,
                     args.age_of_retirement,
                     args.age_to_start_rmds,
@@ -199,9 +199,9 @@ if __name__ == "__main__":
             args.principal_taxable,
             args.principal_traditional,
             args.principal_roth,
-            return_rate,
+            rate_of_return,
             args.yearly_401k_contribution,
-            start_with_roth,
+            years_to_wait,
             args.current_age,
             args.age_of_retirement,
             args.age_to_start_rmds,
@@ -244,18 +244,18 @@ if __name__ == "__main__":
     current_calculation = 0
     num_calculations = working_years * len(return_rates)
     with progressbar.ProgressBar(max_value=num_calculations) as bar:
-        for return_rate, color in zip(return_rates, colors):
+        for rate_of_return, color in zip(return_rates, colors):
             inputs = range(working_years)
             outputs = []
             for y in inputs:
-                outputs.append(my_calculation(return_rate, y))
+                outputs.append(my_calculation(rate_of_return, y))
                 current_calculation += 1
                 bar.update(current_calculation)
 
             plt.plot(
                 inputs,
                 scale(outputs),
-                label=f"Rate of Return: {return_rate:.2f}",
+                label=f"Rate of Return: {rate_of_return:.2f}",
                 linestyle='-',
                 color=color
             )

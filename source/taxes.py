@@ -40,30 +40,30 @@ married_ltcg_brackets = [
 ]
 
 estate_tax_brackets = [
-    (10000,   0,      0.18),
-    (20000,   1800,   0.20),
-    (40000,   3800,   0.22),
-    (60000,   8200,   0.24),
-    (80000,   13000,  0.26),
-    (100000,  18200,  0.28),
-    (150000,  23800,  0.30),
-    (250000,  38800,  0.32),
-    (500000,  70800,  0.34),
-    (750000,  155800, 0.37),
-    (1000000, 248300, 0.39),
-    (sys.float_info.max, 345800, 0.40),
+    (0,       0,      0.18),
+    (10000,   1800,   0.20),
+    (20000,   3800,   0.22),
+    (40000,   8200,   0.24),
+    (60000,   13000,  0.26),
+    (80000,   18200,  0.28),
+    (100000,  23800,  0.30),
+    (150000,  38800,  0.32),
+    (250000,  70800,  0.34),
+    (500000,  155800, 0.37),
+    (750000,  248300, 0.39),
+    (1000000, 345800, 0.40),
 ]
 
 def calculate_estate_taxes(estate):
+    assert estate > 0
     deduction = 11700000 # $11.7 million for 2021
     taxable_estate = max(0, estate - deduction)
     if not taxable_estate:
         return 0
 
-    for (limit, base_tax, tax_rate) in estate_tax_brackets:
-        if taxable_estate > limit:
-            continue
-        return base_tax + (taxable_estate * tax_rate)
+    for (minimum, base_tax, tax_rate) in reversed(estate_tax_brackets):
+        if taxable_estate > minimum:
+            return base_tax + ((taxable_estate - minimum) * tax_rate)
 
 def calculate_minimum_remaining_taxes_for_heir(value, age):
     total_taxes = 0
