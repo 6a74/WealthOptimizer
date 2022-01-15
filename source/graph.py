@@ -7,7 +7,7 @@ import progressbar
 import sim
 import taxes as tm
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(
         description="Make a tax graph",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         default=60
     )
     parser.add_argument(
-        "--working-state",
+        "--work-state",
         help="What state will you work in?",
         required=False,
         choices=tm.states.keys(),
@@ -208,7 +208,7 @@ if __name__ == "__main__":
                     args.ira_contribution_catch_up,
                     args.ira_contribution_catch_up_age,
                     args.do_mega_backdoor_roth,
-                    args.working_state,
+                    args.work_state,
                     args.retirement_state,
                     args.add_dependent,
                     args.public_safety_employee,
@@ -242,30 +242,35 @@ if __name__ == "__main__":
             args.ira_contribution_catch_up,
             args.ira_contribution_catch_up_age,
             args.do_mega_backdoor_roth,
-            args.working_state,
+            args.work_state,
             args.retirement_state,
             args.add_dependent,
             args.public_safety_employee,
             args.verbose
         )[0]
 
-    def scale(l):
-        """Depending on the variables, these values can be part of a pretty wide
+    def scale(values):
+        """
+        Depending on the variables, these values can be part of a pretty wide
         range, which looks bad. In my experience, unscaled graphs just look like
         straight lines. I'm not really an expert in normalizing data, so I just
         looked up "how to normalize data" and featured scaling looked right.
+
         Link: https://en.wikipedia.org/wiki/Feature_scaling
         """
-        def _scale(v):
-            return (v - min(l))/(max(l) - min(l))
-        return list(map(_scale, l))
+        def _scale(val):
+            return (val - min(values))/(max(values) - min(values))
+        return list(map(_scale, values))
 
     #
     # Generate our outputs.
     #
     working_years = args.age_of_retirement - args.current_age
     return_rates = [1.01, 1.02, 1.03, 1.04, 1.05, 1.06, 1.07]
-    colors = ['tab:blue', 'tab:red', 'tab:orange', 'tab:purple', 'tab:brown', 'tab:olive', 'tab:cyan']
+    colors = [
+        'tab:blue', 'tab:red', 'tab:orange', 'tab:purple',
+        'tab:brown', 'tab:olive', 'tab:cyan'
+    ]
 
     assert working_years >= 0
 
@@ -326,7 +331,7 @@ if __name__ == "__main__":
         ["401k Total Cont. Limit", f"${args.yearly_401k_total_contribution_limit:,.2f}"],
         ["IRA Contribution Limit", f"${args.yearly_ira_contribution_limit:,.2f}"],
         ["Mega-Backdoor Roth", args.do_mega_backdoor_roth],
-        ["Working State", f"{args.working_state}"],
+        ["Work State", f"{args.work_state}"],
         ["Retirement State", f"{args.retirement_state}"],
     ]
 
@@ -336,3 +341,6 @@ if __name__ == "__main__":
 
     plt.legend(bbox_to_anchor=(1.045, 0), loc="lower left")
     plt.show()
+
+if __name__ == "__main__":
+    main()
