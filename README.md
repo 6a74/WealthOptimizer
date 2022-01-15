@@ -140,7 +140,7 @@ always defer taxes. Their tax-rate is too high not too.
 * If you plan to retire very early (40), it appears to be better to defer
   taxes immediately.
 * If long-term interest rates are high (6%+), it appears to be better to
-  make Roth contributes.
+  make Roth contributions.
 
 ## Utilities
 
@@ -208,6 +208,10 @@ were intential design decisions.
 * Pay raises are constant (unrealistic, I'm aware).
 * Saving contributions will go up at the same rate as pay raises.
 * Any excess income will go into a taxable account.
+* If you need additional income for spending, it will come from (1) taxable,
+  then (2) Roth contributions. If you are retired, at least 60 years old, and
+  still need more money, it will come from (3) traditional and (4) Roth
+  accounts.
 
 ### Taxes
 
@@ -215,14 +219,25 @@ were intential design decisions.
 * Standard duduction only.
 * Only "single" and "married" filing statuses.
 * No dependents; no charities.
+* If there are traditional investments at death, it assumes that one of your
+  children will inherit the remainder. Your child will be 30 years younger than
+  your age of death. They will be expected to take RMDs based on the IRS Single
+  Life Expectancy table. The taxes they expect to pay for this will be included
+  in your total taxes. Assuming your child has no income for the remainder of
+  their life, this will be the minimum expected tax.
+* Outside of estate taxes, there are no taxes for taxable and Roth investments
+  at death. For taxable accounts, the [step up in
+  basis](https://www.investopedia.com/terms/s/stepupinbasis.asp) plays a
+  significant role in helping to reduce taxes after death.
 
 ### RMDs
 
 * After retirement and before RMDs, you will do [Roth IRA
   conversions](https://www.bogleheads.org/wiki/Roth_IRA_conversion). This amount
-  is automatically calculated to produce the lowest taxes. Note: this currently
-  assumes your marital status does not change during this
-  post-retirement/pre-RMDs period. I understand that will not work for everyone.
+  is automatically calculated to produce the highest assets at death. Note: this
+  currently assumes your marital status does not change during this
+  post-retirement/pre-RMDs period. I understand that this will not work for
+  everyone.
 * During RMDs, you will withdrawal at least your standard deduction. This is
   amount is taxed at 0%.
 * RMDs are transferred to a taxable account, where it grows at the same interest
@@ -233,7 +248,6 @@ were intential design decisions.
 * Interest is applied at the end of each year.
 * The "market" has no volatility. Investments grow at a steady rate.
 * Divorce is not possible. Once you are married, you are stuck that way.
-* Taxable investments are never sold and therefore capital gains is take taken
-  into account. I could see myself adding a "yearly cost of living" option and
-  intelligently withdrawing from the best account. In this situation, capital
-  gains could be calculated and included.
+* Spending remains constant thoughout your lifetime. Once again, this is
+  unrealistic but necessary. Because interest rates are real, this number
+  accounts for inflation.
