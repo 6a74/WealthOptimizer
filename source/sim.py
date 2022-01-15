@@ -1119,6 +1119,13 @@ def main():
         default=False
     )
     parser.add_argument(
+        "--roth-conversion-unit",
+        help="To what level of detail do you want to calculate the best Roth conversion?",
+        required=False,
+        type=float,
+        default=1000
+    )
+    parser.add_argument(
         "--verbose",
         help="Do things and talk more",
         action="store_true"
@@ -1170,7 +1177,7 @@ def main():
                 most_assets = assets
             if round(traditional, 2) == 0:
                 break
-            roth_conversion_amount += 1000
+            roth_conversion_amount += args.roth_conversion_unit
 
     #
     # Now that we know all of the variables, run the simulation.
