@@ -46,6 +46,8 @@ def calculate_assets(
             print(line)
 
     assert current_age <= 115
+    if max_income:
+        assert max_income >= income
     assert current_age < age_of_death
     assert yearly_401k_total_contribution_limit >= yearly_401k_normal_contribution_limit
 
@@ -53,26 +55,28 @@ def calculate_assets(
     # Input parameters:
     #
     params_table = []
-    params_header = ["Name", "Value"]
+    params_header = ["Field", "Value"]
     params_table.append(["Starting Age", current_age])
     params_table.append(["Age of Death", age_of_death])
     params_table.append(["Age of Marriage", age_of_marriage])
     params_table.append(["Age of Retirement", age_of_retirement])
     params_table.append(["Age to Start RMDs", age_to_start_rmds])
-    params_table.append(["Starting Income", income])
-    params_table.append(["Max Income", max_income])
-    params_table.append(["Yearly Rate of Return", rate_of_return])
-    params_table.append(["Yearly Income Raise", yearly_income_raise])
-    params_table.append(["Starting Taxable Balance", taxable])
-    params_table.append(["Starting Roth Balance", roth])
-    params_table.append(["Starting Traditional Balance", traditional])
-    params_table.append(["Yearly Roth Conversion Amount", roth_conversion_amount])
+    params_table.append(["Starting Income", f"${income:,.2f}"])
+    params_table.append(["Max Income", f"${max_income:,.2f}" if max_income else None])
+    params_table.append(["Yearly Rate of Return", f"{(rate_of_return-1)*100:.2f}%"])
+    params_table.append(["Yearly Income Raise", f"{(yearly_income_raise-1)*100:.2f}%"])
+    params_table.append(["Starting Taxable Balance", f"${taxable:,.2f}"])
+    params_table.append(["Starting Roth Balance", f"${roth:,.2f}"])
+    params_table.append(["Starting Traditional Balance", f"${traditional:,.2f}"])
+    params_table.append(["Yearly Roth Conversion Amount", f"${roth_conversion_amount:,.2f}"])
     params_table.append(["Years to Prefer Roth Contributions", years_until_transition_to_pretax_contributions])
-    params_table.append(["Yearly Spending", spending])
-    params_table.append(["Yearly 401k Pre-tax Limit", yearly_401k_normal_contribution_limit])
-    params_table.append(["Yearly 401k Contribution Limit", yearly_401k_total_contribution_limit])
-    params_table.append(["Yearly IRA Contribution Limit", yearly_ira_contribution_limit])
+    params_table.append(["Yearly Spending", f"${spending:,.2f}"])
+    params_table.append(["Yearly 401k Pre-tax Limit", f"${yearly_401k_normal_contribution_limit:,.2f}"])
+    params_table.append(["Yearly 401k Contribution Limit", f"${yearly_401k_total_contribution_limit:,.2f}"])
+    params_table.append(["Yearly IRA Contribution Limit", f"${yearly_ira_contribution_limit:,.2f}"])
     params_table.append(["Do Mega-Backdoor Roth After Tax-Advantaged Limit?", do_mega_backdoor_roth])
+    params_table.append(["Working State", working_state])
+    params_table.append(["Retirement State", retirement_state])
 
     debug_print(
         tabulate(
@@ -80,7 +84,8 @@ def calculate_assets(
             params_header,
             tablefmt="fancy_grid",
             numalign="right",
-            floatfmt=",.2f"
+            floatfmt=",.2f",
+            colalign=("left", "right")
         )
     )
 
