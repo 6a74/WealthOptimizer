@@ -1343,7 +1343,8 @@ def calculate_federal_income_tax(agi, married, dependents=0, ltcg=0, just_ltcg=F
     income_taxes = 0
     for minimum, base_tax, tax_rate in reversed(brackets):
         if income_to_tax > minimum:
-            income_taxes = base_tax + ((income_to_tax - minimum) * tax_rate)
+            income_taxes += base_tax + ((income_to_tax - minimum) * tax_rate)
+            break
 
     income_to_tax = ltcg
     ltcg_taxes = 0

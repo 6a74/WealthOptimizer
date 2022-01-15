@@ -185,7 +185,7 @@ if __name__ == "__main__":
         best_roth_conversion_amount = 0
 
         if args.age_of_death > args.age_of_retirement:
-            for x in range(500):
+            while True:
                 assets, traditional = sim.calculate_assets(
                     args.principal_taxable,
                     args.principal_traditional,
@@ -214,11 +214,11 @@ if __name__ == "__main__":
                     args.public_safety_employee,
                     debug=False
                 )
-                if not traditional:
-                    break
                 if assets > most_assets:
                     best_roth_conversion_amount = roth_conversion_amount
                     most_assets = assets
+                if not traditional:
+                    break
                 roth_conversion_amount += 1000
 
         return sim.calculate_assets(
@@ -322,16 +322,17 @@ if __name__ == "__main__":
         ["Starting Taxable Balance", f"${args.principal_taxable:,.2f}"],
         ["Starting Traditional Balance", f"${args.principal_traditional:,.2f}"],
         ["Starting Roth Balance", f"${args.principal_roth:,.2f}"],
-        ["401k Normal Contribution Limit", f"${args.yearly_401k_normal_contribution_limit:,.2f}"],
-        ["401k Total Contribution Limit", f"${args.yearly_401k_total_contribution_limit:,.2f}"],
+        ["401k Normal Cont. Limit", f"${args.yearly_401k_normal_contribution_limit:,.2f}"],
+        ["401k Total Cont. Limit", f"${args.yearly_401k_total_contribution_limit:,.2f}"],
         ["IRA Contribution Limit", f"${args.yearly_ira_contribution_limit:,.2f}"],
         ["Mega-Backdoor Roth", args.do_mega_backdoor_roth],
+        ["Working State", f"{args.working_state}"],
+        ["Retirement State", f"{args.retirement_state}"],
     ]
 
     the_table = plt.table(cellText=cells, bbox=[1.05, 0.25, 0.5, 0.75])
     the_table.auto_set_font_size(False)
     plt.subplots_adjust(right=0.65)
 
-    #plt.legend()
     plt.legend(bbox_to_anchor=(1.045, 0), loc="lower left")
     plt.show()

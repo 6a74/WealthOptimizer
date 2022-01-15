@@ -46,6 +46,7 @@ def calculate_assets(
             print(line)
 
     assert current_age <= 115
+    assert income >= 0
     if max_income:
         assert max_income >= income
     assert current_age < age_of_death
@@ -488,6 +489,7 @@ def calculate_assets(
                 married,
                 num_dependents(current_age)
             )
+            print(taxable_income, federal_income_tax)
 
             #
             # Calculate saver's credit. This provides tax credits if you are low
@@ -929,7 +931,7 @@ if __name__ == "__main__":
     best_roth_conversion_amount = 0
 
     if args.age_of_death > args.age_of_retirement:
-        for x in range(500):
+        while True:
             assets, traditional = calculate_assets(
                 args.principal_taxable,
                 args.principal_traditional,
@@ -958,11 +960,11 @@ if __name__ == "__main__":
                 args.public_safety_employee,
                 debug=False
             )
-            if not traditional:
-                break
             if assets > most_assets:
                 best_roth_conversion_amount = roth_conversion_amount
                 most_assets = assets
+            if not traditional:
+                break
             roth_conversion_amount += 1000
 
     #
