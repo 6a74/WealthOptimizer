@@ -103,7 +103,13 @@ def calculate_assets(
             return 0
         count = 0
         for dep in dependents:
-            if dep <= current_age and (dep + 18) > current_age:
+            #
+            # Taxpayers may be able to claim the child tax credit if they have a
+            # qualifying child under the age of 17. Part of this credit can be
+            # refundable, so it may give a taxpayer a refund even if they don't
+            # owe any tax.
+            #
+            if dep <= current_age and (dep + 17) > current_age:
                 count += 1
         return count
 
@@ -138,7 +144,6 @@ def calculate_assets(
         "State Tax",
         "Federal Tax",
         "Tax %",
-        "Savings Rate",
         "Total Taxes"
     ]
 
@@ -256,17 +261,18 @@ def calculate_assets(
                 tax_deductions = traditional_contribution
                 taxable_income = this_years_income - tax_deductions
 
-                federal_taxes = tm.calculate_federal_income_tax(
+                federal_income_tax = tm.calculate_federal_income_tax(
                     taxable_income,
                     married,
                     num_dependents(current_age)
                 )
-                federal_taxes -= tm.calculate_savers_credit(
+                federal_income_tax -= tm.calculate_savers_credit(
                     taxable_income,
                     traditional_contribution + roth_contribution,
                     married
                 )
-                federal_taxes = max(federal_taxes, 0)
+                federal_income_tax = max(federal_income_tax, 0)
+                fica_tax = tm.calculate_fica_tax(this_years_income, married)
 
                 state_taxes = tm.calculate_state_tax(
                     taxable_income,
@@ -275,7 +281,7 @@ def calculate_assets(
                     num_dependents(current_age)
                 )
 
-                taxes = federal_taxes + state_taxes
+                taxes = federal_income_tax + fica_tax + state_taxes
 
                 result = (
                     this_years_income
@@ -347,7 +353,7 @@ def calculate_assets(
         #
         taxable_income = this_years_income - tax_deductions
 
-        federal_taxes = tm.calculate_federal_income_tax(
+        federal_income_tax = tm.calculate_federal_income_tax(
             taxable_income,
             married,
             num_dependents(current_age)
@@ -366,9 +372,10 @@ def calculate_assets(
                 traditional_contribution + roth_contribution,
                 married
             )
-            federal_taxes = max(federal_taxes - savers_credit, 0)
+            federal_income_tax = max(federal_income_tax - savers_credit, 0)
 
-        taxes = federal_taxes + state_taxes
+        fica_tax = tm.calculate_fica_tax(this_years_income - traditional_withdrawal, married)
+        taxes = federal_income_tax + fica_tax + state_taxes
         total_taxes += taxes
 
         #
@@ -438,12 +445,16 @@ def calculate_assets(
                 roth -= roth_withdrawal
                 needed -= roth_withdrawal
 
+            #
+            # TODO: Clean this entire "needed" section up. We need to pay taxes
+            # on tradtional withdrawals.
+            #
             if needed and traditional and current_age >= 60:
                 to_take = min(needed, traditional)
                 traditional_withdrawal += to_take
                 traditional -= to_take
                 needed -= to_take
-                total_taxes += neede
+                total_taxes += needed
 
             if needed and roth and current_age >= 60:
                 to_take = min(needed, roth)
@@ -499,9 +510,8 @@ def calculate_assets(
             int(num_dependents(current_age)),
             current_state,
             float(state_taxes),
-            float(federal_taxes),
+            float(federal_income_tax + fica_tax),
             float(tax_rate),
-            float(savings_rate),
             float(total_taxes)
         ])
 
