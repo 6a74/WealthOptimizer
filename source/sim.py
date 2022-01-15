@@ -40,15 +40,11 @@ def calculate_assets(
         retirement_state,
         dependents,
         public_safety_employee,
-        debug=True,
-        print_summary=False
+        show_params=False,
+        show_math=False,
+        show_summary=False
     ):
     """Simulate the state of finances for every year until you die."""
-
-    def debug_print(line):
-        if debug:
-            print(line)
-
     assert current_age <= 115
     assert age_of_death <= 115
     assert income >= 0
@@ -87,7 +83,7 @@ def calculate_assets(
     params_table.add_row("Work State", work_state)
     params_table.add_row("Retirement State", retirement_state)
 
-    if debug:
+    if show_summary and show_params:
         console.print(params_table)
 
     #
@@ -883,10 +879,10 @@ def calculate_assets(
     #
     # We have finished the simulation. Print the table.
     #
-    if debug:
+    if show_summary and show_math:
         console.print(table, justify="left")
 
-    if print_summary and needed_to_continue:
+    if show_summary and needed_to_continue:
         console.print(":fire::fire::fire: Please enter "
                       f"[underline]{needed_to_continue:,.2f}[/underline]"
                       " to continue playing. :fire::fire::fire:")
@@ -945,7 +941,7 @@ def calculate_assets(
     summary_table.add_row("Total Assets After Taxes", f"{max(total_assets - death_tax, 0):,.2f}")
     summary_table.add_row("Tax/Asset Ratio", f"{tax_to_asset_ratio:,.2f}" if tax_to_asset_ratio else "")
 
-    if (debug or print_summary) and not stop_simulation:
+    if show_summary and not stop_simulation:
         console.print(summary_table)
 
     return total_assets - death_tax, (
@@ -1151,8 +1147,13 @@ def main():
         default=1000
     )
     parser.add_argument(
-        "--verbose",
-        help="Do things and talk more",
+        "--show-params",
+        help="Show the parameters table.",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--show-math",
+        help="Show the calculation table.",
         action="store_true"
     )
 
@@ -1195,7 +1196,8 @@ def main():
                 args.retirement_state,
                 args.add_dependent,
                 args.public_safety_employee,
-                debug=False
+                show_params=args.show_params,
+                show_math=args.show_math
             )
             if round(assets, 2) >= round(most_assets, 2):
                 best_roth_conversion_amount = roth_conversion_amount
@@ -1235,8 +1237,9 @@ def main():
         args.retirement_state,
         args.add_dependent,
         args.public_safety_employee,
-        args.verbose,
-        True
+        show_params=args.show_params,
+        show_math=args.show_math,
+        show_summary=True
     )
 
 if __name__ == "__main__":
