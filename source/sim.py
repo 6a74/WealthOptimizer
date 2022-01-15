@@ -116,6 +116,7 @@ def calculate_assets(
         "Total Roth Cont.",
         "Gross Income",
         "MAGI",
+        "Saver's Credit",
         "Taxes",
         "Tax %",
         "Savings Rate",
@@ -231,6 +232,12 @@ def calculate_assets(
                 tax_deductions = traditional_contribution
                 taxable_income = this_years_income - tax_deductions
                 taxes = tm.calculate_taxes(taxable_income, married)
+                taxes -= tm.calculate_savers_credit(
+                    taxable_income,
+                    traditional_contribution + roth_contribution,
+                    married
+                )
+                taxes = max(taxes, 0)
 
                 result = (
                     this_years_income
@@ -255,7 +262,7 @@ def calculate_assets(
                     maximum_contribution = total_contribution_limit
                     total_contribution_limit = (minimum_contribution + maximum_contribution)/2
                     continue
-                elif round(result, 2) == 0:
+                else:
                     break
 
             total_contributions_traditional += traditional_contribution
@@ -302,6 +309,14 @@ def calculate_assets(
         #
         taxable_income = this_years_income - tax_deductions
         taxes = tm.calculate_taxes(taxable_income, married)
+        savers_credit = 0
+        if not retired:
+            savers_credit = tm.calculate_savers_credit(
+                taxable_income,
+                traditional_contribution + roth_contribution,
+                married
+            )
+            taxes = max(taxes - savers_credit, 0)
         total_taxes += taxes
 
         #
@@ -428,6 +443,7 @@ def calculate_assets(
             float(total_contributions_roth),
             float(this_years_income),
             float(taxable_income),
+            float(savers_credit),
             float(taxes),
             float(tax_rate),
             float(savings_rate),
