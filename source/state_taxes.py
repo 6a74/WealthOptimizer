@@ -1,7 +1,3 @@
-#!/usr/bin/env python3
-
-import sys
-import slet
 
 class Credit:
     """This is used to represent exemption credits."""
@@ -13,11 +9,11 @@ class Credit:
 ################################################################################
 
 class Alabama:
-    deductions = {
+    deduction = {
         'single': 2500,
         'married': 7500
     }
-    exemptions = {
+    exemption = {
         'personal': 1500,
         'dependent': 1000
     }
@@ -35,11 +31,11 @@ class Alabama:
     }
 
 class Arkansas:
-    deductions = {
+    deduction = {
         'single': 2200,
         'married': 4400
     }
-    exemptions = {
+    exemption = {
         'personal': Credit(26),
         'dependent': Credit(26)
     }
@@ -59,11 +55,11 @@ class Arkansas:
     }
 
 class Arizona:
-    deductions = {
+    deduction = {
         'single': 5312,
         'married': 10613
     }
-    exemptions = {
+    exemption = {
         'personal': 2200,
         'dependent': 2300
     }
@@ -83,11 +79,11 @@ class Arizona:
     }
 
 class California:
-    deductions = {
+    deduction = {
         'single': 4236,
         'married': 8472
     }
-    exemptions = {
+    exemption = {
         'personal': Credit(114),
         'dependent': Credit(353)
     }
@@ -119,11 +115,11 @@ class California:
     }
 
 class Colorado:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 0
     }
@@ -137,11 +133,11 @@ class Colorado:
     }
 
 class Connecticut:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': Credit(15000),
         'dependent': 0
     }
@@ -167,11 +163,11 @@ class Connecticut:
     }
 
 class Delaware:
-    deductions = {
+    deduction = {
         'single': 3250,
         'married': 6500
     }
-    exemptions = {
+    exemption = {
         'personal': Credit(110),
         'dependent': Credit(110)
     }
@@ -197,11 +193,11 @@ class Delaware:
     }
 
 class DistrictOfColumbia:
-    deductions = {
+    deduction = {
         'single': 12000,
         'married': 24000
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 0
     }
@@ -225,11 +221,11 @@ class DistrictOfColumbia:
     }
 
 class Georgia:
-    deductions = {
+    deduction = {
         'single': 4600,
         'married': 6000
     }
-    exemptions = {
+    exemption = {
         'personal': 2700,
         'dependent': 3000
     }
@@ -253,11 +249,11 @@ class Georgia:
     }
 
 class Hawaii:
-    deductions = {
+    deduction = {
         'single': 2200,
         'married': 4400
     }
-    exemptions = {
+    exemption = {
         'personal': 1144,
         'dependent': 1144
     }
@@ -293,11 +289,11 @@ class Hawaii:
     }
 
 class Idaho:
-    deductions = {
+    deduction = {
         'single': 12000,
         'married': 24000
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 0
     }
@@ -323,11 +319,11 @@ class Idaho:
     }
 
 class Illinois:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 2000,
         'dependent': 2000
     }
@@ -341,11 +337,11 @@ class Illinois:
     }
 
 class Indiana:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 1000,
         'dependent': 1000
     }
@@ -359,11 +355,11 @@ class Indiana:
     }
 
 class Iowa:
-    deductions = {
+    deduction = {
         'single': 2030,
         'married': 5000
     }
-    exemptions = {
+    exemption = {
         'personal': Credit(40),
         'dependent': Credit(40)
     }
@@ -393,11 +389,11 @@ class Iowa:
     }
 
 class Kansas:
-    deductions = {
+    deduction = {
         'single': 3000,
         'married': 7500
     }
-    exemptions = {
+    exemption = {
         'personal': 2250,
         'dependent': 2250
     }
@@ -415,11 +411,11 @@ class Kansas:
     }
 
 class Kentucky:
-    deductions = {
+    deduction = {
         'single': 2530,
         'married': 2530
     }
-    exemptions = {
+    exemption = {
         'personal': Credit(0),
         'dependent': Credit(0)
     }
@@ -433,11 +429,11 @@ class Kentucky:
     }
 
 class Louisiana:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 4500,
         'dependent': 1000
     }
@@ -455,11 +451,11 @@ class Louisiana:
     }
 
 class Maine:
-    deductions = {
+    deduction = {
         'single': 11800,
         'married': 23600
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 0
     }
@@ -477,11 +473,11 @@ class Maine:
     }
 
 class Maryland:
-    deductions = {
+    deduction = {
         'single': 2000,
         'married': 4000
     }
-    exemptions = {
+    exemption = {
         'personal': 3200,
         'dependent': 3200
     }
@@ -509,11 +505,11 @@ class Maryland:
     }
 
 class Massachusetts:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 4400,
         'dependent': 1000
     }
@@ -527,11 +523,11 @@ class Massachusetts:
     }
 
 class Michigan:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 4050,
         'dependent': 0
     }
@@ -545,11 +541,11 @@ class Michigan:
     }
 
 class Minnesota:
-    deductions = {
+    deduction = {
         'single': 6500,
         'married': 13000
     }
-    exemptions = {
+    exemption = {
         'personal': 4150,
         'dependent': 4150
     }
@@ -569,11 +565,11 @@ class Minnesota:
     }
 
 class Mississippi:
-    deductions = {
+    deduction = {
         'single': 2300,
         'married': 4600
     }
-    exemptions = {
+    exemption = {
         'personal': 6000,
         'dependent': 1500
     }
@@ -593,11 +589,11 @@ class Mississippi:
     }
 
 class Missouri:
-    deductions = {
+    deduction = {
         'single': 12000,
         'married': 24000
     }
-    exemptions = {
+    exemption = {
         'personal': 2100,
         'dependent': 1200
     }
@@ -627,11 +623,11 @@ class Missouri:
     }
 
 class Montana:
-    deductions = {
+    deduction = {
         'single': 4580,
         'married': 9160
     }
-    exemptions = {
+    exemption = {
         'personal': 2440,
         'dependent': 2440
     }
@@ -657,11 +653,11 @@ class Montana:
     }
 
 class Nebraska:
-    deductions = {
+    deduction = {
         'single': 6500,
         'married': 13000
     }
-    exemptions = {
+    exemption = {
         'personal': Credit(134),
         'dependent': Credit(134)
     }
@@ -681,11 +677,11 @@ class Nebraska:
     }
 
 class NewHampshire:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 2400,
         'dependent': 0
     }
@@ -699,11 +695,11 @@ class NewHampshire:
     }
 
 class NewJersey:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 1000,
         'dependent': 1500
     }
@@ -730,11 +726,11 @@ class NewJersey:
     }
 
 class NewMexico:
-    deductions = {
+    deduction = {
         'single': 12000,
         'married': 24000
     }
-    exemptions = {
+    exemption = {
         'personal': 4050,
         'dependent': 4050
     }
@@ -754,11 +750,11 @@ class NewMexico:
     }
 
 class NewYork:
-    deductions = {
+    deduction = {
         'single': 8000,
         'married': 16050
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 1000
     }
@@ -786,11 +782,11 @@ class NewYork:
     }
 
 class NorthCarolina:
-    deductions = {
+    deduction = {
         'single': 8750,
         'married': 17500
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 0
     }
@@ -804,11 +800,11 @@ class NorthCarolina:
     }
 
 class NorthDakota:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 0
     }
@@ -830,11 +826,11 @@ class NorthDakota:
     }
 
 class Ohio:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 2350,
         'dependent': 2350
     }
@@ -858,11 +854,11 @@ class Ohio:
     }
 
 class Oklahoma:
-    deductions = {
+    deduction = {
         'single': 6350,
         'married': 12700
     }
-    exemptions = {
+    exemption = {
         'personal': 1000,
         'dependent': 1000
     }
@@ -886,11 +882,11 @@ class Oklahoma:
     }
 
 class Oregon:
-    deductions = {
+    deduction = {
         'single': 2215,
         'married': 4430
     }
-    exemptions = {
+    exemption = {
         'personal': Credit(201),
         'dependent': Credit(201)
     }
@@ -910,11 +906,11 @@ class Oregon:
     }
 
 class Pennsylvania:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 0
     }
@@ -928,11 +924,11 @@ class Pennsylvania:
     }
 
 class RhodeIsland:
-    deductions = {
+    deduction = {
         'single': 8525,
         'married': 17050
     }
-    exemptions = {
+    exemption = {
         'personal': 4000,
         'dependent': 4000
     }
@@ -950,11 +946,11 @@ class RhodeIsland:
     }
 
 class SouthCarolina:
-    deductions = {
+    deduction = {
         'single': 12000,
         'married': 24000
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 0
     }
@@ -978,11 +974,11 @@ class SouthCarolina:
     }
 
 class Tennessee:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 1250,
         'dependent': 0
     }
@@ -996,11 +992,11 @@ class Tennessee:
     }
 
 class Utah:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 0
     }
@@ -1014,11 +1010,11 @@ class Utah:
     }
 
 class Vermont:
-    deductions = {
+    deduction = {
         'single': 12000,
         'married': 24000
     }
-    exemptions = {
+    exemption = {
         'personal': 0,
         'dependent': 0
     }
@@ -1038,11 +1034,11 @@ class Vermont:
     }
 
 class Virginia:
-    deductions = {
+    deduction = {
         'single': 3000,
         'married': 6000
     }
-    exemptions = {
+    exemption = {
         'personal': 930,
         'dependent': 930
     }
@@ -1062,11 +1058,11 @@ class Virginia:
     }
 
 class WestVirginia:
-    deductions = {
+    deduction = {
         'single': 0,
         'married': 0
     }
-    exemptions = {
+    exemption = {
         'personal': 2000,
         'dependent': 2000
     }
@@ -1088,11 +1084,11 @@ class WestVirginia:
     }
 
 class Wisconsin:
-    deductions = {
+    deduction = {
         'single': 10580,
         'married': 19580
     }
-    exemptions = {
+    exemption = {
         'personal': 700,
         'dependent': 700
     }
@@ -1174,17 +1170,23 @@ states = {
 }
 
 def calculate_state_tax(agi, married, state, dependents=0):
+    """Calculate how much we owe in state taxes."""
+
     assert agi >= 0
     if agi == 0 or states[state] is None:
         return 0
 
-    if married:
-        brackets = states[state].brackets['married']
-        deduction = states[state].deductions['married']
-    else:
-        brackets = states[state].brackets['single']
-        deduction = states[state].deductions['single']
+    #
+    # Get the state tax brackets and deduction. These might vary
+    # between married and single folks.
+    #
+    key = 'married' if married else 'single'
+    brackets = states[state].brackets[key]
+    deduction = states[state].deduction[key]
 
+    #
+    # Apply the deduction to our Adjusted Gross Income (AGI).
+    #
     taxes = 0
     taxable_income = agi - deduction
 
@@ -1192,7 +1194,7 @@ def calculate_state_tax(agi, married, state, dependents=0):
     # Handle personal exemptions.
     #
     multiplier = 2 if married else 1
-    personal_exemption = states[state].exemptions['personal']
+    personal_exemption = states[state].exemption['personal']
     if isinstance(personal_exemption, Credit):
         taxes -= personal_exemption.value * multiplier
     else:
@@ -1201,7 +1203,7 @@ def calculate_state_tax(agi, married, state, dependents=0):
     #
     # Handle dependents.
     #
-    dependent_exemption = states[state].exemptions['dependent']
+    dependent_exemption = states[state].exemption['dependent']
     if isinstance(dependent_exemption, Credit):
         taxes -= dependent_exemption.value * dependents
     else:
@@ -1216,163 +1218,3 @@ def calculate_state_tax(agi, married, state, dependents=0):
             return max(taxes, 0)
 
     return 0
-
-class FederalIncomeTax_2021:
-    deductions = {
-        'single': 12550,
-        'married': 25100
-    }
-    exemptions = {
-        'personal': 0,
-        'dependent': 0
-    }
-    brackets = {
-        'single': [
-            (     0,      0.00, 0.10),
-            (  9950,    995.00, 0.12),
-            ( 40525,   4664.00, 0.22),
-            ( 86375,  14751.00, 0.24),
-            (164925,  33603.00, 0.32),
-            (209425,  47843.00, 0.35),
-            (523600, 157804.25, 0.37),
-        ],
-        'married': [
-            (     0,      0.00, 0.10),
-            ( 19900,   1990.00, 0.12),
-            ( 81050,   9328.00, 0.22),
-            (172750,  29502.00, 0.24),
-            (329850,  67206.00, 0.32),
-            (418850,  95686.00, 0.35),
-            (628300, 168993.50, 0.37),
-        ]
-    }
-
-single_ltcg_brackets = [
-    (0.00,   40000),
-    (0.15,  401450), # 441,450
-    (0.20, sys.float_info.max),
-]
-
-married_ltcg_brackets = [
-    (0.00,   80000),
-    (0.15,  416600), # 496,600
-    (0.20, sys.float_info.max),
-]
-
-estate_tax_brackets = [
-    (0,       0,      0.18),
-    (10000,   1800,   0.20),
-    (20000,   3800,   0.22),
-    (40000,   8200,   0.24),
-    (60000,   13000,  0.26),
-    (80000,   18200,  0.28),
-    (100000,  23800,  0.30),
-    (150000,  38800,  0.32),
-    (250000,  70800,  0.34),
-    (500000,  155800, 0.37),
-    (750000,  248300, 0.39),
-    (1000000, 345800, 0.40),
-]
-
-savers_credit_brackets_married = [
-    (0,     0.50),
-    (39501, 0.20),
-    (43001, 0.10),
-    (66000, 0.00),
-]
-
-savers_credit_brackets_other = [
-    (0,     0.50),
-    (19751, 0.20),
-    (21501, 0.10),
-    (33000, 0.00),
-]
-
-def calculate_savers_credit(agi, retirement_contributions, married):
-    assert agi >= 0
-    qualified_retirement_contributions = min(4000 if married else 2000, retirement_contributions)
-    bracket = savers_credit_brackets_married if married else savers_credit_brackets_other
-    for limit, credit_rate in reversed(bracket):
-        if agi >= limit:
-            return qualified_retirement_contributions * credit_rate
-
-def calculate_estate_tax(estate):
-    assert estate >= 0
-    deduction = 11700000 # $11.7 million for 2021
-    taxable_estate = max(0, estate - deduction)
-    if not taxable_estate:
-        return 0
-
-    for minimum, base_tax, tax_rate in reversed(estate_tax_brackets):
-        if taxable_estate > minimum:
-            return base_tax + ((taxable_estate - minimum) * tax_rate)
-
-def calculate_minimum_remaining_tax_for_heir(value, age):
-    total_taxes = 0
-    while True:
-        try:
-            rmd = value/slet.withdrawal_factors[age]
-            value -= rmd
-            total_taxes += calculate_federal_income_tax(rmd, True)
-        except KeyError:
-            break
-        age += 1
-    return total_taxes
-
-def get_standard_deduction(married):
-    key = 'married' if married else 'single'
-    return FederalIncomeTax_2021.deductions[key]
-
-def calculate_fica_tax(gross_income, married):
-    assert gross_income >= 0
-    # This is the 2021 limit.
-    social_security_tax = min(142800, gross_income) * 0.062
-    medicare_tax = gross_income * 0.0145
-    threshold = 250000 if married else 200000
-    additional_medicare_tax = max(gross_income - threshold, 0) * 0.009
-    return social_security_tax + medicare_tax + additional_medicare_tax
-
-def calculate_federal_income_tax(agi, married, dependents=0, ltcg=0, just_ltcg=False):
-    assert agi >= 0, f"{agi=:.2f}"
-
-    standard_deduction = get_standard_deduction(married)
-    income_to_tax = max(agi - standard_deduction, 0)
-    key = 'married' if married else 'single'
-    brackets = FederalIncomeTax_2021.brackets[key]
-
-    income_taxes = 0
-    for minimum, base_tax, tax_rate in reversed(brackets):
-        if income_to_tax > minimum:
-            income_taxes += base_tax + ((income_to_tax - minimum) * tax_rate)
-            break
-
-    income_to_tax = ltcg
-    ltcg_taxes = 0
-    taxed_income = 0
-    brackets = married_ltcg_brackets if married else single_ltcg_brackets
-    for tax_rate, rate_limit in brackets:
-        if taxed_income < agi:
-            taxable_income_at_rate = min((agi - taxed_income), rate_limit)
-            taxed_income += taxable_income_at_rate
-            rate_limit -= taxable_income_at_rate
-            if ((agi - taxed_income) > 0):
-                continue
-            if not rate_limit:
-                continue
-
-        taxable_income_at_rate = min(income_to_tax, rate_limit)
-        taxes_at_rate = tax_rate * taxable_income_at_rate
-        ltcg_taxes += taxes_at_rate
-        income_to_tax -= taxable_income_at_rate
-        taxed_income += taxable_income_at_rate
-        if income_to_tax == 0:
-            break
-
-    if just_ltcg:
-        return ltcg_taxes
-    else:
-        return income_taxes + ltcg_taxes
-
-def fully_tax_deductible_ira(agi, married):
-    limit = 104000 if married else 65000
-    return agi < limit
