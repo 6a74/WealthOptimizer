@@ -1329,7 +1329,7 @@ def calculate_fica_tax(gross_income, married):
     social_security_tax = min(142800, gross_income) * 0.062
     medicare_tax = gross_income * 0.0145
     threshold = 250000 if married else 200000
-    additional_medicare_tax = max(gross_income - threshold, 0) * 0.9
+    additional_medicare_tax = max(gross_income - threshold, 0) * 0.009
     return social_security_tax + medicare_tax + additional_medicare_tax
 
 def calculate_federal_income_tax(agi, married, dependents=0, ltcg=0, just_ltcg=False):
