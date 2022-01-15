@@ -8,6 +8,8 @@ import federal_taxes
 import state_taxes
 import ult
 
+from account import Account
+
 def calculate_assets(
         taxable,
         traditional,
@@ -91,10 +93,16 @@ def calculate_assets(
     #
     # These are life-time counters.
     #
-    total_contributions_traditional = 0
-    total_contributions_roth = 0
-    total_contributions_taxable = 0
     total_taxes = 0
+
+    #
+    #
+    #
+    taxable_account = Account(rate_of_return)
+    roth_401k = Account(rate_of_return, withdrawal_contributions_first=True)
+    roth_ira = Account(rate_of_return, withdrawal_contributions_first=True)
+    trad_401k = Account(rate_of_return)
+    trad_ira = Account(rate_of_return)
 
     #
     # The initial values for life events.
@@ -128,28 +136,39 @@ def calculate_assets(
         "Age",
         "Married",
         "Retired",
-        "Taxable",
-        "Traditional",
-        "Roth",
-        "Total Assets",
-        "RMD",
         "Spending",
-        "401k Cont.",
-        "IRA Cont.",
+
+        "Roth 401k",
+        "Roth 401k Cont.",
+        "Roth 401k With.",
+        "Roth 401k With. Int.",
+
+        "Roth IRA",
+        "Roth IRA Cont.",
+        "Roth IRA With.",
+        "Roth IRA With. Int.",
+
+        "Taxable",
         "Taxable Cont.",
-        "Taxable Wdrl.",
-        "Trad Cont.",
-        "Trad Wdrl.",
-        "Roth Cont.",
-        "Roth Wdrl.",
-        "Total Roth Cont.",
+        "Taxable With.",
+
+        "Trad 401k",
+        "Trad 401k Cont.",
+        "Trad 401k With.",
+        "Trad 401k RMD",
+
+        "Trad IRA",
+        "Trad IRA Cont.",
+        "Trad IRA With.",
+        "Trad IRA RMD",
+
         "Gross Income",
         "MAGI",
         "Saver's Credit",
         "Dependents",
         "State",
         "State Tax",
-        "Wdrl. Penalty",
+        "With. Penalty",
         "Federal Tax",
         "Tax %",
         "Total Taxes"
@@ -191,11 +210,11 @@ def calculate_assets(
         tax_deductions = 0
         this_years_income = 0
 
-        roth_contribution = 0
         taxable_contribution = 0
-        traditional_contribution = 0
-        contribution_401k = 0
-        contribution_ira = 0
+        roth_401k_contribution = 0
+        roth_ira_contribution = 0
+        trad_401k_contribution = 0
+        trad_ira_contribution = 0
 
         #
         # Calculate how much tax advantaged space we have. This will be our total
@@ -227,41 +246,41 @@ def calculate_assets(
             # We'll break out of this once the ideal amount is found.
             #
             while True:
-                contribution_401k = 0
-                contribution_ira = 0
-                traditional_contribution = 0
-                roth_contribution = 0
+                taxable_contribution = 0
+                roth_401k_contribution = 0
+                roth_ira_contribution = 0
+                trad_401k_contribution = 0
+                trad_ira_contribution = 0
 
                 #
                 # Calculate 401k contribution.
                 #
                 if prefer_roth:
-                    contribution_401k += min(min(
+                    roth_401k_contribution += min(min(
                         this_years_income,
                         yearly_401k_normal_contribution_limit
                     ), total_contribution_limit)
-                    roth_contribution += contribution_401k
                 else:
-                    contribution_401k += min(min(
+                    trad_401k_contribution += min(min(
                         this_years_income,
                         yearly_401k_normal_contribution_limit
                     ), total_contribution_limit)
-                    traditional_contribution += contribution_401k
 
                 #
                 # Calculate IRA contribution. If there are no tax deductions for
                 # the traditional IRA (because our income is too high) we might
                 # as well contribute to Roth.
                 #
-                contribution_ira = min(min(
-                    this_years_income,
-                    yearly_ira_contribution_limit
-                ), total_contribution_limit - contribution_401k)
+                would_be_ira_contribution = min(
+                    min(this_years_income, yearly_ira_contribution_limit),
+                    total_contribution_limit - roth_401k_contribution -
+                        trad_401k_contribution
+                )
 
                 would_be_agi_if_trad = (
                     this_years_income
-                    - traditional_contribution
-                    - contribution_ira
+                    - trad_401k_contribution
+                    - would_be_ira_contribution
                 )
 
                 #
@@ -270,22 +289,26 @@ def calculate_assets(
                 #
                 if prefer_roth or not federal_taxes.fully_tax_deductible_ira(
                         would_be_agi_if_trad, married):
-                    roth_contribution += contribution_ira
+                    roth_ira_contribution += would_be_ira_contribution
                 else:
-                    traditional_contribution += contribution_ira
+                    trad_ira_contribution += would_be_ira_contribution
 
                 #
                 # Calculate Mega-Backdoor Roth contribution, if applicable.
                 #
                 if do_mega_backdoor_roth:
-                    after_tax_contribution = min(min(
-                        this_years_income,
-                        yearly_401k_total_contribution_limit
-                    ), total_contribution_limit - contribution_401k - contribution_ira)
-                    contribution_401k += after_tax_contribution
-                    roth_contribution += after_tax_contribution
+                    after_tax_contribution = min(
+                        min(this_years_income, yearly_401k_total_contribution_limit),
+                        total_contribution_limit - roth_401k_contribution -
+                            trad_401k_contribution - roth_ira_contribution -
+                            trad_ira_contribution
+                    )
+                    roth_ira_contribution += after_tax_contribution
 
-                tax_deductions = traditional_contribution
+                tax_deductions = (
+                    trad_401k_contribution
+                    + trad_ira_contribution
+                )
 
                 #
                 # We know about all of our tax deductions, we can accurately
@@ -300,7 +323,12 @@ def calculate_assets(
                 )
                 federal_income_tax -= federal_taxes.calculate_savers_credit(
                     taxable_income,
-                    traditional_contribution + roth_contribution,
+                    (
+                        roth_401k_contribution
+                        + trad_401k_contribution
+                        + roth_ira_contribution
+                        + trad_ira_contribution
+                    ),
                     married
                 )
                 state_tax = state_taxes.calculate_state_tax(
@@ -322,8 +350,10 @@ def calculate_assets(
                     - fica_tax
                     - federal_income_tax
                     - state_tax
-                    - traditional_contribution
-                    - roth_contribution
+                    - roth_401k_contribution
+                    - trad_401k_contribution
+                    - roth_ira_contribution
+                    - trad_ira_contribution
                 )
 
                 #
@@ -350,18 +380,20 @@ def calculate_assets(
                 else:
                     break
 
-            total_contributions_traditional += traditional_contribution
-            traditional += traditional_contribution
-            total_contributions_roth += roth_contribution
-            roth += roth_contribution
+            roth_401k.contribute(roth_401k_contribution)
+            trad_401k.contribute(trad_401k_contribution)
+            roth_ira.contribute(roth_ira_contribution)
+            trad_ira.contribute(trad_ira_contribution)
 
         ########################################################################
         # Required Minimum Distribution (RMD) Calculations
         ########################################################################
 
-        rmd = 0
+        trad_401k_rmd = 0
+        trad_ira_rmd = 0
         if current_age >= age_to_start_rmds:
-            rmd = traditional/ult.withdrawal_factors[current_age]
+            trad_401k_rmd = trad_401k.get_value()/ult.withdrawal_factors[current_age]
+            trad_ira_rmd = trad_ira.get_value()/ult.withdrawal_factors[current_age]
 
         ########################################################################
         # Withdrawals
@@ -369,12 +401,15 @@ def calculate_assets(
 
         conversion_amount = 0
 
-        roth_withdrawal = 0
-        taxable_withdrawal = 0
-        traditional_withdrawal = 0
+        total_assets = (
+            taxable_account.get_value()
+            + trad_ira.get_value()
+            + trad_401k.get_value()
+            + roth_ira.get_value()
+            + roth_401k.get_value()
+        )
 
         minimum_withdrawal = 0
-        total_assets = traditional + roth + taxable
         maximum_withdrawal = total_assets
         total_withdrawal = 0
         penalty_fees = 0
@@ -383,34 +418,57 @@ def calculate_assets(
         _this_years_income = this_years_income
 
         while True:
-            roth_withdrawal = 0
             taxable_withdrawal = 0
-            traditional_withdrawal = 0
+            roth_401k_withdrawal = 0
+            roth_ira_withdrawal = 0
+            trad_401k_withdrawal = 0
+            trad_ira_withdrawal = 0
+
             penalty_fees = 0
 
             this_years_income = _this_years_income
-            taxable_withdrawal = min(taxable, total_withdrawal)
+            taxable_withdrawal = min(
+                taxable_account.get_value(),
+                total_withdrawal
+            )
 
             ltcg_taxes = 0
             if taxable_withdrawal:
-                earnings = taxable - total_contributions_taxable
-                earnings_ratio = earnings/taxable
-                ltcg = taxable_withdrawal * earnings_ratio
+                withdrawal = taxable_account.withdrawal(taxable_withdrawal, dry_run=True)
                 ltcg_taxes = federal_taxes.calculate_federal_income_tax(
-                    this_years_income,
-                    married,
-                    ltcg=ltcg,
-                    just_ltcg=True
+                    this_years_income, married,
+                    ltcg=withdrawal.get_gains(), just_ltcg=True
                 )
 
-            roth_withdrawal = min(
-                total_contributions_roth,
+            roth_401k_withdrawal = min(
+                roth_401k.get_contributions(),
                 total_withdrawal - taxable_withdrawal
             )
 
-            roth_with_interest_withdrawal = min(
-                roth - roth_withdrawal,
-                total_withdrawal - taxable_withdrawal - roth_withdrawal
+            roth_ira_withdrawal = min(
+                roth_ira.get_contributions(),
+                total_withdrawal - taxable_withdrawal - roth_401k_withdrawal
+            )
+
+            roth_401k_with_interest_withdrawal = min(
+                roth_401k.get_value() - roth_401k_withdrawal,
+                (
+                    total_withdrawal
+                    - taxable_withdrawal
+                    - roth_401k_withdrawal
+                    - roth_ira_withdrawal
+                )
+            )
+
+            roth_ira_with_interest_withdrawal = min(
+                roth_ira.get_value() - roth_ira_withdrawal,
+                (
+                    total_withdrawal
+                    - taxable_withdrawal
+                    - roth_401k_withdrawal
+                    - roth_ira_withdrawal
+                    - roth_401k_with_interest_withdrawal
+                )
             )
 
             #
@@ -424,42 +482,80 @@ def calculate_assets(
             # person has the funds in the 401k.
             #
             #
+            """
             rule_of_55_age = 50 if public_safety_employee else 55
             if current_age < 60:
                 if not current_age >= rule_of_55_age >= age_of_retirement:
                     penalty_fees += roth_with_interest_withdrawal * 0.10
+            """
 
             roth_gains = 0
+            """
             if current_age < 72 and roth_with_interest_withdrawal:
                 earnings = roth - total_contributions_roth
                 earnings_ratio = earnings/roth
                 roth_gains = roth_with_interest_withdrawal * earnings_ratio
+            """
 
-            roth_withdrawal += roth_with_interest_withdrawal
+            trad_401k_withdrawal += max(min(
+                trad_401k.get_value(),
+                (
+                    total_withdrawal
+                    - taxable_withdrawal
+                    - roth_401k_withdrawal
+                    - roth_ira_withdrawal
+                    - roth_401k_with_interest_withdrawal
+                    - roth_ira_with_interest_withdrawal
+                )
+            ), trad_401k_rmd)
 
-            traditional_withdrawal += max(min(
-                traditional,
-                total_withdrawal - taxable_withdrawal - roth_withdrawal
-            ), rmd)
+            trad_ira_withdrawal += max(min(
+                trad_ira.get_value(),
+                (
+                    total_withdrawal
+                    - taxable_withdrawal
+                    - roth_401k_withdrawal
+                    - roth_ira_withdrawal
+                    - roth_401k_with_interest_withdrawal
+                    - roth_ira_with_interest_withdrawal
+                    - trad_401k_withdrawal
+                )
+            ), trad_ira_rmd)
 
             #
             # Roth conversions. While we're retired, but before RMDs, let's do
             # some rollovers from our traditional to Roth accounts. This will
             # allow the money to grow tax free in Roth accounts.
             #
+            """
             if retired and current_age < age_to_start_rmds:
-                conversion_amount = min(
-                    traditional - traditional_withdrawal,
+                trad_401k_withdrawal += min(
+                    (
+                        trad_401k.get_value()
+                        - trad_401k_withdrawal
+                    ),
                     roth_conversion_amount
                 )
-                this_years_roth_conversion = conversion_amount
-                traditional_withdrawal += conversion_amount
+                trad_ira_withdrawal += min(
+                    (
+                        trad_ira.get_value()
+                        - trad_ira_withdrawal
+                    ),
+                    roth_conversion_amount
+                )
+            """
 
+            """
             if current_age < 60:
                 if not current_age >= rule_of_55_age >= age_of_retirement:
                     penalty_fees += traditional_withdrawal * 0.10
+            """
 
-            this_years_income += traditional_withdrawal + roth_gains
+            this_years_income += (
+                trad_401k_withdrawal
+                + trad_ira_withdrawal
+                + roth_gains
+            )
             taxable_income = this_years_income - tax_deductions
 
             #
@@ -467,7 +563,7 @@ def calculate_assets(
             # distributions. These have already been taxed by FICA.
             #
             fica_tax = federal_taxes.calculate_fica_tax(
-                max(this_years_income - traditional_withdrawal, 0),
+                max(this_years_income - trad_401k_withdrawal - trad_ira_withdrawal - roth_gains, 0),
                 married
             )
 
@@ -489,7 +585,15 @@ def calculate_assets(
             if not retired:
                 savers_credit = federal_taxes.calculate_savers_credit(
                     taxable_income,
-                    traditional_contribution + roth_contribution,
+                    (
+                        taxable_withdrawal
+                        + roth_401k_withdrawal
+                        + roth_ira_withdrawal
+                        + roth_401k_with_interest_withdrawal
+                        + roth_ira_with_interest_withdrawal
+                        + trad_401k_withdrawal
+                        + trad_ira_withdrawal
+                    ),
                     married
                 )
 
@@ -520,10 +624,15 @@ def calculate_assets(
                 - this_years_taxes
                 - spending
                 - taxable_contribution
-                - roth_contribution
-                - traditional_contribution
+                - roth_401k_contribution
+                - roth_ira_contribution
                 + taxable_withdrawal
-                + roth_withdrawal
+                + roth_401k_withdrawal
+                + roth_ira_withdrawal
+                + roth_401k_with_interest_withdrawal
+                + roth_ira_with_interest_withdrawal
+                - trad_401k_withdrawal
+                - trad_ira_withdrawal
                 - penalty_fees
                 - conversion_amount
             )
@@ -544,8 +653,7 @@ def calculate_assets(
                 # We have excess money.
                 #
                 if round(total_withdrawal, 2) == 0:
-                    taxable_contribution = result
-                    taxable += result
+                    taxable_account.contribute(result)
                     break
                 maximum_withdrawal = total_withdrawal
                 total_withdrawal = (
@@ -568,20 +676,13 @@ def calculate_assets(
             else:
                 break
 
-        roth += conversion_amount
-        roth_contribution += conversion_amount
-        total_contributions_roth += conversion_amount
+        assert roth_401k.withdrawal(roth_401k_withdrawal).get_insufficient() == 0
+        assert trad_401k.withdrawal(trad_401k_withdrawal).get_insufficient() == 0
+        assert roth_ira.withdrawal(roth_ira_withdrawal).get_insufficient() == 0
+        assert trad_ira.withdrawal(trad_ira_withdrawal).get_insufficient() == 0
+        assert taxable_account.withdrawal(taxable_withdrawal).get_insufficient() == 0
 
-        total_contributions_roth = max(
-            total_contributions_roth - roth_withdrawal, 0)
-        total_contributions_taxable = max(
-            total_contributions_taxable - taxable_withdrawal, 0)
-        total_contributions_traditional = max(
-            total_contributions_traditional - traditional_withdrawal, 0)
-
-        roth -= roth_withdrawal
-        taxable -= taxable_withdrawal
-        traditional -= traditional_withdrawal
+        roth_ira.contribute(conversion_amount)
 
         if stop_simulation:
             break
@@ -608,21 +709,32 @@ def calculate_assets(
             current_age,
             married,
             retired,
-            float(taxable),
-            float(traditional),
-            float(roth),
-            float(taxable + roth + traditional),
-            float(rmd),
             float(spending),
-            float(contribution_401k),
-            float(contribution_ira),
+
+            float(roth_401k.get_value()),
+            float(roth_401k_contribution),
+            float(roth_401k_withdrawal),
+            float(roth_401k_with_interest_withdrawal),
+
+            float(roth_ira.get_value()),
+            float(roth_ira_contribution),
+            float(roth_ira_withdrawal),
+            float(roth_ira_with_interest_withdrawal),
+
+            float(taxable_account.get_value()),
             float(taxable_contribution),
             float(taxable_withdrawal),
-            float(traditional_contribution),
-            float(traditional_withdrawal),
-            float(roth_contribution),
-            float(roth_withdrawal),
-            float(total_contributions_roth),
+
+            float(trad_401k.get_value()),
+            float(trad_401k_contribution),
+            float(trad_401k_withdrawal),
+            float(trad_401k_rmd),
+
+            float(trad_ira.get_value()),
+            float(trad_ira_contribution),
+            float(trad_ira_withdrawal),
+            float(trad_ira_rmd),
+
             float(this_years_income),
             float(taxable_income),
             float(savers_credit),
@@ -706,9 +818,11 @@ def calculate_assets(
     #
     summary_table = []
     summary_header = ["Field", "Value at Death"]
-    summary_table.append(["Taxable", taxable])
-    summary_table.append(["Traditional", traditional])
-    summary_table.append(["Roth", roth])
+    summary_table.append(["Taxable", taxable_account.get_value()])
+    summary_table.append(["Trad 401k", trad_401k.get_value()])
+    summary_table.append(["Trad IRA", trad_ira.get_value()])
+    summary_table.append(["Roth 401k", roth_401k.get_value()])
+    summary_table.append(["Roth IRA", roth_ira.get_value()])
     summary_table.append(["Min Tax for Heir", taxes_for_heir])
     summary_table.append(["Estate Taxes", estate_tax])
     summary_table.append(["Total Taxes", total_taxes])
