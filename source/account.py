@@ -46,7 +46,7 @@ class Account:
         self.account_age = 0
         self.contributions = 0
         self.value = starting_balance
-        self.yearly_updates = [0]
+        self.yearly_diff = [0]
 
     def __repr__(self):
         return (
@@ -64,7 +64,7 @@ class Account:
     def contribute(self, money):
         self.contributions += money
         self.value += money
-        self.yearly_updates[self.account_age] += money
+        self.yearly_diff[self.account_age] += money
 
     def get_value(self):
         return self.value
@@ -81,11 +81,11 @@ class Account:
     def get_gains_ratio(self):
         return self.get_gains()/self.get_value()
 
-    def get_yearly_update(self):
-        if self.yearly_updates[self.account_age] < 0:
-            return f"[red]{self.yearly_updates[self.account_age]:+,.2f}[/red]"
-        if self.yearly_updates[self.account_age] > 0:
-            return f"[green]{self.yearly_updates[self.account_age]:+,.2f}[/green]"
+    def get_yearly_diff(self):
+        if self.yearly_diff[self.account_age] < 0:
+            return f"[red]{self.yearly_diff[self.account_age]:+,.2f}[/red]"
+        if self.yearly_diff[self.account_age] > 0:
+            return f"[green]{self.yearly_diff[self.account_age]:+,.2f}[/green]"
         return ""
 
     def withdrawal(self, needed, dry_run=False):
@@ -124,7 +124,7 @@ class Account:
         if dry_run:
             self.value, self.contributions = value, contributions
         if not dry_run:
-            self.yearly_updates[self.account_age] -= total_taken
+            self.yearly_diff[self.account_age] -= total_taken
 
         return Withdrawal(
             self.get_name(),
@@ -136,7 +136,7 @@ class Account:
     def increment(self):
         self.account_age += 1
         self.value *= self.rate_of_return
-        self.yearly_updates.append(0)
+        self.yearly_diff.append(0)
 
 
 if __name__ == "__main__":
