@@ -24,6 +24,19 @@ were intential design decisions.
 * Pay raises are constant (unrealistic, I'm aware).
 * Any excess income will go into a taxable account.
 
+### Required Minimum Distributions (RMDs)
+
+* After retirement and before RMDs, you will do [Roth IRA
+  conversions](https://www.bogleheads.org/wiki/Roth_IRA_conversion). This amount
+  is automatically calculated to produce the highest assets at death. Note: this
+  currently assumes your marital status does not change during this
+  post-retirement/pre-RMDs period. I understand that this will not work for
+  everyone.
+* During RMDs, you will withdrawal at least your standard deduction. This is
+  amount is taxed at 0%.
+* Excess RMDs are transferred to a taxable account, where it grows at the same
+  interest rate as retirement accounts.
+
 ### Taxes
 
 * Standard duduction only.
@@ -38,19 +51,6 @@ were intential design decisions.
   at death. For taxable accounts, the [step up in
   basis](https://www.investopedia.com/terms/s/stepupinbasis.asp) plays a
   significant role in helping to reduce taxes after death.
-
-### RMDs
-
-* After retirement and before RMDs, you will do [Roth IRA
-  conversions](https://www.bogleheads.org/wiki/Roth_IRA_conversion). This amount
-  is automatically calculated to produce the highest assets at death. Note: this
-  currently assumes your marital status does not change during this
-  post-retirement/pre-RMDs period. I understand that this will not work for
-  everyone.
-* During RMDs, you will withdrawal at least your standard deduction. This is
-  amount is taxed at 0%.
-* Excess RMDs are transferred to a taxable account, where it grows at the same
-  interest rate as retirement accounts.
 
 ### Other
 
