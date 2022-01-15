@@ -44,6 +44,7 @@ class Account:
         self.rate_of_return = rate_of_return
         self.withdrawal_contributions_first = withdrawal_contributions_first
         self.account_age = 0
+        self.basis = 0
         self.contributions = 0
         self.value = starting_balance
         self.yearly_diff = [0]
@@ -61,13 +62,18 @@ class Account:
     def get_name(self):
         return self.name
 
-    def contribute(self, money):
-        self.contributions += money
+    def contribute(self, money, rollover=False):
+        self.basis += money
         self.value += money
         self.yearly_diff[self.account_age] += money
+        if not rollover:
+            self.contributions += money
 
     def get_value(self):
         return self.value
+
+    def get_basis(self):
+        return self.basis
 
     def get_contributions(self):
         return self.contributions
@@ -76,7 +82,7 @@ class Account:
         return bool(self.contributions)
 
     def get_gains(self):
-        return self.get_value() - self.get_contributions()
+        return self.get_value() - self.get_basis()
 
     def get_gains_ratio(self):
         return self.get_gains()/self.get_value()
@@ -96,7 +102,7 @@ class Account:
         total_gains = 0
 
         # Back up these values in case it's a dry run.
-        value, contributions = self.value, self.contributions
+        value, basis = self.value, self.basis
 
         while round(still_needed, 2):
             #
@@ -115,14 +121,14 @@ class Account:
                 ratio = 0.0
 
             self.value -= to_take
-            self.contributions -= to_take * (1 - ratio)
+            self.basis -= to_take * (1 - ratio)
 
             total_taken += to_take
             total_gains += to_take * ratio
             still_needed -= to_take
 
         if dry_run:
-            self.value, self.contributions = value, contributions
+            self.value, self.basis = value, basis
         if not dry_run:
             self.yearly_diff[self.account_age] -= total_taken
 
