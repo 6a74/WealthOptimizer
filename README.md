@@ -1,7 +1,7 @@
 # Wealth Optimizer
 
 This repository contains utilities that will help you maximize your wealth and
-pay less in taxes. The core componenent is a financial simulator that simulates
+pay less in taxes. The core component is a financial simulator that simulates
 every year of your life. It will contribute to accounts in the most tax-efficent
 order. And during retirement, it will withdrawal from the most tax-efficent
 accounts.
