@@ -84,8 +84,8 @@ A simulation with more options, like this:
 --starting-balance-trad-401k=100000 \
 --max-contribution-percentage-401k=0.50 \
 --employer-match-401k=0.07 \
---employer-contribution-hsa=750
---do-mega-backdoor-roth \
+--employer-contribution-hsa=750 \
+--do-mega-backdoor-roth
 ```
 
 Will look like this:
