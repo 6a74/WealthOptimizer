@@ -427,8 +427,6 @@ def calculate_assets(
         # Withdrawals
         ########################################################################
 
-        conversion_amount = 0
-
         total_assets = (
             taxable_account.get_value()
             + trad_ira.get_value()
@@ -443,7 +441,6 @@ def calculate_assets(
         penalty_fees = 0
 
         stop_simulation = False
-        _this_years_income = this_years_income
 
         while True:
             taxable_withdrawal = 0
@@ -454,23 +451,25 @@ def calculate_assets(
             roth_401k_with_interest_withdrawal = 0
             roth_ira_with_interest_withdrawal = 0
 
-            penalty_fees = 0
-
-            #
-            # TODO: Order withdrawals based on situation.
-            #
-            this_years_income = _this_years_income
-            taxable_withdrawal = min(
-                taxable_account.get_value(),
-                (
+            def whats_left_to_withdrawal():
+                return (
                     total_withdrawal
-                    - roth_401k_withdrawal
+                    - taxable_withdrawal
                     - roth_ira_withdrawal
                     - roth_401k_with_interest_withdrawal
                     - roth_ira_with_interest_withdrawal
                     - trad_401k_withdrawal
                     - trad_ira_withdrawal
                 )
+
+            penalty_fees = 0
+
+            #
+            # TODO: Order withdrawals based on situation.
+            #
+            taxable_withdrawal = min(
+                taxable_account.get_value(),
+                whats_left_to_withdrawal()
             )
 
             ltcg_taxes = 0
@@ -483,61 +482,23 @@ def calculate_assets(
 
             roth_401k_withdrawal = min(
                 roth_401k.get_contributions(),
-                (
-                    total_withdrawal
-                    - taxable_withdrawal
-                    - roth_ira_withdrawal
-                    - roth_401k_with_interest_withdrawal
-                    - roth_ira_with_interest_withdrawal
-                    - trad_401k_withdrawal
-                    - trad_ira_withdrawal
-                )
+                whats_left_to_withdrawal()
             )
 
             roth_ira_withdrawal = min(
                 roth_ira.get_contributions(),
-                total_withdrawal - taxable_withdrawal - roth_401k_withdrawal
+                whats_left_to_withdrawal()
             )
 
             roth_401k_with_interest_withdrawal = min(
                 roth_401k.get_value() - roth_401k_withdrawal,
-                (
-                    total_withdrawal
-                    - taxable_withdrawal
-                    - roth_401k_withdrawal
-                    - roth_ira_withdrawal
-                    - roth_ira_with_interest_withdrawal
-                    - trad_401k_withdrawal
-                    - trad_ira_withdrawal
-                )
+                whats_left_to_withdrawal()
             )
 
             roth_ira_with_interest_withdrawal = min(
                 roth_ira.get_value() - roth_ira_withdrawal,
-                (
-                    total_withdrawal
-                    - taxable_withdrawal
-                    - roth_401k_withdrawal
-                    - roth_ira_withdrawal
-                    - roth_401k_with_interest_withdrawal
-                    - trad_401k_withdrawal
-                    - trad_ira_withdrawal
-                )
+                whats_left_to_withdrawal()
             )
-
-            #
-            # Police officers, firefighters, EMTs, and air traffic controllers
-            # are considered public safety employees, and they get a little
-            # extra time to access their qualified retirement plans. For them,
-            # the rule applies in the calendar year in which they turn 50.
-            #
-            # TODO: Check that these are right.
-            #
-            rule_of_55_age = 50 if public_safety_employee else 55
-            if current_age < 60:
-                if not current_age >= rule_of_55_age >= age_of_retirement:
-                    penalty_fees += roth_401k_with_interest_withdrawal * 0.10
-                    penalty_fees += roth_ira_with_interest_withdrawal * 0.10
 
             roth_gains = 0
             if current_age < 72:
@@ -552,28 +513,12 @@ def calculate_assets(
 
             trad_401k_withdrawal += max(min(
                 trad_401k.get_value(),
-                (
-                    total_withdrawal
-                    - taxable_withdrawal
-                    - roth_401k_withdrawal
-                    - roth_ira_withdrawal
-                    - roth_401k_with_interest_withdrawal
-                    - roth_ira_with_interest_withdrawal
-                    - trad_ira_withdrawal
-                )
+                whats_left_to_withdrawal()
             ), trad_401k_rmd)
 
             trad_ira_withdrawal += max(min(
                 trad_ira.get_value(),
-                (
-                    total_withdrawal
-                    - taxable_withdrawal
-                    - roth_401k_withdrawal
-                    - roth_ira_withdrawal
-                    - roth_401k_with_interest_withdrawal
-                    - roth_ira_with_interest_withdrawal
-                    - trad_401k_withdrawal
-                )
+                whats_left_to_withdrawal()
             ), trad_ira_rmd)
 
             #
@@ -581,25 +526,40 @@ def calculate_assets(
             # some rollovers from our traditional to Roth accounts. This will
             # allow the money to grow tax free in Roth accounts.
             #
+            # TODO: Be sure to enforce the 5 year maturity rule.
+            #
+            conversion_amount = 0
             if retired and current_age < age_to_start_rmds:
-                trad_401k_withdrawal += min(
+                desired_conversion_amount = roth_conversion_amount
+
+                trad_401k_conversion = min(
                     (
                         trad_401k.get_value()
                         - trad_401k_withdrawal
                     ),
-                    roth_conversion_amount
+                    desired_conversion_amount
                 )
-                trad_ira_withdrawal += min(
+                trad_ira_conversion = min(
                     (
                         trad_ira.get_value()
                         - trad_ira_withdrawal
                     ),
-                    roth_conversion_amount
+                    desired_conversion_amount - trad_401k_conversion
                 )
 
+                conversion_amount = trad_401k_conversion + trad_ira_conversion
+                trad_401k_withdrawal += trad_401k_conversion
+                trad_ira_withdrawal += trad_ira_conversion
+
+            #
+            # Police officers, firefighters, EMTs, and air traffic controllers
+            # are considered public safety employees, and they get a little
+            # extra time to access their qualified retirement plans. For them,
+            # the rule applies in the calendar year in which they turn 50.
             #
             # TODO: Check that these are right.
             #
+            rule_of_55_age = 50 if public_safety_employee else 55
             if current_age < 60:
                 penalty_fees += roth_ira_withdrawal * 0.10
                 penalty_fees += trad_ira_withdrawal * 0.10
@@ -609,19 +569,20 @@ def calculate_assets(
                     penalty_fees += roth_401k_withdrawal * 0.10
                     penalty_fees += trad_401k_withdrawal * 0.10
 
-            this_years_income += (
-                trad_401k_withdrawal
+            taxable_income = (
+                this_years_income
+                + trad_401k_withdrawal
                 + trad_ira_withdrawal
                 + roth_gains
+                - tax_deductions
             )
-            taxable_income = this_years_income - tax_deductions
 
             #
             # When calculating the FICA tax, we must not include retirement
             # distributions. These have already been taxed by FICA.
             #
             fica_tax = federal_taxes.calculate_fica_tax(
-                max(this_years_income - trad_401k_withdrawal - trad_ira_withdrawal - roth_gains, 0),
+                max(this_years_income, 0),
                 married
             )
 
@@ -677,6 +638,9 @@ def calculate_assets(
                 + ltcg_taxes
             )
 
+            #
+            # This boils down to income minus expenses.
+            #
             result = (
                 this_years_income
                 - this_years_taxes
@@ -684,15 +648,15 @@ def calculate_assets(
                 - taxable_contribution
                 - roth_401k_contribution
                 - roth_ira_contribution
+                - conversion_amount
+                - penalty_fees
                 + taxable_withdrawal
                 + roth_401k_withdrawal
                 + roth_ira_withdrawal
                 + roth_401k_with_interest_withdrawal
                 + roth_ira_with_interest_withdrawal
-                - trad_401k_withdrawal
-                - trad_ira_withdrawal
-                - penalty_fees
-                - conversion_amount
+                + trad_401k_withdrawal
+                + trad_ira_withdrawal
             )
 
             #
@@ -711,7 +675,8 @@ def calculate_assets(
                 # We have excess money.
                 #
                 if round(total_withdrawal, 2) == 0:
-                    taxable_account.contribute(result)
+                    taxable_contribution = result
+                    taxable_account.contribute(taxable_contribution)
                     break
                 maximum_withdrawal = total_withdrawal
                 total_withdrawal = (
@@ -740,6 +705,7 @@ def calculate_assets(
         assert trad_ira.withdrawal(trad_ira_withdrawal).get_insufficient() == 0
         assert taxable_account.withdrawal(taxable_withdrawal).get_insufficient() == 0
 
+        roth_ira_contribution += conversion_amount
         roth_ira.contribute(conversion_amount)
 
         if stop_simulation:
@@ -841,7 +807,7 @@ def calculate_assets(
         )
     )
 
-    if needed_to_continue:
+    if print_summary and needed_to_continue:
         print(f"Please enter ${needed_to_continue:,.2f} to continue playing.")
 
     #
@@ -872,8 +838,8 @@ def calculate_assets(
         age_of_death - 30
     )
 
-    total_taxes += estate_tax
-    total_taxes += taxes_for_heir
+    death_tax = estate_tax + taxes_for_heir
+    total_taxes += death_tax
 
     try:
         tax_to_asset_ratio = total_taxes/round(total_assets, 2)
@@ -894,7 +860,7 @@ def calculate_assets(
     summary_table.append(["Estate Taxes", estate_tax])
     summary_table.append(["Total Taxes", total_taxes])
     summary_table.append(["Total Assets", total_assets])
-    summary_table.append(["Total Assets After Taxes", max(total_assets - total_taxes, 0)])
+    summary_table.append(["Total Assets After Taxes", max(total_assets - death_tax, 0)])
     summary_table.append(["Tax/Asset Ratio", tax_to_asset_ratio])
 
     if debug or print_summary:
@@ -908,7 +874,7 @@ def calculate_assets(
             )
         )
 
-    return total_assets - total_taxes, (
+    return total_assets - death_tax, (
         trad_401k.get_value()
         + trad_ira.get_value()
     )
@@ -1153,7 +1119,7 @@ def main():
             if assets > most_assets:
                 best_roth_conversion_amount = roth_conversion_amount
                 most_assets = assets
-            if not traditional:
+            if round(traditional, 2) == 0:
                 break
             roth_conversion_amount += 1000
 
