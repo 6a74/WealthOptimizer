@@ -1,62 +1,122 @@
-# When to Defer Taxes?
+# Wealth Optimizer
 
-## Introduction
+This repository contains utilities that will help you maximize your wealth and
+pay less in taxes. The core componenent is a financial simulator that simulates
+every year of your life. It will contribute to accounts in the most tax-efficent
+order. And during retirement, it will withdrawal from the most tax-efficent
+accounts.
 
-Many people in the [Bogleheads](https://www.bogleheads.org) community, a
-fantastic resource for investing advice, believe that it is almost always better
-to defer taxes (_i.e._ contribute to
-[traditional](https://www.bogleheads.org/wiki/Traditional_IRA) accounts rather
-than [Roth](https://www.bogleheads.org/wiki/Roth_IRA) accounts). I would like to
-make the case against the notion that deferring taxes is best for people that
-can "max out" their retirement accounts, like many individuals that read
-Bogleheads can do.
+## Dependencies
 
-### Who Said Traditional is Better?
+* [python](https://docs.python.org/3/whatsnew/3.8.html) (3.8+)
+* [matplotlib](https://matplotlib.org)
+* [rich](https://pypi.org/project/rich/)
 
-From the Bogleheads's [general
-guidelines](https://www.bogleheads.org/wiki/Traditional_versus_Roth#General_guidelines)
-on traditional vs. Roth:
+## Rules and Assumptions
 
-> Using 100% traditional because, for most people, traditional will be better.
+Not trying to hide this stuff, but here are some gotchas. Most of this stuff
+boils down to it being very difficult to predict the future. But some things
+were intential design decisions.
 
-While this is probably correct, the typical Bogleheads reader is probably a
-better saver.
+### Income
 
-### Who is the Typical Person?
+* There are no gaps in employment.
+* Pay raises are constant (unrealistic, I'm aware).
+* Any excess income will go into a taxable account.
 
-* In 2018, the real median [household income in the
-U.S.](https://en.wikipedia.org/wiki/Household_income_in_the_United_States) was
-$63,179.
-* In 2018, the [median
-age](https://en.wikipedia.org/wiki/Demographics_of_the_United_States#Median_age_of_the_population)
-is 38.2 years old.
-* Between 2015 and 2020, the [expected life
-expectancy](https://en.wikipedia.org/wiki/Demographics_of_the_United_States#Vital_statistics_2)
-is 78.8 years.
+### Taxes
 
-## Argument
+* Standard duduction only.
+* Only "single" and "married" filing statuses.
+* If there are traditional investments at death, it assumes that one of your
+  children will inherit the remainder. Your child will be 30 years younger than
+  your age of death. They will be expected to take RMDs based on the IRS Single
+  Life Expectancy table. The taxes they expect to pay for this will be included
+  in your total taxes. Assuming your child has no income for the remainder of
+  their life, this will be the minimum expected tax.
+* Outside of estate taxes, there are no taxes for taxable and Roth investments
+  at death. For taxable accounts, the [step up in
+  basis](https://www.investopedia.com/terms/s/stepupinbasis.asp) plays a
+  significant role in helping to reduce taxes after death.
 
-My core argument is based around [minimum required
-distributions](https://www.bogleheads.org/wiki/Required_Minimum_Distribution)
-(RMD). As the name suggests, these are IRS-mandated withdrawals from select
-retirement accounts. If an investor puts too much money in tax-deferred
-accounts, they might be forced to withdrawal large sums of money, which could be
-heavily taxed. The alternative is to redirect those contributions to Roth
-accounts, in which you pay taxes up-front and then (hopefully) never again.
+### RMDs
 
-## Figures
+* After retirement and before RMDs, you will do [Roth IRA
+  conversions](https://www.bogleheads.org/wiki/Roth_IRA_conversion). This amount
+  is automatically calculated to produce the highest assets at death. Note: this
+  currently assumes your marital status does not change during this
+  post-retirement/pre-RMDs period. I understand that this will not work for
+  everyone.
+* During RMDs, you will withdrawal at least your standard deduction. This is
+  amount is taxed at 0%.
+* Excess RMDs are transferred to a taxable account, where it grows at the same
+  interest rate as retirement accounts.
 
-The following figures are generated with the `graph.py` utility. The values are
-calculated with the `sim.calculate_assets` method. Variables are:
+### Other
 
-* Real Interest Rate (1% - 7%, should satisfy everyone)
-* Years to Wait Before Deferring Taxes
+* Interest is applied at the end of each year.
+* The "market" has no volatility. Investments grow at a steady rate.
+* Divorce is not possible. Once you are married, you are stuck that way.
+* Spending remains constant thoughout your lifetime. Once again, this is
+  unrealistic but necessary. Because interest rates are real, this number
+  accounts for inflation.
 
+## Utilities
+
+### `sim.py`
+
+Given all of the initial variables (parameters), this script will simulate
+your portfolio and show you each year of your life. Running the following
+command will produce the graph below:
+
+```
+./source/sim.py
+```
+
+![Sim](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_01.png?raw=true)
+
+A simulation with more options, like this:
+
+```
+./source/sim.py \
+--current-age=25 \
+--income=100000 \
+--starting-balance-trad-401k=100000 \
+--max-contribution-percentage-401k=0.50 \
+--employer-match-401k=0.07 \
+--employer-contribution-hsa=750
+--do-mega-backdoor-roth \
+```
+
+Will look like this:
+
+![Sim2](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_02.png?raw=true)
+
+If you specify the `--show-params` option, it will print a table of your configuration options:
+
+![Parameters](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_04.png?raw=true)
+
+If you specify the `--show-summary` option, it will print a summary of things:
+
+![Summary](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_03.png?raw=true)
+
+### `graph.py`
+
+The `graph.py` utility is meant to help you determine how long to wait before
+start deferring taxes via pre-tax contributions, rather than Roth contributions.
 The lines represent your total assets (estate) after taxes at death. The goal is
 to maximize this value. The higher (vertically) the line the better. It should
 be noted that lines (interest rates) are independent from one another. The total
 assets will be vary widely between different interest rates. The lines are
 normalized to fit between 0.0 and 1.0 so they can be easily compared.
+
+```
+./source/graph.py
+```
+
+![Figure 1](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_01.png?raw=true)
+
+#### Example Scenarios
 
 The figure below shows the typical American. They make a little more than
 $60k/year. Unlike the typical American though, they max out their retirement
@@ -136,13 +196,12 @@ defer taxes. Their tax-rate is too high not to.
 
 What if there is a kid who's income explodes (from $63k to $300k at a rate of
 20% increases each year) while they are young? This person would reach an income
-of $300k at the age of 34, then plateau. Well, only because they start off with
-a low income does the calculator recommend this person prefer Roth for a few
-years.
+of $300k at the age of 34, then plateau. This person should immediately start
+deferring taxes.
 
 ![Figure 11](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_11.png?raw=true)
 
-### Key Takeaways
+#### Key Takeaways
 
 * It _does_ makes sense to defer taxes later in one's career, just not always
   immediately.
@@ -152,127 +211,3 @@ years.
   taxes immediately.
 * If long-term interest rates are high (6%+), it appears to be better to
   make Roth contributions.
-
-## Utilities
-
-### `sim.py`
-
-This module contains the core function: `calculate_assets`. Given all of the
-initial variables (parameters), this function will simulate your portfolio and
-return the value of your assets (estate) after taxes, with the assumption that
-someone will inherit them. In the following figures, the following command was
-used:
-
-```
-./source/sim.py
-```
-
-![Sim](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_01.png?raw=true)
-
-A simulation with more options, like this:
-
-```
-./source/sim.py \
---current-age=25 \
---income=100000 \
---starting-balance-trad-401k=100000 \
---max-contribution-percentage-401k=0.50 \
---employer-match-401k=0.07 \
---employer-contribution-hsa=750
---do-mega-backdoor-roth \
-```
-
-Will look like this:
-
-![Sim2](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_02.png?raw=true)
-
-If you specify the `--show-params` option, it will print a table of your configuration options:
-
-![Parameters](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_04.png?raw=true)
-
-If you specify the `--show-summary` option, it will print a summary of things:
-
-![Summary](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_03.png?raw=true)
-
-### `graph.py`
-
-This utility generates a graph of your possibilities. This graph is intended to
-help you choose whether to make traditional or Roth contributions. It takes
-almost the exact same arguments as the `sim.py` script, but there are a few
-missing options like the `--start-with-roth=YEARS` option. To get started, run
-the following command:
-
-```
-./source/graph.py
-```
-
-![Figure 1](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_01.png?raw=true)
-
-## How Do I Test It Out?
-
-You are encouraged to clone this repository and try this stuff out for yourself!
-This way, you will be able to use your own personal numbers. I tried to include
-options for anything that made sense. If there is something missing, please
-create an issue or send me an email.
-
-### Dependencies
-
-* [python](https://docs.python.org/3/whatsnew/3.8.html) (3.8+)
-* [matplotlib](https://matplotlib.org)
-* [rich](https://pypi.org/project/rich/)
-
-## Rules and Assumptions
-
-Not trying to hide this stuff, but here are some gotchas. Most of this stuff
-boils down to it being very difficult to predict the future. But some things
-were intential design decisions.
-
-### Income
-
-* There are no gaps in employment.
-* Pay raises are constant (unrealistic, I'm aware).
-* Saving contributions will go up at the same rate as pay raises.
-* Any excess income will go into a taxable account.
-* If you need additional income for spending, it will come from (1) taxable,
-  then (2) Roth contributions. If you are retired, at least 60 years old, and
-  still need more money, it will come from (3) traditional and (4) Roth
-  accounts.
-
-### Taxes
-
-* Federal taxes only; no state tax, social security, medicare, etc.
-* Standard duduction only.
-* Only "single" and "married" filing statuses.
-* No dependents; no charities.
-* If there are traditional investments at death, it assumes that one of your
-  children will inherit the remainder. Your child will be 30 years younger than
-  your age of death. They will be expected to take RMDs based on the IRS Single
-  Life Expectancy table. The taxes they expect to pay for this will be included
-  in your total taxes. Assuming your child has no income for the remainder of
-  their life, this will be the minimum expected tax.
-* Outside of estate taxes, there are no taxes for taxable and Roth investments
-  at death. For taxable accounts, the [step up in
-  basis](https://www.investopedia.com/terms/s/stepupinbasis.asp) plays a
-  significant role in helping to reduce taxes after death.
-
-### RMDs
-
-* After retirement and before RMDs, you will do [Roth IRA
-  conversions](https://www.bogleheads.org/wiki/Roth_IRA_conversion). This amount
-  is automatically calculated to produce the highest assets at death. Note: this
-  currently assumes your marital status does not change during this
-  post-retirement/pre-RMDs period. I understand that this will not work for
-  everyone.
-* During RMDs, you will withdrawal at least your standard deduction. This is
-  amount is taxed at 0%.
-* RMDs are transferred to a taxable account, where it grows at the same interest
-  rate as retirement accounts.
-
-### Other
-
-* Interest is applied at the end of each year.
-* The "market" has no volatility. Investments grow at a steady rate.
-* Divorce is not possible. Once you are married, you are stuck that way.
-* Spending remains constant thoughout your lifetime. Once again, this is
-  unrealistic but necessary. Because interest rates are real, this number
-  accounts for inflation.
