@@ -134,9 +134,11 @@ defer taxes. Their tax-rate is too high not to.
 
 ![Figure 10](https://github.com/6a74/finance/blob/master/figures/figure_10.png?raw=true)
 
-What if we have a kid who's income explodes (from $63k to $300k at a rate of 20%
-increases each year) while they are young? This person would reach an income of
-$300k at the age of 34, then plateau. Well, only because this person starts off with a low income does the calculator recommend you prefer Roth for a few years.
+What if there is a kid who's income explodes (from $63k to $300k at a rate of
+20% increases each year) while they are young? This person would reach an income
+of $300k at the age of 34, then plateau. Well, only because they start off with
+a low income does the calculator recommend this person prefer Roth for a few
+years.
 
 ![Figure 11](https://github.com/6a74/finance/blob/master/figures/figure_11.png?raw=true)
 
