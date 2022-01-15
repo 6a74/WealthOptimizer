@@ -90,6 +90,13 @@ if __name__ == "__main__":
         default=6000
     )
     parser.add_argument(
+        "--ira-contribution-catch-up",
+        help="How much extra can you contribute at the age of 50?",
+        required=False,
+        type=float,
+        default=1000
+    )
+    parser.add_argument(
         "--do-mega-backdoor-roth",
         help="What is the IRA contribution limit?",
         required=False,
@@ -152,10 +159,11 @@ if __name__ == "__main__":
         #
         min_tax_rate = 1.0
         roth_conversion_amount = 0
+        best_roth_conversion_amount = 0
 
         if args.age_of_death > args.age_of_retirement:
             for x in range(1000):
-                tax_rate = sim.calculate_tax_to_asset_ratio(
+                tax_rate, _ = sim.calculate_tax_to_asset_ratio(
                     args.principal_taxable,
                     args.principal_traditional,
                     args.principal_roth,
@@ -176,12 +184,15 @@ if __name__ == "__main__":
                     args.yearly_401k_total_contribution_limit,
                     args.yearly_ira_contribution,
                     args.yearly_ira_contribution_limit,
+                    args.ira_contribution_catch_up,
                     args.do_mega_backdoor_roth,
                     debug=False
                 )
-                min_tax_rate = min(min_tax_rate, tax_rate)
+                if tax_rate < min_tax_rate:
+                    best_roth_conversion_amount = roth_conversion_amount
                 if tax_rate > min_tax_rate:
                     break
+                min_tax_rate = min(min_tax_rate, tax_rate)
                 roth_conversion_amount += 1000
 
         return sim.calculate_tax_to_asset_ratio(
@@ -195,7 +206,7 @@ if __name__ == "__main__":
             args.age_of_retirement,
             args.age_to_start_rmds,
             args.age_of_death,
-            roth_conversion_amount,
+            best_roth_conversion_amount,
             args.income,
             args.yearly_income_raise,
             args.max_income, args.age_of_marriage,
@@ -204,6 +215,7 @@ if __name__ == "__main__":
             args.yearly_401k_total_contribution_limit,
             args.yearly_ira_contribution,
             args.yearly_ira_contribution_limit,
+            args.ira_contribution_catch_up,
             args.do_mega_backdoor_roth,
             args.verbose
         )
@@ -224,20 +236,56 @@ if __name__ == "__main__":
     #
     working_years = args.age_of_retirement - args.current_age
     interest_rates = [1.01, 1.02, 1.03, 1.04, 1.05, 1.06]
+    colors = ['tab:blue', 'tab:red', 'tab:orange', 'tab:purple', 'tab:brown', 'tab:olive']
 
     assert working_years >= 0
 
+    best_indices = []
     current_calculation = 0
     num_calculations = working_years * len(interest_rates)
     with progressbar.ProgressBar(max_value=num_calculations) as bar:
-        for interest_rate in interest_rates:
+        for interest_rate, color in zip(interest_rates, colors):
             inputs = range(working_years)
-            outputs = []
+            outputs_a = []
+            outputs_b = []
             for y in inputs:
-                outputs.append(my_calculation(interest_rate, y))
+                a, b = my_calculation(interest_rate, y)
+                outputs_a.append(a)
+                outputs_b.append(b)
                 current_calculation += 1
                 bar.update(current_calculation)
-            plt.plot(inputs, scale(outputs), label=f"{interest_rate=:.2f}")
+
+            plt.plot(
+                inputs,
+                scale(outputs_a),
+                label=f"{interest_rate=:.2f} - taxes",
+                linestyle='-',
+                color=color
+            )
+            plt.plot(
+                inputs,
+                scale(outputs_b),
+                label=f"{interest_rate=:.2f} - assets",
+                linestyle=':',
+                color=color
+            )
+
+            best_index = 0
+            biggest_difference = 0
+            for index, output in enumerate(zip(scale(outputs_a), scale(outputs_b))):
+                diff = output[1] - output[0]
+                if diff > biggest_difference:
+                    best_index = index
+                biggest_difference = max(biggest_difference, diff)
+
+            while True:
+                if best_index in best_indices:
+                    best_index += 0.1
+                if best_index not in best_indices:
+                    break
+
+            best_indices.append(best_index)
+            plt.axvline(x=best_index, color=color, linestyle='-.')
 
     plt.xlabel("Years to Wait")
     plt.ylabel("Taxes to Assets Ratio (scaled)")
@@ -251,6 +299,7 @@ if __name__ == "__main__":
         ["Age of Death", f"{args.age_of_death}"],
         ["Current Income", f"${args.income:,.2f}"],
         ["Max Income", f"${args.max_income:,.2f}"],
+        ["Yearly Spending", f"${args.spending:,.2f}"],
         ["Yearly Income Raise", f"{args.yearly_income_raise:.2f}"],
         ["Starting Tradtional Balance", f"${args.principal_traditional:,.2f}"],
         ["Starting Roth Balance", f"${args.principal_roth:,.2f}"],
