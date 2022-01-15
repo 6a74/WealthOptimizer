@@ -95,12 +95,13 @@ Will look like this:
 ### `graph.py`
 
 The `graph.py` utility is meant to help you determine how long to wait before
-start deferring taxes via pre-tax contributions, rather than Roth contributions.
-The lines represent your total assets (estate) after taxes at death. The goal is
-to maximize this value. The higher (vertically) the line the better. It should
-be noted that lines (interest rates) are independent from one another. The total
-assets will be vary widely between different interest rates. The lines are
-normalized to fit between 0.0 and 1.0 so they can be easily compared.
+starting to defer taxes via pre-tax contributions, rather make than Roth
+contributions. The lines represent your total assets (estate) after taxes at
+death. The goal is to maximize this value. The higher (vertically) the line the
+better. It should be noted that lines (interest rates) are independent from one
+another. The total assets will be vary widely between different interest rates.
+The lines are normalized to fit between 0.0 and 1.0 so they can be easily
+compared.
 
 ```
 ./source/graph.py
