@@ -149,6 +149,8 @@ def calculate_assets(
         "Total Taxes"
     ]
 
+    needed_to_continue = 0
+
     #
     # Iterate over each year in our life.
     #
@@ -184,12 +186,6 @@ def calculate_assets(
         this_years_income = 0
         this_years_roth_conversion = 0
 
-        # Withdrawals:
-        roth_withdrawal = 0
-        taxable_withdrawal = 0
-        traditional_withdrawal = 0
-
-        # Contributions:
         roth_contribution = 0
         taxable_contribution = 0
         traditional_contribution = 0
@@ -197,7 +193,7 @@ def calculate_assets(
         contribution_ira = 0
 
         #
-        # Calcuate how much tax advantaged space we have. This will be our total
+        # Calculate how much tax advantaged space we have. This will be our total
         # contribution limit for this year.
         #
         tax_advantaged_space = yearly_ira_contribution_limit
@@ -248,7 +244,7 @@ def calculate_assets(
                     traditional_contribution += contribution_401k
 
                 #
-                # Calcuate IRA contribution. If there are no tax deductions for
+                # Calculate IRA contribution. If there are no tax deductions for
                 # the traditional IRA (because our income is too high) we might
                 # as well contribute to Roth.
                 #
@@ -381,168 +377,180 @@ def calculate_assets(
             #
             best_amount = tm.get_standard_deduction(married)
             rmd = traditional/ult.withdrawal_factors[current_age]
-            traditional_withdrawal = max(rmd, best_amount)
-            if traditional_withdrawal >= traditional:
-                traditional_withdrawal = traditional
-            traditional -= traditional_withdrawal
-            this_years_income += traditional_withdrawal
+            withdrawal = max(rmd, best_amount)
+            if withdrawal >= traditional:
+                withdrawal = traditional
+            traditional -= withdrawal
+            this_years_income += withdrawal
         else:
             rmd = 0
 
         ########################################################################
-        # Tax Calculations
+        # Withdrawals
         ########################################################################
 
-        taxable_income = this_years_income - tax_deductions
+        roth_withdrawal = 0
+        taxable_withdrawal = 0
+        traditional_withdrawal = 0
 
-        #
-        # When calculating the FICA tax, we must not include retirement
-        # distributions. These have already been taxed by FICA.
-        #
-        fica_tax = tm.calculate_fica_tax(
-            this_years_income - traditional_withdrawal,
-            married
-        )
+        minimum_withdrawal = 0
+        total_assets = traditional + roth + taxable
+        maximum_withdrawal = total_assets
+        total_withdrawal = 0
 
-        #
-        # Calculate the federal taxes. This includes the federal income tax and
-        # FICA (social security and medicare) tax.
-        #
-        federal_income_tax = tm.calculate_federal_income_tax(
-            taxable_income,
-            married,
-            num_dependents(current_age)
-        )
+        stop_simulation = False
 
-        #
-        # Calculate saver's credit. This provides tax credits if you are low
-        # income and made retirement contributions.
-        #
-        savers_credit = 0
-        if not retired:
-            savers_credit = tm.calculate_savers_credit(
-                taxable_income,
-                traditional_contribution + roth_contribution,
+        while True:
+            roth_withdrawal = 0
+            taxable_withdrawal = 0
+            traditional_withdrawal = 0
+
+            taxable_withdrawal = min(taxable, total_withdrawal)
+
+            ltcg_taxes = 0
+            if taxable_withdrawal:
+                ltcg = (taxable - total_contributions_taxable) * (taxable_withdrawal/taxable)
+                ltcg_taxes = tm.calculate_federal_income_tax(
+                    this_years_income,
+                    married,
+                    ltcg=ltcg,
+                    just_ltcg=True
+                )
+
+            roth_withdrawal = min(
+                total_contributions_roth,
+                total_withdrawal - taxable_withdrawal
+            )
+
+            roth_withdrawal += min(
+                roth,
+                total_withdrawal - taxable_withdrawal - roth_withdrawal
+            )
+
+            traditional_withdrawal += min(
+                traditional,
+                total_withdrawal - taxable_withdrawal - roth_withdrawal
+            )
+
+            _this_years_income = this_years_income + traditional_withdrawal
+            taxable_income = _this_years_income - tax_deductions
+
+            #
+            # When calculating the FICA tax, we must not include retirement
+            # distributions. These have already been taxed by FICA.
+            #
+            fica_tax = tm.calculate_fica_tax(
+                max(_this_years_income - traditional_withdrawal - rmd, 0),
                 married
             )
 
-        #
-        # Apply saver's credit. Credits cannot result in negative taxes.
-        #
-        federal_income_tax = max(federal_income_tax - savers_credit, 0)
+            #
+            # Calculate the federal taxes. This includes the federal income tax
+            # and FICA (social security and medicare) tax.
+            #
+            federal_income_tax = tm.calculate_federal_income_tax(
+                taxable_income,
+                married,
+                num_dependents(current_age)
+            )
 
-        #
-        # Finally, calculate state taxes, if any.
-        #
-        state_tax = tm.calculate_state_tax(
-            taxable_income,
-            married,
-            current_state,
-            num_dependents(current_age)
-        )
+            #
+            # Calculate saver's credit. This provides tax credits if you are low
+            # income and made retirement contributions.
+            #
+            savers_credit = 0
+            if not retired:
+                savers_credit = tm.calculate_savers_credit(
+                    taxable_income,
+                    traditional_contribution + roth_contribution,
+                    married
+                )
 
-        this_years_taxes = (
-            federal_income_tax
-            + fica_tax
-            + state_tax
-        )
+            #
+            # Apply saver's credit. Credits cannot result in negative taxes.
+            #
+            federal_income_tax = max(federal_income_tax - savers_credit, 0)
+
+            #
+            # Finally, calculate state taxes, if any.
+            #
+            state_tax = tm.calculate_state_tax(
+                taxable_income,
+                married,
+                current_state,
+                num_dependents(current_age)
+            )
+
+            this_years_taxes = (
+                federal_income_tax
+                + fica_tax
+                + state_tax
+                + ltcg_taxes
+            )
+
+            result = (
+                _this_years_income
+                - this_years_taxes
+                - spending
+                - taxable_contribution
+                - roth_contribution
+                - traditional_contribution
+                + taxable_withdrawal
+                + roth_withdrawal
+            )
+
+            #
+            # We've calculated the result (excess/insufficent funds).
+            #
+            # If we have excess money, lower the withdrawal until we withdrawal
+            # is nothing. If there's still money leftover then, put it in a
+            # taxable account.
+            #
+            # If we have insufficent money, raise the withdrawal until we've
+            # reached our total assets. If we are withdrawaling all of our
+            # assets and we still need money, we need to stop the simulation.
+            #
+            if round(result, 2) > 0:
+                #
+                # We have excess money.
+                #
+                if round(total_withdrawal, 2) == 0:
+                    taxable_contribution = result
+                    taxable += result
+                    break
+                maximum_withdrawal = total_withdrawal
+                total_withdrawal = (
+                    minimum_withdrawal
+                    + maximum_withdrawal
+                )/2
+            elif round(result, 2) < 0:
+                #
+                # We need money.
+                #
+                if round(total_withdrawal, 2) == round(total_assets, 2):
+                    needed_to_continue = abs(result)
+                    stop_simulation = True
+                    break
+                minimum_withdrawal = total_withdrawal
+                total_withdrawal = (
+                    minimum_withdrawal
+                    + maximum_withdrawal
+                )/2
+            else:
+                break
+
+        roth -= roth_withdrawal
+        taxable -= taxable_withdrawal
+        traditional -= traditional_withdrawal
+
+        if stop_simulation:
+            break
 
         total_taxes += this_years_taxes
 
         ########################################################################
-        # Excess/Insufficent Funds
+        # Data Collection
         ########################################################################
-
-        #
-        # First, calculate the difference between our income and spending.
-        #
-        difference = (
-            this_years_income
-            - this_years_taxes
-            - spending
-            - taxable_contribution
-            - roth_contribution
-            - traditional_contribution
-        )
-
-        leftover = max(0, difference)
-        needed = abs(min(difference, 0))
-
-        #
-        # If we have excess funds, put it into taxable.
-        #
-        if leftover:
-            taxable += leftover
-            total_contributions_taxable += leftover
-            taxable_contribution += leftover
-
-        if needed:
-            #
-            # We need money for spending expenses. The order of operations are
-            # as follows. They are in order of best to worst.
-            #
-            # (1) First, take from taxable. Tax rates should be low. This will
-            #     give time for Roth contributions to continue to grow tax free.
-            #
-            # (2) Next, if we still need more, take from the current Roth
-            #     contribution for this year. This could be the Mega-Backdoor
-            #     Roth conversion contribution.
-            #
-            # (3) Next, if we still need more, withdrawal Roth contributions
-            #     made in previous years. These withdrawals will not be
-            #     penalized.
-            #
-            if needed and taxable > 0:
-                withdrawal = needed
-                while True:
-                    withdrawal = min(withdrawal, taxable)
-                    ltcg = (taxable - total_contributions_taxable) * (withdrawal/taxable)
-                    this_years_income += withdrawal
-                    ltcg_taxes = tm.calculate_federal_income_tax(this_years_income, married, ltcg=ltcg, just_ltcg=True)
-                    leftover = withdrawal - ltcg_taxes
-
-                    taxable_withdrawal = withdrawal
-                    taxable -= withdrawal
-                    total_contributions_taxable -= (withdrawal - ltcg)
-                    needed -= withdrawal
-                    break
-
-            if needed and roth_contribution:
-                to_take = min(needed, roth_contribution)
-                roth_contribution -= to_take
-                total_contributions_roth -= to_take
-                roth -= to_take
-                this_years_roth_conversion = max(
-                    0, this_years_roth_conversion - to_take
-                )
-                needed -= to_take
-
-            if needed and total_contributions_roth:
-                roth_withdrawal = min(needed, total_contributions_roth)
-                total_contributions_roth -= roth_withdrawal
-                roth -= roth_withdrawal
-                needed -= roth_withdrawal
-
-            #
-            # TODO: Clean this entire "needed" section up. We need to pay taxes
-            # on tradtional withdrawals.
-            #
-            if needed and traditional and current_age >= 60:
-                to_take = min(needed, traditional)
-                traditional_withdrawal += to_take
-                traditional -= to_take
-                needed -= to_take
-                # What is this???
-                total_taxes += needed
-
-            if needed and roth and current_age >= 60:
-                to_take = min(needed, roth)
-                roth_withdrawal += to_take
-                roth -= to_take
-                needed -= to_take
-
-            if needed:
-                raise Exception("not enough money for expenses")
 
         #
         # Calculate the effective tax rate.
@@ -551,18 +559,6 @@ def calculate_assets(
             tax_rate = (this_years_taxes/this_years_income) * 100
         except ZeroDivisionError:
             tax_rate = 0
-
-        #
-        # Calculate our savings rate. This is pre-tax.
-        #
-        try:
-            savings_rate = (
-                taxable_contribution
-                + traditional_contribution
-                + roth_contribution
-            ) / this_years_income
-        except ZeroDivisionError:
-            savings_rate = 0
 
         #
         # We have finished the year. Add an entry to the table. This will get
@@ -583,7 +579,7 @@ def calculate_assets(
             float(taxable_contribution),
             float(taxable_withdrawal),
             float(traditional_contribution),
-            float(traditional_withdrawal),
+            float(rmd + traditional_withdrawal),
             float(roth_contribution),
             float(roth_withdrawal),
             float(total_contributions_roth),
@@ -597,6 +593,10 @@ def calculate_assets(
             float(tax_rate),
             float(total_taxes)
         ])
+
+        ########################################################################
+        # Preparation for New Year
+        ########################################################################
 
         #
         # Happy new year! It's the end of the year. Apply return, give
@@ -628,6 +628,9 @@ def calculate_assets(
         )
     )
 
+    if needed_to_continue:
+        print(f"Please enter ${needed_to_continue:,.2f} to continue playing.")
+
     #
     # Do not sell stocks before death. They get a "step up in basis" meaning the
     # basis changes. The heir will only be responsible for gains after
@@ -652,6 +655,11 @@ def calculate_assets(
     total_taxes += estate_tax
     total_taxes += taxes_for_heir
 
+    try:
+        tax_to_asset_ratio = total_taxes/round(total_assets, 2)
+    except ZeroDivisionError:
+        tax_to_asset_ratio = None
+
     #
     # Print a summary of things.
     #
@@ -664,8 +672,8 @@ def calculate_assets(
     summary_table.append(["Estate Taxes", estate_tax])
     summary_table.append(["Total Taxes", total_taxes])
     summary_table.append(["Total Assets", total_assets])
-    summary_table.append(["Total Assets After Taxes", total_assets - total_taxes])
-    summary_table.append(["Tax/Asset Ratio", total_taxes/total_assets])
+    summary_table.append(["Total Assets After Taxes", max(total_assets - total_taxes, 0)])
+    summary_table.append(["Tax/Asset Ratio", tax_to_asset_ratio])
 
     if debug or print_summary:
         print(
@@ -868,7 +876,8 @@ if __name__ == "__main__":
     # There's a chance we could die before retirement.
     #
     if args.age_of_death > args.age_of_retirement:
-        for x in range(1000):
+        #for x in range(1000):
+        for x in range(0):
             assets = calculate_assets(
                 args.principal_taxable,
                 args.principal_traditional,

@@ -1297,7 +1297,7 @@ def calculate_savers_credit(agi, retirement_contributions, married):
             return qualified_retirement_contributions * credit_rate
 
 def calculate_estate_tax(estate):
-    assert estate > 0
+    assert estate >= 0
     deduction = 11700000 # $11.7 million for 2021
     taxable_estate = max(0, estate - deduction)
     if not taxable_estate:
