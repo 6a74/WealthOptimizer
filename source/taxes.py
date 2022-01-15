@@ -154,10 +154,10 @@ class Colorado:
     }
     brackets = {
         'single': [
-            (0,             0, 0.0463),
+            (0, 0, 0.0463),
         ],
         'married': [
-            (0,             0, 0.0463),
+            (0, 0, 0.0463),
         ]
     }
 
@@ -311,10 +311,11 @@ savers_credit_brackets_other = [
 
 def calculate_savers_credit(agi, retirement_contributions, married):
     assert agi >= 0
+    qualified_retirement_contributions = min(4000 if married else 2000, retirement_contributions)
     bracket = savers_credit_brackets_married if married else savers_credit_brackets_other
     for limit, credit_rate in reversed(bracket):
         if agi >= limit:
-            return retirement_contributions * credit_rate
+            return qualified_retirement_contributions * credit_rate
 
 def calculate_estate_taxes(estate):
     assert estate > 0
