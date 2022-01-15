@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 
+import argparse
+
 from tabulate import tabulate
 
-import argparse
 import taxes as tm
 import ult
 
@@ -28,6 +29,8 @@ def calculate_assets(
         yearly_ira_contribution_limit,
         ira_contribution_catch_up,
         do_mega_backdoor_roth,
+        working_state,
+        retirement_state,
         debug=True,
         print_summary=False
     ):
@@ -90,9 +93,12 @@ def calculate_assets(
     #
     # The initial values for life events.
     #
-    married = True if age_of_marriage <= current_age else False
+    married = age_of_marriage < current_age
     retired = False
     prefer_roth = True
+
+    if married:
+        yearly_ira_contribution_limit *= 2
 
     table = []
     header = [
@@ -117,7 +123,9 @@ def calculate_assets(
         "Gross Income",
         "MAGI",
         "Saver's Credit",
-        "Taxes",
+        "State",
+        "State Tax",
+        "Total Income Tax",
         "Tax %",
         "Savings Rate",
         "Total Taxes"
@@ -141,6 +149,11 @@ def calculate_assets(
             yearly_ira_contribution_limit += ira_contribution_catch_up
             if married:
                 yearly_ira_contribution_limit += ira_contribution_catch_up
+
+        #
+        # If we have a different state set.
+        #
+        current_state = retirement_state if retired else working_state
 
         #
         # Alright, if we're still working, we can make a tax-advantaged
@@ -231,7 +244,7 @@ def calculate_assets(
 
                 tax_deductions = traditional_contribution
                 taxable_income = this_years_income - tax_deductions
-                taxes = tm.calculate_taxes(taxable_income, married)
+                taxes = tm.calculate_taxes(taxable_income, married, current_state)
                 taxes -= tm.calculate_savers_credit(
                     taxable_income,
                     traditional_contribution + roth_contribution,
@@ -308,7 +321,7 @@ def calculate_assets(
         # How much taxes are we going to pay this year?
         #
         taxable_income = this_years_income - tax_deductions
-        taxes = tm.calculate_taxes(taxable_income, married)
+        taxes = tm.calculate_taxes(taxable_income, married, current_state)
         savers_credit = 0
         if not retired:
             savers_credit = tm.calculate_savers_credit(
@@ -318,6 +331,12 @@ def calculate_assets(
             )
             taxes = max(taxes - savers_credit, 0)
         total_taxes += taxes
+
+        #
+        # XXX: Just calculated here to include it in table. This tax is already
+        # included in tm.calculate_taxes().
+        #
+        state_taxes = tm.calculate_state_taxes(taxable_income, married, current_state)
 
         #
         # Calculate how much we can put into taxable, after spending.
@@ -444,6 +463,8 @@ def calculate_assets(
             float(this_years_income),
             float(taxable_income),
             float(savers_credit),
+            current_state,
+            float(state_taxes),
             float(taxes),
             float(tax_rate),
             float(savings_rate),
@@ -631,6 +652,20 @@ if __name__ == "__main__":
         default=60
     )
     parser.add_argument(
+        "--working-state",
+        help="What state will you work in?",
+        required=False,
+        choices=tm.states.keys(),
+        default='TX'
+    )
+    parser.add_argument(
+        "--retirement-state",
+        help="What state will you retire in?",
+        required=False,
+        choices=tm.states.keys(),
+        default='TX'
+    )
+    parser.add_argument(
         "--age-to-start-rmds",
         help="When do RMDs start?",
         required=False,
@@ -706,6 +741,8 @@ if __name__ == "__main__":
                 args.yearly_ira_contribution_limit,
                 args.ira_contribution_catch_up,
                 args.do_mega_backdoor_roth,
+                args.working_state,
+                args.retirement_state,
                 debug=False
             )
             if assets > most_assets:
@@ -739,6 +776,8 @@ if __name__ == "__main__":
         args.yearly_ira_contribution_limit,
         args.ira_contribution_catch_up,
         args.do_mega_backdoor_roth,
+        args.working_state,
+        args.retirement_state,
         args.verbose,
         True
     )
