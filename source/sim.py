@@ -28,6 +28,7 @@ def calculate_assets(
         yearly_401k_total_contribution_limit,
         yearly_ira_contribution_limit,
         ira_contribution_catch_up,
+        ira_contribution_catch_up_age,
         do_mega_backdoor_roth,
         working_state,
         retirement_state,
@@ -85,7 +86,6 @@ def calculate_assets(
     #
     # These are life-time counters.
     #
-    taxes = 0
     total_contributions_traditional = 0
     total_contributions_roth = 0
     total_contributions_taxable = 0
@@ -115,6 +115,8 @@ def calculate_assets(
 
     if married:
         yearly_ira_contribution_limit *= 2
+    if current_age > ira_contribution_catch_up_age:
+        yearly_ira_contribution_limit += ira_contribution_catch_up
 
     table = []
     header = [
@@ -151,9 +153,11 @@ def calculate_assets(
     # Iterate over each year in our life.
     #
     for year in range(age_of_death - current_age + 1):
-        #
-        # Update life events.
-        #
+
+        ########################################################################
+        # Life Events
+        ########################################################################
+
         if current_age == age_of_retirement:
             retired = True
         if current_age == age_of_marriage:
@@ -161,7 +165,8 @@ def calculate_assets(
             yearly_ira_contribution_limit *= 2
         if year >= years_until_transition_to_pretax_contributions:
             prefer_roth = False
-        if current_age == 50:
+
+        if current_age == ira_contribution_catch_up_age:
             yearly_ira_contribution_limit += ira_contribution_catch_up
             if married:
                 yearly_ira_contribution_limit += ira_contribution_catch_up
@@ -170,6 +175,10 @@ def calculate_assets(
         # If we have a different state set.
         #
         current_state = retirement_state if retired else working_state
+
+        ########################################################################
+        # Retirement Contribution Calculations
+        ########################################################################
 
         #
         # Alright, if we're still working, we can make a tax-advantaged
@@ -274,19 +283,19 @@ def calculate_assets(
                 federal_income_tax = max(federal_income_tax, 0)
                 fica_tax = tm.calculate_fica_tax(this_years_income, married)
 
-                state_taxes = tm.calculate_state_tax(
+                state_tax = tm.calculate_state_tax(
                     taxable_income,
                     married,
                     current_state,
                     num_dependents(current_age)
                 )
 
-                taxes = federal_income_tax + fica_tax + state_taxes
-
                 result = (
                     this_years_income
                     - spending
-                    - taxes
+                    - federal_income_tax
+                    - fica_tax
+                    - state_tax
                     - traditional_contribution
                     - roth_contribution
                 )
@@ -298,14 +307,18 @@ def calculate_assets(
                     if total_contribution_limit == tax_advantaged_space:
                         break
                     minimum_contribution = total_contribution_limit
-                    total_contribution_limit = (minimum_contribution + maximum_contribution)/2
-                    continue
+                    total_contribution_limit = (
+                        minimum_contribution
+                        + maximum_contribution
+                    )/2
                 elif result < 0:
                     if total_contribution_limit == 0:
                         break
                     maximum_contribution = total_contribution_limit
-                    total_contribution_limit = (minimum_contribution + maximum_contribution)/2
-                    continue
+                    total_contribution_limit = (
+                        minimum_contribution
+                        + maximum_contribution
+                    )/2
                 else:
                     break
 
@@ -329,6 +342,10 @@ def calculate_assets(
                 traditional -= roth_conversion_amount
                 this_years_roth_conversion = roth_conversion_amount
 
+        ########################################################################
+        # Required Minimum Distribution (RMD) Calculations
+        ########################################################################
+
         #
         # Do we need to make RMDs?
         #
@@ -348,23 +365,24 @@ def calculate_assets(
         else:
             rmd = 0
 
+        ########################################################################
+        # Tax Calculations
+        ########################################################################
+
         #
         # How much taxes are we going to pay this year?
         #
         taxable_income = this_years_income - tax_deductions
 
+        #
+        # Calculate the federal taxes. This includes the federal income tax and
+        # FICA (social security and medicare) tax.
+        #
         federal_income_tax = tm.calculate_federal_income_tax(
             taxable_income,
             married,
             num_dependents(current_age)
         )
-        state_taxes = tm.calculate_state_tax(
-            taxable_income,
-            married,
-            current_state,
-            num_dependents(current_age)
-        )
-
         savers_credit = 0
         if not retired:
             savers_credit = tm.calculate_savers_credit(
@@ -372,16 +390,40 @@ def calculate_assets(
                 traditional_contribution + roth_contribution,
                 married
             )
-            federal_income_tax = max(federal_income_tax - savers_credit, 0)
+        federal_income_tax = max(federal_income_tax - savers_credit, 0)
 
-        fica_tax = tm.calculate_fica_tax(this_years_income - traditional_withdrawal, married)
-        taxes = federal_income_tax + fica_tax + state_taxes
-        total_taxes += taxes
+        #
+        # When calculating the FICA tax, we must not include retirement
+        # distributions. These have already been taxed by FICA.
+        #
+        fica_tax = tm.calculate_fica_tax(
+            this_years_income - traditional_withdrawal,
+            married
+        )
+
+        #
+        # Finally, calculate state taxes, if any.
+        #
+        state_tax = tm.calculate_state_tax(
+            taxable_income,
+            married,
+            current_state,
+            num_dependents(current_age)
+        )
+
+        this_years_taxes = (
+            federal_income_tax
+            + fica_tax
+            + state_tax
+        )
+
+        total_taxes += this_years_taxes
 
         #
         # Calculate how much we can put into taxable, after spending.
         #
-        income_after_taxes = this_years_income - taxes
+        income_after_taxes = this_years_income - this_years_taxes
+
         difference = (
             income_after_taxes
             - spending
@@ -454,6 +496,7 @@ def calculate_assets(
                 traditional_withdrawal += to_take
                 traditional -= to_take
                 needed -= to_take
+                # What is this???
                 total_taxes += needed
 
             if needed and roth and current_age >= 60:
@@ -469,7 +512,7 @@ def calculate_assets(
         # Calculate the effective tax rate.
         #
         try:
-            tax_rate = (taxes/this_years_income) * 100
+            tax_rate = (this_years_taxes/this_years_income) * 100
         except ZeroDivisionError:
             tax_rate = 0
 
@@ -485,6 +528,10 @@ def calculate_assets(
         except ZeroDivisionError:
             savings_rate = 0
 
+        #
+        # We have finished the year. Add an entry to the table. This will get
+        # printed when the simulation is over.
+        #
         table.append([
             current_age,
             married,
@@ -509,7 +556,7 @@ def calculate_assets(
             float(savers_credit),
             int(num_dependents(current_age)),
             current_state,
-            float(state_taxes),
+            float(state_tax),
             float(federal_income_tax + fica_tax),
             float(tax_rate),
             float(total_taxes)
@@ -547,26 +594,33 @@ def calculate_assets(
 
     #
     # Do not sell stocks before death. They get a "step up in basis" meaning the
-    # basis changes. The inheriter would only be responsible for gains after
+    # basis changes. The heir will only be responsible for gains after
     # inheritance.
     #
     total_assets = roth + traditional + taxable
     estate_tax = tm.calculate_estate_tax(total_assets)
-    taxes_for_heir = tm.calculate_minimum_remaining_tax_for_heir(traditional, age_of_death - 30)
 
     #
-    # Add the rest of the taxes and calculate our "tax to asset ratio" which is
-    # used to determine how well you did tax wise.
+    # This calculates the minimum tax your heir will be expected to pay as a
+    # result of RMDs. This assumes they have no income.
     #
+    # TODO: If the user specifies a dependent, use that to determine the
+    # difference in age, rather than a hardcoded value. To simplify our
+    # calculation, we can assume everything goes to the eldest child.
+    #
+    taxes_for_heir = tm.calculate_minimum_remaining_tax_for_heir(
+        traditional,
+        age_of_death - 30
+    )
+
     total_taxes += estate_tax
     total_taxes += taxes_for_heir
-    tax_to_asset_ratio = total_taxes/total_assets
 
     #
     # Print a summary of things.
     #
     summary_table = []
-    summary_header = ["Value at Death", "Value"]
+    summary_header = ["Field", "Value at Death"]
     summary_table.append(["Taxable", taxable])
     summary_table.append(["Traditional", traditional])
     summary_table.append(["Roth", roth])
@@ -575,7 +629,7 @@ def calculate_assets(
     summary_table.append(["Total Taxes", total_taxes])
     summary_table.append(["Total Assets", total_assets])
     summary_table.append(["Total Assets After Taxes", total_assets - total_taxes])
-    summary_table.append(["Tax/Asset Ratio", tax_to_asset_ratio])
+    summary_table.append(["Tax/Asset Ratio", total_taxes/total_assets])
 
     if debug or print_summary:
         print(
@@ -668,10 +722,17 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--ira-contribution-catch-up",
-        help="How much extra can you contribute at the age of 50?",
+        help="How much extra can you contribute at this age?",
         required=False,
         type=float,
         default=1000
+    )
+    parser.add_argument(
+        "--ira-contribution-catch-up-age",
+        help="At what age can you do extra catch up contributions?",
+        required=False,
+        type=int,
+        default=50
     )
     parser.add_argument(
         "--do-mega-backdoor-roth",
@@ -792,6 +853,7 @@ if __name__ == "__main__":
                 args.yearly_401k_total_contribution_limit,
                 args.yearly_ira_contribution_limit,
                 args.ira_contribution_catch_up,
+                args.ira_contribution_catch_up_age,
                 args.do_mega_backdoor_roth,
                 args.working_state,
                 args.retirement_state,
@@ -828,6 +890,7 @@ if __name__ == "__main__":
         args.yearly_401k_total_contribution_limit,
         args.yearly_ira_contribution_limit,
         args.ira_contribution_catch_up,
+        args.ira_contribution_catch_up_age,
         args.do_mega_backdoor_roth,
         args.working_state,
         args.retirement_state,
