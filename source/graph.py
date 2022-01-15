@@ -190,11 +190,6 @@ def main():
         type=float,
         default=1000
     )
-    parser.add_argument(
-        "--verbose",
-        help="Do things and talk more",
-        action="store_true"
-    )
 
     args = parser.parse_args()
 
@@ -235,10 +230,9 @@ def main():
                     args.work_state,
                     args.retirement_state,
                     args.add_dependent,
-                    args.public_safety_employee,
-                    debug=False
+                    args.public_safety_employee
                 )
-                if assets > most_assets:
+                if round(assets, 2) >= round(most_assets, 2):
                     best_roth_conversion_amount = roth_conversion_amount
                     most_assets = assets
                 if round(traditional, 2) == 0:
@@ -272,8 +266,7 @@ def main():
             args.work_state,
             args.retirement_state,
             args.add_dependent,
-            args.public_safety_employee,
-            args.verbose
+            args.public_safety_employee
         )[0]
 
     def scale(values):
