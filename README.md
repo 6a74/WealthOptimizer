@@ -59,8 +59,8 @@ assets will be vary widely between different interest rates. The lines are
 normalized to fit between 0.0 and 1.0 so they can be easily compared.
 
 The figure below shows the typical American. They make a little more than
-$60k/year. Unlike the typical American though, they attempt to max out their
-retirement accounts. This figure shows that if you expect the long-term real
+$60k/year. Unlike the typical American though, they max out their retirement
+accounts each year. This figure shows that if you expect the long-term real
 interest rate to be 6% or higher, you might be better off making Roth
 contributions for a few years.
 
@@ -74,13 +74,16 @@ The (relatively) small amount grows exponentially and requires higher RMDs.
 
 Next, we have a slightly younger person, 25, that is just starting their career.
 They have nothing in their retirement, but they graduated without debt and got a
-decent job out of college making approximately $60k/year. With long-term
-interest rates of 5%, 6%, and 7% this person should prefer Roth contributions
-for at least the first decade of their career.
+decent job out of college making approximately $63k/year (what the typical
+American makes). With long-term interest rates of 5%, 6%, and 7% this person
+should prefer Roth contributions for at least the first decade of their career.
+Note: for all of the figures with a starting age of 25, the little upticks at
+year 5 are a result of becoming married. Due to better tax rates, you will pay
+less in taxes and invest more.
 
 ![Figure 3](https://github.com/6a74/finance/blob/master/figures/figure_03.png?raw=true)
 
-Say the same recent graduate got a job making $100k/year instead of $60k/year.
+Say the same recent graduate got a job making $100k/year instead of $63k/year.
 What would change? Well, because of their higher income, traditional IRA
 contributions are not deductible. There is no point in contributing to a
 non-deductible IRA. Instead, they would contribute to a Roth IRA. For this
@@ -103,14 +106,14 @@ Roth contributions for the beginning of their career.
 
 ![Figure 6](https://github.com/6a74/finance/blob/master/figures/figure_06.png?raw=true)
 
-Let's jump back to the typical American, but say this person really wants to
+Let's jump back to the new-grad making $63k/year, but say this person really wants to
 retire early, say at 50 years old instead of 60. Unless their investments can
 provide a 7% real return, they will probably be better off purely contributing
 to traditional retirement accounts.
 
 ![Figure 7](https://github.com/6a74/finance/blob/master/figures/figure_07.png?raw=true)
 
-On the other hand, what if the typical American decides to work a little bit
+On the other hand, what happens if this person decides to work a little bit
 longer, till the age of 70. Will this change things? By golly, it will. Unless
 their investments do very poorly over a long time, this person will be better
 off starting with Roth contributions.
@@ -121,13 +124,14 @@ Next, let's say there's a hot-shot kid in Silicon Valley making $300/year and
 they want to retire at 40. Because they will have so few years in the workforce,
 traditional contributions will not make much of a difference in terms of RMDs.
 And because of their very high income, tax deductions are very valuable. These
-deductions do more good than RMDs do bad.
+deductions do more good than RMDs do bad. Also, I am not really sure what's
+going on with the 3% interest rate line. I believe that can be ignored.
 
 ![Figure 9](https://github.com/6a74/finance/blob/master/figures/figure_09.png?raw=true)
 
 Finally, let's say the same hot-shot kid decides he likes his job and wants to
 work another twenty years. The outcome is still the same. This person should
-always defer taxes. Their tax-rate is too high not too.
+always defer taxes. Their tax-rate is too high not to.
 
 ![Figure 10](https://github.com/6a74/finance/blob/master/figures/figure_10.png?raw=true)
 
