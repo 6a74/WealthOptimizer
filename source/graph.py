@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import progressbar
 
 import sim
+import taxes as tm
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -97,6 +98,20 @@ if __name__ == "__main__":
         default=60
     )
     parser.add_argument(
+        "--working-state",
+        help="What state will you work in?",
+        required=False,
+        choices=tm.states.keys(),
+        default='TX'
+    )
+    parser.add_argument(
+        "--retirement-state",
+        help="What state will you retire in?",
+        required=False,
+        choices=tm.states.keys(),
+        default='TX'
+    )
+    parser.add_argument(
         "--age-to-start-rmds",
         help="When do RMDs start?",
         required=False,
@@ -170,6 +185,8 @@ if __name__ == "__main__":
                     args.yearly_ira_contribution_limit,
                     args.ira_contribution_catch_up,
                     args.do_mega_backdoor_roth,
+                    args.working_state,
+                    args.retirement_state,
                     debug=False
                 )
                 if assets > most_assets:
@@ -199,6 +216,8 @@ if __name__ == "__main__":
             args.yearly_ira_contribution_limit,
             args.ira_contribution_catch_up,
             args.do_mega_backdoor_roth,
+            args.working_state,
+            args.retirement_state,
             args.verbose
         )
 
