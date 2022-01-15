@@ -162,6 +162,13 @@ if __name__ == "__main__":
         action='append'
     )
     parser.add_argument(
+        "--public-safety-employee",
+        help="Are you a public safety employee?",
+        required=False,
+        action='store_true',
+        default=False
+    )
+    parser.add_argument(
         "--verbose",
         help="Do things and talk more",
         action="store_true"
@@ -178,7 +185,7 @@ if __name__ == "__main__":
         best_roth_conversion_amount = 0
 
         if args.age_of_death > args.age_of_retirement:
-            for x in range(1000):
+            for x in range(500):
                 assets = sim.calculate_assets(
                     args.principal_taxable,
                     args.principal_traditional,
@@ -204,13 +211,12 @@ if __name__ == "__main__":
                     args.working_state,
                     args.retirement_state,
                     args.add_dependent,
+                    args.public_safety_employee,
                     debug=False
                 )
                 if assets > most_assets:
                     best_roth_conversion_amount = roth_conversion_amount
                     most_assets = assets
-                if assets < most_assets:
-                    break
                 roth_conversion_amount += 1000
 
         return sim.calculate_assets(
@@ -237,6 +243,7 @@ if __name__ == "__main__":
             args.working_state,
             args.retirement_state,
             args.add_dependent,
+            args.public_safety_employee,
             args.verbose
         )
 
