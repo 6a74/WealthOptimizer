@@ -197,18 +197,18 @@ class Simulation:
         self.table.add_column("M", justify="center")
         self.table.add_column("R", justify="center")
         self.table.add_column("HSA", justify="right")
-        self.table.add_column("Diff", justify="right")
+        self.table.add_column("Change", justify="right")
         self.table.add_column("Roth 401k", justify="right")
-        self.table.add_column("Diff", justify="right")
+        self.table.add_column("Change", justify="right")
         self.table.add_column("Roth IRA", justify="right")
-        self.table.add_column("Diff", justify="right")
+        self.table.add_column("Change", justify="right")
         self.table.add_column("Taxable", justify="right")
-        self.table.add_column("Diff", justify="right")
+        self.table.add_column("Change", justify="right")
         self.table.add_column("Trad 401k", justify="right")
-        self.table.add_column("Diff", justify="right")
+        self.table.add_column("Change", justify="right")
         self.table.add_column("RMD", justify="right")
         self.table.add_column("Trad IRA", justify="right")
-        self.table.add_column("Diff", justify="right")
+        self.table.add_column("Change", justify="right")
         self.table.add_column("RMD", justify="right")
         self.table.add_column("Income", justify="right")
         self.table.add_column("Spending", justify="right")
@@ -648,7 +648,14 @@ class Simulation:
                 #
                 if self.do_mega_backdoor_roth():
                     after_tax_contribution = min(
-                        min(this_years_income, self.get_401k_total_contribution_limit()),
+                        min(
+                            this_years_income,
+                            (
+                                self.get_401k_total_contribution_limit()
+                                - trad_401k_contribution
+                                - roth_401k_contribution
+                            )
+                        ),
                         whats_left_to_contribute()
                     )
                     roth_ira_contribution += after_tax_contribution
