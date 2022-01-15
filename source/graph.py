@@ -2,7 +2,8 @@
 
 import argparse
 import matplotlib.pyplot as plt
-import progressbar
+
+from rich.progress import Progress
 
 import sim
 import state_taxes
@@ -301,16 +302,15 @@ def main():
     assert working_years >= 0
 
     best_indices = []
-    current_calculation = 0
     num_calculations = working_years * len(return_rates)
-    with progressbar.ProgressBar(max_value=num_calculations) as bar:
+    with Progress() as progress:
+        task = progress.add_task("Calculating:", total=num_calculations)
         for rate_of_return, color in zip(return_rates, colors):
             inputs = range(working_years)
             outputs = []
-            for y in inputs:
-                outputs.append(my_calculation(rate_of_return, y))
-                current_calculation += 1
-                bar.update(current_calculation)
+            for my_input in inputs:
+                outputs.append(my_calculation(rate_of_return, my_input))
+                progress.update(task, advance=1)
 
             plt.plot(
                 inputs,
@@ -365,9 +365,10 @@ def main():
 
     the_table = plt.table(cellText=cells, bbox=[1.05, 0.25, 0.5, 0.75])
     the_table.auto_set_font_size(False)
+    the_table.auto_set_column_width((0, 1))
     plt.subplots_adjust(right=0.65)
 
-    plt.legend(bbox_to_anchor=(1.045, 0), loc="lower left")
+    plt.legend(bbox_to_anchor=(1.041, -0.01), loc="lower left")
     plt.show()
 
 if __name__ == "__main__":
