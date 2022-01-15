@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#
+
 import rich
 
 class Withdrawal:
@@ -23,7 +23,7 @@ class Withdrawal:
         )
 
     def get_account_name(self):
-        return self.account
+        return self.account_name
 
     def get_value(self):
         return self.value
@@ -162,7 +162,7 @@ class Account:
 
 
 if __name__ == "__main__":
-    account = Account(1.06, withdrawal_contributions_first=False)
+    account = Account("test", 1.06, withdrawal_contributions_first=False)
 
     account.contribute(100.00)
     account.increment()
