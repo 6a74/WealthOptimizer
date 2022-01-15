@@ -14,7 +14,9 @@ from account import Account
 
 
 class Simulation:
-    """Simulate the state of finances for every year until you die."""
+    """
+    Simulate the state of finances for every year until you die.
+    """
 
     def __init__(self,
         starting_balance_taxable,
@@ -120,40 +122,40 @@ class Simulation:
         )
 
         #
-        # Initial variables:
+        # Static variables:
         #
-        self.year = 0
-        self.starting_age = current_age
-        self.age_of_marriage = age_of_marriage
-        self.public_safety_employee = public_safety_employee
-        self.age_of_retirement = age_of_retirement
-        self.years_to_wait = years_to_wait
-        self.dependents = dependents
-        self.work_state = work_state
-        self.retirement_state = retirement_state
-        self.mega_backdoor_roth = mega_backdoor_roth
-        self.starting_income = income
-        self.spending = spending
-        self.yearly_income_raise = yearly_income_raise
-        self.age_to_start_rmds = age_to_start_rmds
-        self.roth_conversion_amount = roth_conversion_amount
-        self.max_income = max_income
         self.age_of_death = age_of_death
+        self.age_of_marriage = age_of_marriage
+        self.age_of_retirement = age_of_retirement
+        self.age_to_start_rmds = age_to_start_rmds
+        self.dependents = dependents
+        self.max_income = max_income
+        self.mega_backdoor_roth = mega_backdoor_roth
+        self.public_safety_employee = public_safety_employee
+        self.retirement_state = retirement_state
+        self.roth_conversion_amount = roth_conversion_amount
+        self.spending = spending
+        self.starting_age = current_age
+        self.starting_income = income
+        self.work_state = work_state
+        self.yearly_income_raise = yearly_income_raise
+        self.years_to_wait = years_to_wait
 
         #
-        # Contribution limiits:
+        # Dynamic variables:
+        #
+        self.year = 0
+        self.total_taxes = 0
+        self.needed_to_continue = 0
+
+        #
+        # Contribution limits:
         #
         self.yearly_401k_normal_contribution_limit = yearly_401k_normal_contribution_limit
         self.yearly_401k_total_contribution_limit = yearly_401k_total_contribution_limit
         self.yearly_ira_contribution_limit = yearly_ira_contribution_limit
         self.ira_contribution_catch_up = ira_contribution_catch_up
         self.ira_contribution_catch_up_age = ira_contribution_catch_up_age
-
-        #
-        # These are life-time counters.
-        #
-        self.total_taxes = 0
-        self.needed_to_continue = 0
 
         #
         # This will contain a table with all of our math.
@@ -183,12 +185,29 @@ class Simulation:
         self.table.add_column("Federal Tax", justify="right")
         self.table.add_column("Total Taxes", justify="right")
 
+    def get_needed_to_continue(self):
+        """
+        During the simulation, if you run out of money, this variable will be
+        set to a positive value. If this variable is zero when the simulation is
+        complete, that means you died with money remaining. This is ideal. But
+        if this variable is non-zero, that means you were unable to meet your
+        financial obligations.
+        """
+        return self.needed_to_continue
+
     def stop_simulation(self):
-        if self.needed_to_continue:
+        """
+        We should stop the simulation if we run out of money or we are dead.
+        """
+        if self.get_needed_to_continue():
             return True
         return not self.is_alive()
 
     def get_simulation_year(self):
+        """
+        This is the current year in the simulation. This will range between zero
+        and (age of death - starting age).
+        """
         return self.year
 
     def is_alive(self):
@@ -200,13 +219,21 @@ class Simulation:
     def is_married(self):
         return self.get_current_age() >= self.age_of_marriage
 
+    def get_age_of_retirement(self):
+        return self.age_of_retirement
+
     def is_retired(self):
-        return self.get_current_age() >= self.age_of_retirement
+        return self.get_current_age() >= self.get_age_of_retirement()
 
     def get_current_state(self):
         return self.retirement_state if self.is_retired() else self.work_state
 
     def get_income(self):
+        """
+        This is calculated based on what the simulation year is. If you have a
+        yearly income raise, your income will be compounded until it hits the
+        income ceiling.
+        """
         if self.is_retired():
             return 0
         multiplier = self.yearly_income_raise ** self.get_simulation_year()
@@ -215,13 +242,23 @@ class Simulation:
     def get_spending(self):
         return self.spending
 
-    def get_age_of_retirement(self):
-        return self.age_of_retirement
-
     def get_rule_of_55_age(self):
+        """
+        Under the terms of this rule, you can withdraw funds from your current
+        job’s 401(k) or 403(b) plan with no 10% tax penalty if you leave that
+        job in or after the year you turn 55. (Qualified public safety workers
+        can start even earlier, at 50.) It doesn’t matter whether you were laid
+        off, fired, or just quit.
+
+        https://smartasset.com/retirement/401k-55-rule
+        """
         return 50 if self.public_safety_employee else 55
 
     def can_make_401k_withdrawal_penalty_free(self):
+        """
+        Check if we can withdrawal without penalty. This depends on how old we
+        are, when we retired, and what our profession is.
+        """
         if self.get_current_age() >= 60:
             return True
         if self.is_retired():
@@ -230,12 +267,25 @@ class Simulation:
         return False
 
     def can_make_ira_withdrawal_penalty_free(self):
+        """
+        IRA withdrawal rules are pretty simple. There are no exceptions that I
+        am aware of.
+        """
         return self.get_current_age() >= 60
 
     def roth_gains_are_taxable(self):
+        """
+        You can withdrawal Roth contributions at anytime without penalty, but
+        you cannot always withdraw the gains. Like IRA rules, this is pretty
+        simple. There are no exceptions to this.
+        """
         return self.get_current_age() < 60
 
     def prefer_roth(self):
+        """
+        The "years to wait" variable is how many years we wait until start to
+        prefer traditional contributions. This is a bit confusing, I'm sorry.
+        """
         return self.years_to_wait > self.get_simulation_year()
 
     def must_take_rmds(self):
@@ -245,6 +295,12 @@ class Simulation:
         return round(value/ult.withdrawal_factors[self.get_current_age()], 2)
 
     def get_num_dependents(self):
+        """
+        The dependents variable is a list of ages that you introduce a new
+        dependent (presumably a child) into your life. We assume that these
+        people are only dependents for 16 years. There are many rules and
+        exceptions to this, so I apoligize for simplifying it too much.
+        """
         if self.dependents is None:
             return 0
         count = 0
@@ -260,14 +316,23 @@ class Simulation:
         return count
 
     def get_ira_contribution_limit(self):
+        """
+        The IRA contribution limit variable should be per person. This function
+        will calculate any exceptions based on your age or marriage.
+        """
         limit = self.yearly_ira_contribution_limit
-        if self.get_current_age() > self.ira_contribution_catch_up_age:
+        if self.get_current_age() >= self.ira_contribution_catch_up_age:
             limit += self.ira_contribution_catch_up
         if self.is_married():
             limit *= 2
         return limit
 
     def get_401k_normal_contribution_limit(self):
+        """
+        This is the "normal" contribution limit for traditional/Roth 401k's. It
+        is not the total employee + employer contribution limit. That is the
+        following function.
+        """
         return self.yearly_401k_normal_contribution_limit
 
     def get_401k_total_contribution_limit(self):
@@ -277,6 +342,10 @@ class Simulation:
         return self.mega_backdoor_roth
 
     def get_tax_advantaged_space(self):
+        """
+        This calculates the total tax advantaged space that you have during the
+        current simulation year. It includes 401k and IRA contributions.
+        """
         space = self.get_ira_contribution_limit()
         if self.do_mega_backdoor_roth():
             space += self.get_401k_total_contribution_limit()
@@ -285,6 +354,9 @@ class Simulation:
         return space
 
     def get_total_assets(self):
+        """
+        This is everything you own!
+        """
         return (
             self.accounts.taxable.get_value()
             + self.accounts.trad_ira.get_value()
@@ -297,15 +369,29 @@ class Simulation:
         return self.is_retired() and not self.must_take_rmds()
 
     def get_roth_conversion_amount(self):
+        """
+        This is how much we will transfer from traditional 401k/IRA to your Roth
+        IRA after retirement but before RMDs are required.
+        """
         return self.roth_conversion_amount
 
     def get_total_taxes(self):
         return self.total_taxes
 
     def simulate_year(self):
+        """
+        This is a very long and complex function. It is hard to break it up into
+        smaller chunks. There are basically two parts: contributions &
+        withdrawals. We calculate the most we can contribute based on spending
+        and taxes. Then, if we are retired, we withdrawal money from accounts in
+        the most tax friendly order as possible.
+        """
         tax_deductions = 0
         this_years_income = 0
 
+        #
+        # Our contributions for this year.
+        #
         taxable_contribution = 0
         roth_401k_contribution = 0
         roth_ira_contribution = 0
@@ -538,7 +624,7 @@ class Simulation:
             # some rollovers from our traditional to Roth accounts. This will
             # allow the money to grow tax free in Roth accounts.
             #
-            # TODO: Be sure to enforce the 5 year maturity rule.
+            # TODO: Enforce the 5 year maturity rule.
             #
             if self.do_roth_conversion():
                 trad_401k_conversion = min(
@@ -926,11 +1012,14 @@ class Simulation:
         )
 
     def increment_year(self):
-        #
-        # Happy new year! It's the end of the year. Apply return, give
-        # yourself a pay raise, and happy birthday!
-        #
+        """
+        Happy new year! Apply interest to all of our accounts.
+        """
         self.year += 1
+
+        #
+        # The increment function adds this year's returns to the account.
+        #
         self.accounts.taxable.increment()
         self.accounts.roth_401k.increment()
         self.accounts.roth_ira.increment()
@@ -938,6 +1027,9 @@ class Simulation:
         self.accounts.trad_ira.increment()
 
     def simulate(self):
+        """
+        This will simulate until we can no longer simulate.
+        """
         while not self.stop_simulation():
             self.simulate_year()
             self.increment_year()
@@ -949,6 +1041,10 @@ class Simulation:
         return self.table
 
     def get_summary_table(self):
+        """
+        This function creates a summary of your financial life.
+        """
+
         #
         # XXX: Do not sell stocks before death. They get a "step up in basis"
         # meaning the basis changes. The heir will only be responsible for gains
@@ -1002,28 +1098,31 @@ class Simulation:
 
 
 def main():
+    """
+    This function parses user input and runs the simulation.
+    """
     parser = argparse.ArgumentParser(
-        description="Calculate RMDs",
+        description="Wealth Simulator",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
     parser.add_argument(
         "--current-age",
-        help="Your current age",
+        help="How old are you currently?",
         required=False,
         type=int,
         default=38
     )
     parser.add_argument(
         "--income",
-        help="Your current income",
+        help="What is your current income?",
         required=False,
         type=float,
         default=63179
     )
     parser.add_argument(
         "--max-income",
-        help="Define an income ceiling",
+        help="What will your income max out at?",
         required=False,
         type=float,
         default=0
@@ -1328,7 +1427,7 @@ def main():
     if not any([args.show_params, args.show_math, args.show_summary]):
         console.print(simulation.get_math_table())
 
-    if simulation.needed_to_continue:
+    if simulation.get_needed_to_continue():
         console.print(":fire::fire::fire: Please enter "
                       f"[underline]{needed_to_continue:,.2f}[/underline]"
                       " to continue playing. :fire::fire::fire:")
