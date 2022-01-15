@@ -31,6 +31,7 @@ def calculate_assets(
         do_mega_backdoor_roth,
         working_state,
         retirement_state,
+        dependents,
         debug=True,
         print_summary=False
     ):
@@ -97,6 +98,15 @@ def calculate_assets(
     retired = False
     prefer_roth = True
 
+    def num_dependents(current_age):
+        if dependents is None:
+            return 0
+        count = 0
+        for dep in dependents:
+            if dep <= current_age and (dep + 18) > current_age:
+                count += 1
+        return count
+
     if married:
         yearly_ira_contribution_limit *= 2
 
@@ -123,9 +133,10 @@ def calculate_assets(
         "Gross Income",
         "MAGI",
         "Saver's Credit",
+        "Dependents",
         "State",
         "State Tax",
-        "Total Income Tax",
+        "Federal Tax",
         "Tax %",
         "Savings Rate",
         "Total Taxes"
@@ -244,13 +255,28 @@ def calculate_assets(
 
                 tax_deductions = traditional_contribution
                 taxable_income = this_years_income - tax_deductions
-                taxes = tm.calculate_taxes(taxable_income, married, current_state)
-                taxes -= tm.calculate_savers_credit(
+
+                federal_taxes = tm.calculate_taxes(
+                    taxable_income,
+                    married,
+                    current_state,
+                    num_dependents(current_age)
+                )
+                federal_taxes -= tm.calculate_savers_credit(
                     taxable_income,
                     traditional_contribution + roth_contribution,
                     married
                 )
-                taxes = max(taxes, 0)
+                federal_taxes = max(federal_taxes, 0)
+
+                state_taxes = tm.calculate_state_taxes(
+                    taxable_income,
+                    married,
+                    current_state,
+                    num_dependents(current_age)
+                )
+
+                taxes = federal_taxes + state_taxes
 
                 result = (
                     this_years_income
@@ -321,7 +347,20 @@ def calculate_assets(
         # How much taxes are we going to pay this year?
         #
         taxable_income = this_years_income - tax_deductions
-        taxes = tm.calculate_taxes(taxable_income, married, current_state)
+
+        federal_taxes = tm.calculate_taxes(
+            taxable_income,
+            married,
+            current_state,
+            num_dependents(current_age)
+        )
+        state_taxes = tm.calculate_state_taxes(
+            taxable_income,
+            married,
+            current_state,
+            num_dependents(current_age)
+        )
+
         savers_credit = 0
         if not retired:
             savers_credit = tm.calculate_savers_credit(
@@ -329,14 +368,10 @@ def calculate_assets(
                 traditional_contribution + roth_contribution,
                 married
             )
-            taxes = max(taxes - savers_credit, 0)
-        total_taxes += taxes
+            federal_taxes = max(federal_taxes - savers_credit, 0)
 
-        #
-        # XXX: Just calculated here to include it in table. This tax is already
-        # included in tm.calculate_taxes().
-        #
-        state_taxes = tm.calculate_state_taxes(taxable_income, married, current_state)
+        taxes = federal_taxes + state_taxes
+        total_taxes += taxes
 
         #
         # Calculate how much we can put into taxable, after spending.
@@ -463,9 +498,10 @@ def calculate_assets(
             float(this_years_income),
             float(taxable_income),
             float(savers_credit),
+            int(num_dependents(current_age)),
             current_state,
             float(state_taxes),
-            float(taxes),
+            float(federal_taxes),
             float(tax_rate),
             float(savings_rate),
             float(total_taxes)
@@ -701,6 +737,14 @@ if __name__ == "__main__":
         default=30000
     )
     parser.add_argument(
+        "--add-dependent",
+        help="Your age when dependent is to be added. This option can be used multiple times.",
+        required=False,
+        type=int,
+        metavar="AGE",
+        action='append'
+    )
+    parser.add_argument(
         "--verbose",
         help="Do things and talk more",
         action="store_true"
@@ -743,6 +787,7 @@ if __name__ == "__main__":
                 args.do_mega_backdoor_roth,
                 args.working_state,
                 args.retirement_state,
+                args.add_dependent,
                 debug=False
             )
             if assets > most_assets:
@@ -778,6 +823,7 @@ if __name__ == "__main__":
         args.do_mega_backdoor_roth,
         args.working_state,
         args.retirement_state,
+        args.add_dependent,
         args.verbose,
         True
     )
