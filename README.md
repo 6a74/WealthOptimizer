@@ -200,14 +200,3 @@ of $300k at the age of 34, then plateau. This person should immediately start
 deferring taxes.
 
 ![Figure 11](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_11.png?raw=true)
-
-#### Key Takeaways
-
-* It _does_ makes sense to defer taxes later in one's career, just not always
-  immediately.
-* In very low interest rate (1%) scenarios, it is almost always better to defer
-  taxes immediately.
-* If you plan to retire very early (40), it appears to be better to defer
-  taxes immediately.
-* If long-term interest rates are high (6%+), it appears to be better to
-  make Roth contributions.
