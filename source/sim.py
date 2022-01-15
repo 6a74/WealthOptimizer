@@ -12,7 +12,6 @@ def calculate_assets(
         traditional,
         roth,
         rate_of_return,
-        yearly_401k_contribution,
         years_until_transition_to_pretax_contributions,
         current_age,
         age_of_retirement,
@@ -26,7 +25,6 @@ def calculate_assets(
         spending,
         yearly_401k_normal_contribution_limit,
         yearly_401k_total_contribution_limit,
-        yearly_ira_contribution,
         yearly_ira_contribution_limit,
         ira_contribution_catch_up,
         do_mega_backdoor_roth,
@@ -43,7 +41,6 @@ def calculate_assets(
 
     assert current_age <= 115
     assert current_age < age_of_death
-    assert yearly_401k_contribution <= yearly_401k_total_contribution_limit
     assert yearly_401k_total_contribution_limit >= yearly_401k_normal_contribution_limit
 
     #
@@ -63,7 +60,6 @@ def calculate_assets(
     params_table.append(["Starting Taxable Balance", taxable])
     params_table.append(["Starting Roth Balance", roth])
     params_table.append(["Starting Traditional Balance", traditional])
-    params_table.append(["Yearly 401k Contribution", yearly_401k_contribution])
     params_table.append(["Yearly Roth Conversion Amount", roth_conversion_amount])
     params_table.append(["Years to Prefer Roth Contributions", years_until_transition_to_pretax_contributions])
     params_table.append(["Yearly Spending", spending])
@@ -109,6 +105,8 @@ def calculate_assets(
         "Total Assets",
         "RMD",
         "Spending",
+        "401k Cont.",
+        "IRA Cont.",
         "Taxable Cont.",
         "Taxable Wdrl.",
         "Trad Cont.",
@@ -135,10 +133,13 @@ def calculate_assets(
             retired = True
         if current_age == age_of_marriage:
             married = True
+            yearly_ira_contribution_limit *= 2
         if year >= years_until_transition_to_pretax_contributions:
             prefer_roth = False
         if current_age == 50:
             yearly_ira_contribution_limit += ira_contribution_catch_up
+            if married:
+                yearly_ira_contribution_limit += ira_contribution_catch_up
 
         #
         # Alright, if we're still working, we can make a tax-advantaged
@@ -146,7 +147,6 @@ def calculate_assets(
         #
         tax_deductions = 0
         this_years_income = 0
-        retirement_salary = 0
         this_years_roth_conversion = 0
         roth_withdrawal = 0
         taxable_withdrawal = 0
@@ -155,56 +155,111 @@ def calculate_assets(
         roth_contribution = 0
         taxable_contribution = 0
 
+        tax_advantaged_space = (
+            (yearly_401k_total_contribution_limit if do_mega_backdoor_roth else yearly_401k_normal_contribution_limit)
+            + yearly_ira_contribution_limit
+        )
+
+        minimum_contribution = 0
+        total_contribution_limit = tax_advantaged_space
+        maximum_contribution = tax_advantaged_space
+
+        contribution_401k = 0
+        contribution_ira = 0
+
         if current_age < age_of_retirement:
             this_years_income = income
-            #
-            # Calculate 401k contribution.
-            #
-            if prefer_roth:
-                roth_contribution = min(
-                    yearly_401k_contribution,
-                    yearly_401k_normal_contribution_limit
-                )
-            else:
-                traditional_contribution = min(
-                    yearly_401k_contribution,
-                    yearly_401k_normal_contribution_limit
+
+            while True:
+                contribution_401k = 0
+                contribution_ira = 0
+                traditional_contribution = 0
+                roth_contribution = 0
+
+                #
+                # Calculate 401k contribution.
+                #
+                if prefer_roth:
+                    contribution_401k += min(min(
+                        this_years_income,
+                        yearly_401k_normal_contribution_limit
+                    ), total_contribution_limit)
+                    roth_contribution += contribution_401k
+                else:
+                    contribution_401k += min(min(
+                        this_years_income,
+                        yearly_401k_normal_contribution_limit
+                    ), total_contribution_limit)
+                    traditional_contribution += contribution_401k
+
+                #
+                # Calcuate IRA contribution. If there are no tax deductions for
+                # the traditional IRA (because our income is too high) we might
+                # as well contribute to Roth.
+                #
+                contribution_ira = min(min(
+                    this_years_income,
+                    yearly_ira_contribution_limit
+                ), total_contribution_limit - contribution_401k)
+
+                would_be_agi_if_trad = (
+                    this_years_income
+                    - traditional_contribution
+                    - contribution_ira
                 )
 
-            #
-            # Calculate Mega-Backdoor Roth contribution, if applicable.
-            #
-            if do_mega_backdoor_roth:
-                roth_contribution += (
-                    yearly_401k_total_contribution_limit
+                #
+                # TODO: Maybe add a more granular approach, rather than an all
+                # or nothing approach.
+                #
+                if prefer_roth or not tm.fully_tax_deductible_ira(would_be_agi_if_trad, married):
+                    roth_contribution += contribution_ira
+                else:
+                    traditional_contribution += contribution_ira
+
+                #
+                # Calculate Mega-Backdoor Roth contribution, if applicable.
+                #
+                if do_mega_backdoor_roth:
+                    after_tax_contribution = min(min(
+                        this_years_income,
+                        yearly_401k_total_contribution_limit
+                    ), total_contribution_limit - contribution_401k - contribution_ira)
+                    contribution_401k += after_tax_contribution
+                    roth_contribution += after_tax_contribution
+
+                tax_deductions = traditional_contribution
+                taxable_income = this_years_income - tax_deductions
+                taxes = tm.calculate_taxes(taxable_income, married)
+
+                result = (
+                    this_years_income
+                    - spending
+                    - taxes
                     - traditional_contribution
                     - roth_contribution
                 )
 
-            #
-            # Calcuate IRA contribution. If there are no tax deductions for the
-            # traditional IRA (because our income is too high) we might as well
-            # contribute to Roth.
-            #
-            would_be_agi = (
-                this_years_income
-                - traditional_contribution
-                - yearly_ira_contribution
-            )
-            if prefer_roth or not tm.fully_tax_deductible_ira(would_be_agi, married):
-                roth_contribution += min(
-                    yearly_ira_contribution,
-                    yearly_ira_contribution_limit
-                )
-            else:
-                traditional_contribution += min(
-                    yearly_ira_contribution,
-                    yearly_ira_contribution_limit
-                )
+                #
+                # Binary search our way to the ideal contribution.
+                #
+                if result > 0:
+                    if total_contribution_limit == tax_advantaged_space:
+                        break
+                    minimum_contribution = total_contribution_limit
+                    total_contribution_limit = (minimum_contribution + maximum_contribution)/2
+                    continue
+                elif result < 0:
+                    if total_contribution_limit == 0:
+                        break
+                    maximum_contribution = total_contribution_limit
+                    total_contribution_limit = (minimum_contribution + maximum_contribution)/2
+                    continue
+                elif round(result, 2) == 0:
+                    break
 
             total_contributions_traditional += traditional_contribution
             traditional += traditional_contribution
-            tax_deductions += traditional_contribution
             total_contributions_roth += roth_contribution
             roth += roth_contribution
         else:
@@ -246,7 +301,6 @@ def calculate_assets(
         # How much taxes are we going to pay this year?
         #
         taxable_income = this_years_income - tax_deductions
-        assert taxable_income >= 0
         taxes = tm.calculate_taxes(taxable_income, married)
         total_taxes += taxes
 
@@ -363,6 +417,8 @@ def calculate_assets(
             float(taxable + roth + traditional),
             float(rmd),
             float(spending),
+            float(contribution_401k),
+            float(contribution_ira),
             float(taxable_contribution),
             float(taxable_withdrawal),
             float(traditional_contribution),
@@ -394,8 +450,6 @@ def calculate_assets(
             income *= yearly_income_raise
             if max_income:
                 income = min(income, max_income)
-            yearly_401k_contribution *= yearly_income_raise
-            yearly_ira_contribution *= yearly_income_raise
 
     #
     # We have finished the simulation. Print the table.
@@ -511,13 +565,6 @@ if __name__ == "__main__":
         default=1.04
     )
     parser.add_argument(
-        "--yearly-401k-contribution",
-        help="How much are you contributing to your 401k per year?",
-        required=False,
-        type=float,
-        default=19500
-    )
-    parser.add_argument(
         "--yearly-401k-normal-contribution-limit",
         help="What is the normal 401k contribution limit?",
         required=False,
@@ -530,13 +577,6 @@ if __name__ == "__main__":
         required=False,
         type=float,
         default=58000
-    )
-    parser.add_argument(
-        "--yearly-ira-contribution",
-        help="How much are you contributing to your IRA per year?",
-        required=False,
-        type=float,
-        default=6000
     )
     parser.add_argument(
         "--yearly-ira-contribution-limit",
@@ -634,7 +674,6 @@ if __name__ == "__main__":
                 args.principal_traditional,
                 args.principal_roth,
                 args.rate_of_return,
-                args.yearly_401k_contribution,
                 args.years_to_wait,
                 args.current_age,
                 args.age_of_retirement,
@@ -648,7 +687,6 @@ if __name__ == "__main__":
                 args.spending,
                 args.yearly_401k_normal_contribution_limit,
                 args.yearly_401k_total_contribution_limit,
-                args.yearly_ira_contribution,
                 args.yearly_ira_contribution_limit,
                 args.ira_contribution_catch_up,
                 args.do_mega_backdoor_roth,
@@ -669,7 +707,6 @@ if __name__ == "__main__":
         args.principal_traditional,
         args.principal_roth,
         args.rate_of_return,
-        args.yearly_401k_contribution,
         args.years_to_wait,
         args.current_age,
         args.age_of_retirement,
@@ -683,10 +720,9 @@ if __name__ == "__main__":
         args.spending,
         args.yearly_401k_normal_contribution_limit,
         args.yearly_401k_total_contribution_limit,
-        args.yearly_ira_contribution,
         args.yearly_ira_contribution_limit,
         args.ira_contribution_catch_up,
         args.do_mega_backdoor_roth,
         args.verbose,
-        print_summary=True
+        True
     )

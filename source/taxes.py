@@ -84,7 +84,8 @@ def calculate_taxes(agi, married, ltcg=0, just_ltcg=False, debug=False):
     def debug_print(line):
         if debug:
             print(line)
-    
+
+    assert agi >= 0, f"{agi=:.2f}"
     debug_print("Calculating federal income tax")
     standard_deduction = get_standard_deduction(married)
     income_to_tax = max(agi - standard_deduction, 0)
