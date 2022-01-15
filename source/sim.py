@@ -101,8 +101,8 @@ class Simulation:
         self.params_table.add_row("Do Mega-Backdoor Roth After Tax-Advantaged Limit?", str(mega_backdoor_roth))
         self.params_table.add_row("Work State", work_state)
         self.params_table.add_row("Retirement State", retirement_state)
-        self.params_table.add_row("Employer Match 401k", f"{(employer_match_401k-1)*100:.2f}%")
-        self.params_table.add_row("Max Contribution Percentage 401k", f"{(max_contribution_percentage_401k-1)*100:.2f}%")
+        self.params_table.add_row("Employer Match 401k", f"{employer_match_401k*100:.2f}%")
+        self.params_table.add_row("Max Contribution Percentage 401k", f"{max_contribution_percentage_401k*100:.2f}%")
         self.params_table.add_row("Employer Contribution HSA", f"{employer_contribution_hsa:,.2f}")
 
         class Accounts:

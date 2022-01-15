@@ -64,13 +64,13 @@ accounts each year. This figure shows that if you expect the long-term real
 interest rate to be 6% or higher, you might be better off making Roth
 contributions for a few years.
 
-![Figure 1](https://github.com/6a74/finance/blob/master/figures/figure_01.png?raw=true)
+![Figure 1](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_01.png?raw=true)
 
 Though, if the same person in the figure above were to have $100k already saved
 in their traditional retirement accounts, the outcome would be quite different.
 The (relatively) small amount grows exponentially and requires higher RMDs.
 
-![Figure 2](https://github.com/6a74/finance/blob/master/figures/figure_02.png?raw=true)
+![Figure 2](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_02.png?raw=true)
 
 Next, we have a slightly younger person, 25, that is just starting their career.
 They have nothing in their retirement, but they graduated without debt and got a
@@ -81,7 +81,7 @@ Note: for all of the figures with a starting age of 25, the little upticks at
 year 5 are a result of becoming married. Due to better tax rates, you will pay
 less in taxes and invest more.
 
-![Figure 3](https://github.com/6a74/finance/blob/master/figures/figure_03.png?raw=true)
+![Figure 3](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_03.png?raw=true)
 
 Say the same recent graduate got a job making $100k/year instead of $63k/year.
 What would change? Well, because of their higher income, traditional IRA
@@ -90,35 +90,35 @@ non-deductible IRA. Instead, they would contribute to a Roth IRA. For this
 reason, it appears that this person would get less out of Roth contributions
 than the previous lad.
 
-![Figure 4](https://github.com/6a74/finance/blob/master/figures/figure_04.png?raw=true)
+![Figure 4](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_04.png?raw=true)
 
 Next, let's say the person above has a coworker that is the same age and has the
 same income, _but_ spends twice as much (from $30k to $60k). What would change?
 Well, not much honestly. Their tax-advantaged savings should be on par, just
 their taxable savings would be different.
 
-![Figure 5](https://github.com/6a74/finance/blob/master/figures/figure_05.png?raw=true)
+![Figure 5](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_05.png?raw=true)
 
 Next, assume one of these lads were real lucky and got an internship at a nice
 company during college, and somehow they found a way to sock away $100k into
 their traditional retirement accounts. This definitely pushes the scale towards
 Roth contributions for the beginning of their career.
 
-![Figure 6](https://github.com/6a74/finance/blob/master/figures/figure_06.png?raw=true)
+![Figure 6](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_06.png?raw=true)
 
 Let's jump back to the new-grad making $63k/year, but say this person really wants to
 retire early, say at 50 years old instead of 60. Unless their investments can
 provide a 7% real return, they will probably be better off purely contributing
 to traditional retirement accounts.
 
-![Figure 7](https://github.com/6a74/finance/blob/master/figures/figure_07.png?raw=true)
+![Figure 7](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_07.png?raw=true)
 
 On the other hand, what happens if this person decides to work a little bit
 longer, till the age of 70. Will this change things? By golly, it will. Unless
 their investments do very poorly over a long time, this person will be better
 off starting with Roth contributions.
 
-![Figure 8](https://github.com/6a74/finance/blob/master/figures/figure_08.png?raw=true)
+![Figure 8](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_08.png?raw=true)
 
 Next, let's say there's a hot-shot kid in Silicon Valley making $300/year and
 they want to retire at 40. Because they will have so few years in the workforce,
@@ -126,13 +126,13 @@ traditional contributions will not make much of a difference in terms of RMDs.
 And because of their very high income, tax deductions are very valuable. These
 deductions do more good than RMDs do bad.
 
-![Figure 9](https://github.com/6a74/finance/blob/master/figures/figure_09.png?raw=true)
+![Figure 9](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_09.png?raw=true)
 
 Let's say the same hot-shot kid decides he likes his job and wants to work
 another twenty years. The outcome is still the same. This person should always
 defer taxes. Their tax-rate is too high not to.
 
-![Figure 10](https://github.com/6a74/finance/blob/master/figures/figure_10.png?raw=true)
+![Figure 10](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_10.png?raw=true)
 
 What if there is a kid who's income explodes (from $63k to $300k at a rate of
 20% increases each year) while they are young? This person would reach an income
@@ -140,7 +140,7 @@ of $300k at the age of 34, then plateau. Well, only because they start off with
 a low income does the calculator recommend this person prefer Roth for a few
 years.
 
-![Figure 11](https://github.com/6a74/finance/blob/master/figures/figure_11.png?raw=true)
+![Figure 11](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_11.png?raw=true)
 
 ### Key Takeaways
 
@@ -164,20 +164,35 @@ someone will inherit them. In the following figures, the following command was
 used:
 
 ```
-./source/sim.py --verbose
+./source/sim.py
 ```
 
-Here are all of the configurable options:
+![Sim](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_01.png?raw=true)
 
-![Parameters](https://github.com/6a74/finance/blob/master/figures/sim_01.png?raw=true)
+A simulation with more options, like this:
 
-It will generate a very large table that looks like this:
+```
+./source/sim.py \
+--current-age=25 \
+--income=100000 \
+--starting-balance-trad-401k=100000 \
+--max-contribution-percentage-401k=0.50 \
+--employer-match-401k=0.07 \
+--employer-contribution-hsa=750
+--do-mega-backdoor-roth \
+```
 
-![Life](https://github.com/6a74/finance/blob/master/figures/sim_02.png?raw=true)
+Will look like this:
 
-At the end, there will be a summary table:
+![Sim2](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_02.png?raw=true)
 
-![Summary](https://github.com/6a74/finance/blob/master/figures/sim_03.png?raw=true)
+If you specify the `--show-params` option, it will print a table of your configuration options:
+
+![Parameters](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_04.png?raw=true)
+
+If you specify the `--show-summary` option, it will print a summary of things:
+
+![Summary](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_03.png?raw=true)
 
 ### `graph.py`
 
@@ -191,7 +206,7 @@ the following command:
 ./source/graph.py
 ```
 
-![Figure 1](https://github.com/6a74/finance/blob/master/figures/figure_01.png?raw=true)
+![Figure 1](https://github.com/6a74/WealthOptimizer/blob/master/figures/figure_01.png?raw=true)
 
 ## How Do I Test It Out?
 
