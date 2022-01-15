@@ -50,6 +50,7 @@ def calculate_assets(
             print(line)
 
     assert current_age <= 115
+    assert age_of_death <= 115
     assert income >= 0
     if max_income:
         assert max_income >= income
@@ -446,6 +447,7 @@ def calculate_assets(
                 return (
                     total_withdrawal
                     - taxable_withdrawal
+                    - roth_401k_withdrawal
                     - roth_ira_withdrawal
                     - roth_401k_with_interest_withdrawal
                     - roth_ira_with_interest_withdrawal
@@ -846,9 +848,9 @@ def calculate_assets(
             f"[red]{spending:,.2f}[/red]",
             f"{num_dependents(current_age):d}",
             f"{current_state}",
-            f"[red]{state_tax:,.2f}[/red]" if state_tax else "",
-            f"[red]{penalty_fees:,.2f}[/red]" if penalty_fees else "",
-            f"[red]{this_years_federal_taxes:,.2f}[/red]" if this_years_federal_taxes else "",
+            f"[red]{state_tax:,.2f}[/red]" if round(state_tax, 2) else "",
+            f"[red]{penalty_fees:,.2f}[/red]" if round(penalty_fees, 2) else "",
+            f"[red]{this_years_federal_taxes:,.2f}[/red]" if round(this_years_federal_taxes, 2) else "",
             f"[purple]{total_taxes:,.2f}[/purple]",
         )
 
