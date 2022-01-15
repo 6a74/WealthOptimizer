@@ -7,8 +7,10 @@ import matplotlib.pyplot as plt
 
 from rich.progress import Progress
 
-import sim
 import state_taxes
+
+from sim import Simulation
+
 
 def my_calculation(arguments):
     """
@@ -23,45 +25,51 @@ def my_calculation(arguments):
     roth_conversion_amount = 0
     best_roth_conversion_amount = 0
 
-    if args.age_of_death > args.age_of_retirement:
-        while True:
-            results = sim.calculate_assets(
-                args.starting_balance_taxable,
-                args.starting_balance_trad_401k,
-                args.starting_balance_trad_ira,
-                args.starting_balance_roth_401k,
-                args.starting_balance_roth_ira,
-                rate_of_return,
-                years_to_wait,
-                args.current_age,
-                args.age_of_retirement,
-                args.age_to_start_rmds,
-                args.age_of_death,
-                roth_conversion_amount,
-                args.income,
-                args.yearly_income_raise,
-                args.max_income,
-                args.age_of_marriage,
-                args.spending,
-                args.yearly_401k_normal_contribution_limit,
-                args.yearly_401k_total_contribution_limit,
-                args.yearly_ira_contribution_limit,
-                args.ira_contribution_catch_up,
-                args.ira_contribution_catch_up_age,
-                args.do_mega_backdoor_roth,
-                args.work_state,
-                args.retirement_state,
-                args.add_dependent,
-                args.public_safety_employee
-            )
-            if round(results.assets, 2) >= round(most_assets, 2):
-                best_roth_conversion_amount = roth_conversion_amount
-                most_assets = results.assets
-            if round(results.traditional, 2) == 0:
-                break
-            roth_conversion_amount += 1000
+    while True:
+        simulation = Simulation(
+            args.starting_balance_taxable,
+            args.starting_balance_trad_401k,
+            args.starting_balance_trad_ira,
+            args.starting_balance_roth_401k,
+            args.starting_balance_roth_ira,
+            rate_of_return,
+            years_to_wait,
+            args.current_age,
+            args.age_of_retirement,
+            args.age_to_start_rmds,
+            args.age_of_death,
+            roth_conversion_amount,
+            args.income,
+            args.yearly_income_raise,
+            args.max_income,
+            args.age_of_marriage,
+            args.spending,
+            args.yearly_401k_normal_contribution_limit,
+            args.yearly_401k_total_contribution_limit,
+            args.yearly_ira_contribution_limit,
+            args.ira_contribution_catch_up,
+            args.ira_contribution_catch_up_age,
+            args.do_mega_backdoor_roth,
+            args.work_state,
+            args.retirement_state,
+            args.add_dependent,
+            args.public_safety_employee
+        )
+        simulation.simulate()
 
-    return sim.calculate_assets(
+        if round(simulation.get_total_assets_after_death(), 2) >= round(most_assets, 2):
+            best_roth_conversion_amount = roth_conversion_amount
+            most_assets = simulation.get_total_assets_after_death()
+
+        traditional_money = (
+            simulation.accounts.trad_401k.get_value()
+            + simulation.accounts.trad_ira.get_value()
+        )
+        if round(traditional_money, 2) == 0:
+            break
+        roth_conversion_amount += args.roth_conversion_unit
+
+    simulation = Simulation(
         args.starting_balance_taxable,
         args.starting_balance_trad_401k,
         args.starting_balance_trad_ira,
@@ -89,7 +97,9 @@ def my_calculation(arguments):
         args.retirement_state,
         args.add_dependent,
         args.public_safety_employee
-    ).assets
+    )
+    simulation.simulate()
+    return simulation.get_total_assets_after_death()
 
 
 def main():

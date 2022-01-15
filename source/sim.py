@@ -375,8 +375,39 @@ class Simulation:
         """
         return self.roth_conversion_amount
 
+    def get_death_tax(self):
+        """
+        This calculates how much we would owe if we died right now.
+        """
+        #
+        # XXX: Do not sell stocks before death. They get a "step up in basis"
+        # meaning the basis changes. The heir will only be responsible for gains
+        # after inheritance.
+        #
+        estate_tax = federal_taxes.calculate_estate_tax(self.get_total_assets())
+
+        #
+        # This calculates the minimum tax your heir will be expected to pay as a
+        # result of RMDs. This assumes they have no income.
+        #
+        # TODO: If the user specifies a dependent, use that to determine the
+        # difference in age, rather than a hardcoded value. To simplify our
+        # calculation, we can assume everything goes to the eldest child.
+        #
+        taxes_for_heir = federal_taxes.calculate_minimum_remaining_tax_for_heir(
+            (
+                self.accounts.trad_401k.get_value()
+                + self.accounts.trad_ira.get_value()
+            ),
+            self.get_current_age() - 30
+        )
+        return estate_tax + taxes_for_heir
+
     def get_total_taxes(self):
         return self.total_taxes
+
+    def get_total_assets_after_death(self):
+        return self.get_total_assets() - self.get_death_tax()
 
     def simulate_year(self):
         """
@@ -1034,6 +1065,12 @@ class Simulation:
             self.simulate_year()
             self.increment_year()
 
+        #
+        # Once we are finished, we are dead or ran out of money. In either case,
+        # we should add death tax to our total taxes.
+        #
+        self.total_taxes += self.get_death_tax()
+
     def get_params_table(self):
         return self.params_table
 
@@ -1044,41 +1081,11 @@ class Simulation:
         """
         This function creates a summary of your financial life.
         """
-
-        #
-        # XXX: Do not sell stocks before death. They get a "step up in basis"
-        # meaning the basis changes. The heir will only be responsible for gains
-        # after inheritance.
-        #
-        estate_tax = federal_taxes.calculate_estate_tax(self.get_total_assets())
-
-        #
-        # This calculates the minimum tax your heir will be expected to pay as a
-        # result of RMDs. This assumes they have no income.
-        #
-        # TODO: If the user specifies a dependent, use that to determine the
-        # difference in age, rather than a hardcoded value. To simplify our
-        # calculation, we can assume everything goes to the eldest child.
-        #
-        taxes_for_heir = federal_taxes.calculate_minimum_remaining_tax_for_heir(
-            (
-                self.accounts.trad_401k.get_value()
-                + self.accounts.trad_ira.get_value()
-            ),
-            self.age_of_death - 30
-        )
-
-        death_tax = estate_tax + taxes_for_heir
-        self.total_taxes += death_tax
-
         try:
             tax_to_asset_ratio = self.get_total_taxes()/self.get_total_assets()
         except ZeroDivisionError:
             tax_to_asset_ratio = None
 
-        #
-        # Print a summary of things.
-        #
         summary_table = Table(show_header=True, header_style="bold magenta")
         summary_table.add_column("Field")
         summary_table.add_column("Value at Death", justify="right")
@@ -1091,9 +1098,8 @@ class Simulation:
         summary_table.add_row("Estate Taxes", f"{estate_tax:,.2f}")
         summary_table.add_row("Total Taxes", f"{self.get_total_taxes():,.2f}")
         summary_table.add_row("Total Assets", f"{self.get_total_assets():,.2f}")
-        summary_table.add_row("Total Assets After Taxes", f"{max(self.get_total_assets() - death_tax, 0):,.2f}")
+        summary_table.add_row("Total Assets After Taxes", f"{max(self.get_total_assets_after_death(), 0):,.2f}")
         summary_table.add_row("Tax/Asset Ratio", f"{tax_to_asset_ratio:,.2f}" if tax_to_asset_ratio else "")
-
         return summary_table
 
 
@@ -1362,9 +1368,9 @@ def main():
                             f"{roth_conversion_amount:,.2f}")
                 simulation.simulate()
 
-                if round(simulation.get_total_assets(), 2) >= round(most_assets, 2):
+                if round(simulation.get_total_assets_after_death(), 2) >= round(most_assets, 2):
                     best_roth_conversion_amount = roth_conversion_amount
-                    most_assets = simulation.get_total_assets()
+                    most_assets = simulation.get_total_assets_after_death()
 
                 traditional_money = (
                     simulation.accounts.trad_401k.get_value()
