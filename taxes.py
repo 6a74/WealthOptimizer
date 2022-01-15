@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import slet
 
 #
 # These brackets are a bit weird, but it's the amount of money in each tax
@@ -37,6 +38,44 @@ married_ltcg_brackets = [
     (0.15,  416600), # 496,600
     (0.20, sys.float_info.max),
 ]
+
+estate_tax_brackets = [
+    (10000,   0,      0.18),
+    (20000,   1800,   0.20),
+    (40000,   3800,   0.22),
+    (60000,   8200,   0.24),
+    (80000,   13000,  0.26),
+    (100000,  18200,  0.28),
+    (150000,  23800,  0.30),
+    (250000,  38800,  0.32),
+    (500000,  70800,  0.34),
+    (750000,  155800, 0.37),
+    (1000000, 248300, 0.39),
+    (sys.float_info.max, 345800, 0.40),
+]
+
+def calculate_estate_taxes(estate):
+    deduction = 11700000 # $11.7 million for 2021
+    taxable_estate = max(0, estate - deduction)
+    if not taxable_estate:
+        return 0
+
+    for (limit, base_tax, tax_rate) in estate_tax_brackets:
+        if estate > limit:
+            continue
+        return base_tax + (taxable_estate * tax_rate)
+
+def calculate_minimum_remaining_taxes_for_heir(value, age):
+    total_taxes = 0
+    while True:
+        try:
+            rmd = value/slet.withdrawal_factors[age]
+            value -= rmd
+            total_taxes += calculate_taxes(rmd, True)
+        except KeyError:
+            break
+        age += 1
+    return total_taxes
 
 def get_standard_deduction(married):
     return 24800 if married else 12400
@@ -93,3 +132,7 @@ def calculate_taxes(agi, married, ltcg=0, just_ltcg=False, debug=False):
         return ltcg_taxes
     else:
         return income_taxes + ltcg_taxes
+
+def fully_tax_deductible_ira(agi, married):
+    limit = 104000 if married else 65000
+    return agi < limit
