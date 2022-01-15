@@ -92,14 +92,6 @@ Will look like this:
 
 ![Sim2](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_02.png?raw=true)
 
-If you specify the `--show-params` option, it will print a table of your configuration options:
-
-![Parameters](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_04.png?raw=true)
-
-If you specify the `--show-summary` option, it will print a summary of things:
-
-![Summary](https://github.com/6a74/WealthOptimizer/blob/master/figures/sim_03.png?raw=true)
-
 ### `graph.py`
 
 The `graph.py` utility is meant to help you determine how long to wait before
