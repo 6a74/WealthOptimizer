@@ -31,12 +31,12 @@ class Account:
     """
     This class represents an account. It holds assets.
     """
-    def __init__(self, rate_of_return, withdrawal_contributions_first=False):
+    def __init__(self, rate_of_return, starting_balance=0, withdrawal_contributions_first=False):
         self.rate_of_return = rate_of_return
         self.withdrawal_contributions_first = withdrawal_contributions_first
         self.account_age = 0
         self.contributions = 0
-        self.value = 0
+        self.value = starting_balance
 
     def __repr__(self):
         return (

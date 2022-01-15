@@ -11,9 +11,11 @@ import ult
 from account import Account
 
 def calculate_assets(
-        starting_taxable_balance,
-        starting_traditional_balance,
-        starting_roth_balance,
+        starting_balance_taxable,
+        starting_balance_trad_401k,
+        starting_balance_trad_ira,
+        starting_balance_roth_401k,
+        starting_balance_roth_ira,
         rate_of_return,
         years_until_transition_to_pretax_contributions,
         current_age,
@@ -66,9 +68,11 @@ def calculate_assets(
     params_table.append(["Max Income", f"${max_income:,.2f}" if max_income else None])
     params_table.append(["Yearly Rate of Return", f"{(rate_of_return-1)*100:.2f}%"])
     params_table.append(["Yearly Income Raise", f"{(yearly_income_raise-1)*100:.2f}%"])
-    params_table.append(["Starting Taxable Balance", f"${starting_taxable_balance:,.2f}"])
-    params_table.append(["Starting Roth Balance", f"${starting_roth_balance:,.2f}"])
-    params_table.append(["Starting Traditional Balance", f"${starting_traditional_balance:,.2f}"])
+    params_table.append(["Starting Balance Taxable", f"${starting_balance_taxable:,.2f}"])
+    params_table.append(["Starting Balance Trad 401k", f"${starting_balance_trad_401k:,.2f}"])
+    params_table.append(["Starting Balance Trad IRA", f"${starting_balance_trad_ira:,.2f}"])
+    params_table.append(["Starting Balance Roth 401k", f"${starting_balance_roth_401k:,.2f}"])
+    params_table.append(["Starting Balance Roth IRA", f"${starting_balance_roth_ira:,.2f}"])
     params_table.append(["Yearly Roth Conversion Amount", f"${roth_conversion_amount:,.2f}"])
     params_table.append(["Years to Prefer Roth Contributions", years_until_transition_to_pretax_contributions])
     params_table.append(["Yearly Spending", f"${spending:,.2f}"])
@@ -98,11 +102,35 @@ def calculate_assets(
     #
     #
     #
-    taxable_account = Account(rate_of_return)
-    roth_401k = Account(rate_of_return, withdrawal_contributions_first=True)
-    roth_ira = Account(rate_of_return, withdrawal_contributions_first=True)
-    trad_401k = Account(rate_of_return)
-    trad_ira = Account(rate_of_return)
+    taxable_account = Account(
+        rate_of_return=rate_of_return,
+        starting_balance=starting_balance_taxable,
+        withdrawal_contributions_first=False
+    )
+
+    roth_401k = Account(
+        rate_of_return=rate_of_return,
+        starting_balance=starting_balance_roth_401k,
+        withdrawal_contributions_first=True
+    )
+
+    roth_ira = Account(
+        rate_of_return=rate_of_return,
+        starting_balance=starting_balance_roth_ira,
+        withdrawal_contributions_first=True
+    )
+
+    trad_401k = Account(
+        rate_of_return=rate_of_return,
+        starting_balance=starting_balance_trad_401k,
+        withdrawal_contributions_first=False
+    )
+
+    trad_ira = Account(
+        rate_of_return=rate_of_return,
+        starting_balance=starting_balance_trad_ira,
+        withdrawal_contributions_first=False
+    )
 
     #
     # The initial values for life events.
@@ -913,22 +941,36 @@ def main():
         default=0
     )
     parser.add_argument(
-        "--principal-taxable",
-        help="Starting balance for taxable (after-tax) accounts?",
+        "--starting-balance-taxable",
+        help="Starting balance for taxable account?",
         required=False,
         type=float,
         default=0
     )
     parser.add_argument(
-        "--principal-traditional",
-        help="Starting balance for traditional (pre-tax) accounts?",
+        "--starting-balance-trad-401k",
+        help="Starting balance for traditional 401k?",
         required=False,
         type=float,
         default=0
     )
     parser.add_argument(
-        "--principal-roth",
-        help="Starting balance for Roth (after-tax) accounts?",
+        "--starting-balance-trad-ira",
+        help="Starting balance for traditional IRA?",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
+        "--starting-balance-roth-401k",
+        help="Starting balance for Roth 401k?",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
+        "--starting-balance-roth-ira",
+        help="Starting balance for Roth IRA?",
         required=False,
         type=float,
         default=0
@@ -1079,9 +1121,11 @@ def main():
     if args.age_of_death > args.age_of_retirement:
         while True:
             assets, traditional = calculate_assets(
-                args.principal_taxable,
-                args.principal_traditional,
-                args.principal_roth,
+                args.starting_balance_taxable,
+                args.starting_balance_trad_401k,
+                args.starting_balance_trad_ira,
+                args.starting_balance_roth_401k,
+                args.starting_balance_roth_ira,
                 args.rate_of_return,
                 args.years_to_wait,
                 args.current_age,
@@ -1117,9 +1161,11 @@ def main():
     # Now that we know all of the variables, run the simulation.
     #
     calculate_assets(
-        args.principal_taxable,
-        args.principal_traditional,
-        args.principal_roth,
+        args.starting_balance_taxable,
+        args.starting_balance_trad_401k,
+        args.starting_balance_trad_ira,
+        args.starting_balance_roth_401k,
+        args.starting_balance_roth_ira,
         args.rate_of_return,
         args.years_to_wait,
         args.current_age,
