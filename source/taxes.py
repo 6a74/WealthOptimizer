@@ -3,6 +3,11 @@
 import sys
 import slet
 
+class Credit:
+    def __init__(self, value):
+        self.value = value
+
+
 ################################################################################
 # Alabama
 ################################################################################
@@ -38,16 +43,9 @@ class Arkansas:
         'single': 2200,
         'married': 4400
     }
-
-    #
-    # XXX: Arkansas is different from other states in that it treats personal
-    # exemptions state tax exemptions as tax credits - which means that instead
-    # of deducting an amount from taxable income, the exemptions reduce your
-    # actual tax liability after it has been calculated.
-    #
     exemptions = {
-        'personal': 26,
-        'dependant': 26
+        'personal': Credit(26),
+        'dependant': Credit(26)
     }
     brackets = {
         'single': [
@@ -101,16 +99,9 @@ class California:
         'single': 4236,
         'married': 8472
     }
-
-    #
-    # XXX: California is different from other states in that it treats personal
-    # exemptions state tax exemptions as tax credits - which means that instead
-    # of deducting an amount from taxable income, the exemptions reduce your
-    # actual tax liability after it has been calculated.
-    #
     exemptions = {
-        'personal': 114,
-        'dependant': 353
+        'personal': Credit(114),
+        'dependant': Credit(353)
     }
     brackets = {
         'single': [
@@ -140,7 +131,7 @@ class California:
     }
 
 ################################################################################
-# Colorada
+# Colorado
 ################################################################################
 
 class Colorado:
@@ -161,6 +152,138 @@ class Colorado:
         ]
     }
 
+################################################################################
+# Connecticut
+################################################################################
+
+class Connecticut:
+    deductions = {
+        'single': 0,
+        'married': 0
+    }
+    exemptions = {
+        'personal': Credit(15000),
+        'dependant': 0
+    }
+    brackets = {
+        'single': [
+            (0,           0, 0.0300),
+            (10000,     300, 0.0500),
+            (50000,    2300, 0.0550),
+            (100000,   5050, 0.0600),
+            (200000,  11050, 0.0650),
+            (250000,  14300, 0.0690),
+            (500000,  31550, 0.0699),
+        ],
+        'married': [
+            (0,           0, 0.0300),
+            (20000,     300, 0.0500),
+            (100000,   2300, 0.0550),
+            (200000,   5050, 0.0600),
+            (400000,  11050, 0.0650),
+            (500000,  14300, 0.0690),
+            (1000000, 31550, 0.0699),
+        ]
+    }
+
+################################################################################
+# Delaware
+################################################################################
+
+class Delaware:
+    deductions = {
+        'single': 3250,
+        'married': 6500
+    }
+    exemptions = {
+        'personal': Credit(110),
+        'dependant': Credit(110)
+    }
+    brackets = {
+        'single': [
+            (0,         0.00, 0.0000),
+            (2000,      0.00, 0.0220),
+            (5000,     66.00, 0.0390),
+            (10000,   261.00, 0.0480),
+            (20000,   741.00, 0.0520),
+            (25000,  1001.00, 0.0555),
+            (60000,  2943.50, 0.0660),
+        ],
+        'married': [
+            (0,         0.00, 0.0000),
+            (2000,      0.00, 0.0220),
+            (5000,     66.00, 0.0390),
+            (10000,   261.00, 0.0480),
+            (20000,   741.00, 0.0520),
+            (25000,  1001.00, 0.0555),
+            (60000,  2943.50, 0.0660),
+        ]
+    }
+
+################################################################################
+# District of Columbia
+################################################################################
+
+class DistrictOfColumbia:
+    deductions = {
+        'single': 12000,
+        'married': 24000
+    }
+    exemptions = {
+        'personal': 0,
+        'dependant': 0
+    }
+    brackets = {
+        'single': [
+            (0,           0.00, 0.0400),
+            (10000,     400.00, 0.0600),
+            (40000,    2200.00, 0.0650),
+            (60000,    3500.00, 0.0850),
+            (350000,  28150.00, 0.0875),
+            (1000000, 85025.00, 0.0895),
+        ],
+        'married': [
+            (0,           0.00, 0.0400),
+            (10000,     400.00, 0.0600),
+            (40000,    2200.00, 0.0650),
+            (60000,    3500.00, 0.0850),
+            (350000,  28150.00, 0.0875),
+            (1000000, 85025.00, 0.0895),
+        ]
+    }
+
+################################################################################
+# Georgia
+################################################################################
+
+class Georgia:
+    deductions = {
+        'single': 4600,
+        'married': 6000
+    }
+    exemptions = {
+        'personal': 2700,
+        'dependant': 3000
+    }
+    brackets = {
+        'single': [
+            (0,      0.00, 0.0100),
+            (750,    7.50, 0.0200),
+            (2250,  37.50, 0.0300),
+            (3750,  82.50, 0.0400),
+            (5250, 142.50, 0.0500),
+            (7000, 230.00, 0.0575),
+        ],
+        'married': [
+            (0,       0.00, 0.0100),
+            (1000,   10.00, 0.0200),
+            (3000,   50.00, 0.0300),
+            (5000,  110.00, 0.0400),
+            (7000,  190.00, 0.0500),
+            (10000, 340.00, 0.0575),
+        ]
+    }
+
 states = {
         'AK': None,
         'AL': Alabama,
@@ -168,16 +291,14 @@ states = {
         'AZ': Arizona,
         'CA': California,
         'CO': Colorado,
-        'TX': None
+        'CT': Connecticut,
+        'DE': Delaware,
+        'DC': DistrictOfColumbia,
+        'FL': None,
 }
 
 todo = {
-        'CT': 'Connecticut',
-        'DC': 'District of Columbia',
-        'DE': 'Delaware',
-        'FL': 'Florida',
         'GA': 'Georgia',
-        'GU': 'Guam',
         'HI': 'Hawaii',
         'IA': 'Iowa',
         'ID': 'Idaho',
@@ -224,7 +345,7 @@ todo = {
         'WY': 'Wyoming'
 }
 
-def calculate_state_taxes(agi, married, state):
+def calculate_state_taxes(agi, married, state, dependants=0):
     assert agi >= 0
     if agi == 0 or states[state] is None:
         return 0
@@ -232,16 +353,40 @@ def calculate_state_taxes(agi, married, state):
     if married:
         brackets = states[state].brackets['married']
         deduction = states[state].deductions['married']
-        exemption = states[state].exemptions['personal'] * 2
     else:
         brackets = states[state].brackets['single']
         deduction = states[state].deductions['single']
-        exemption = states[state].exemptions['personal']
 
-    taxable_income = agi - deduction - exemption
+    taxes = 0
+    taxable_income = agi - deduction
+
+    #
+    # Handle personal exemptions.
+    #
+    multiplier = 2 if married else 1
+    personal_exemption = states[state].exemptions['personal']
+    if isinstance(personal_exemption, Credit):
+        taxes -= personal_exemption.value * multiplier
+    else:
+        taxable_income -= personal_exemption * multiplier
+
+    #
+    # Handle dependants.
+    #
+    dependant_exemption = states[state].exemptions['dependant']
+    if isinstance(dependant_exemption, Credit):
+        taxes -= dependant_exemption.value * dependants
+    else:
+        taxable_income -= dependant_exemption * dependants
+
+    #
+    # Calculate taxes.
+    #
     for minimum, base_tax, tax_rate in reversed(brackets):
         if taxable_income > minimum:
-            return base_tax + ((taxable_income - minimum) * tax_rate)
+            taxes += base_tax + ((taxable_income - minimum) * tax_rate)
+            return max(taxes, 0)
+
     return 0
 
 #
