@@ -256,10 +256,9 @@ def calculate_assets(
                 tax_deductions = traditional_contribution
                 taxable_income = this_years_income - tax_deductions
 
-                federal_taxes = tm.calculate_taxes(
+                federal_taxes = tm.calculate_federal_income_tax(
                     taxable_income,
                     married,
-                    current_state,
                     num_dependents(current_age)
                 )
                 federal_taxes -= tm.calculate_savers_credit(
@@ -269,7 +268,7 @@ def calculate_assets(
                 )
                 federal_taxes = max(federal_taxes, 0)
 
-                state_taxes = tm.calculate_state_taxes(
+                state_taxes = tm.calculate_state_tax(
                     taxable_income,
                     married,
                     current_state,
@@ -348,13 +347,12 @@ def calculate_assets(
         #
         taxable_income = this_years_income - tax_deductions
 
-        federal_taxes = tm.calculate_taxes(
+        federal_taxes = tm.calculate_federal_income_tax(
             taxable_income,
             married,
-            current_state,
             num_dependents(current_age)
         )
-        state_taxes = tm.calculate_state_taxes(
+        state_taxes = tm.calculate_state_tax(
             taxable_income,
             married,
             current_state,
@@ -415,7 +413,7 @@ def calculate_assets(
                     withdrawal = min(withdrawal, taxable)
                     ltcg = (taxable - total_contributions_taxable) * (withdrawal/taxable)
                     this_years_income += withdrawal
-                    ltcg_taxes = tm.calculate_taxes(this_years_income, married, ltcg=ltcg, just_ltcg=True)
+                    ltcg_taxes = tm.calculate_federal_income_tax(this_years_income, married, ltcg=ltcg, just_ltcg=True)
                     leftover = withdrawal - ltcg_taxes
 
                     taxable_withdrawal = withdrawal
@@ -543,8 +541,8 @@ def calculate_assets(
     # inheritance.
     #
     total_assets = roth + traditional + taxable
-    estate_tax = tm.calculate_estate_taxes(total_assets)
-    taxes_for_heir = tm.calculate_minimum_remaining_taxes_for_heir(traditional, age_of_death - 30)
+    estate_tax = tm.calculate_estate_tax(total_assets)
+    taxes_for_heir = tm.calculate_minimum_remaining_tax_for_heir(traditional, age_of_death - 30)
 
     #
     # Add the rest of the taxes and calculate our "tax to asset ratio" which is
