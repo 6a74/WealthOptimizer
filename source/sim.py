@@ -51,13 +51,18 @@ class Simulation:
         work_state,
         retirement_state,
         dependents,
-        public_safety_employee
+        public_safety_employee,
+        employer_match_401k,
+        max_contribution_percentage_401k
     ):
         assert 0 <= current_age <= age_of_death <= 115
         assert income >= 0
         if max_income:
             assert max_income >= income
         assert contribution_limit_401k_total >= contribution_limit_401k
+        assert 0 <= employer_match_401k <= 1.0
+        assert 0 <= max_contribution_percentage_401k <= 1.0
+        assert employer_match_401k <= max_contribution_percentage_401k
 
         #
         # Input parameters:
@@ -94,6 +99,8 @@ class Simulation:
         self.params_table.add_row("Do Mega-Backdoor Roth After Tax-Advantaged Limit?", str(mega_backdoor_roth))
         self.params_table.add_row("Work State", work_state)
         self.params_table.add_row("Retirement State", retirement_state)
+        self.params_table.add_row("Employer Match 401k", f"{(employer_match_401k-1)*100:.2f}%")
+        self.params_table.add_row("Max Contribution Percentage 401k", f"{(max_contribution_percentage_401k-1)*100:.2f}%")
 
         class Accounts:
             """This class is just used as a container."""
@@ -179,6 +186,8 @@ class Simulation:
         self.contribution_limit_ira = contribution_limit_ira
         self.contribution_catch_up_amount_ira = contribution_catch_up_amount_ira
         self.contribution_catch_up_age_ira = contribution_catch_up_age_ira
+        self.employer_match_401k = employer_match_401k
+        self.max_contribution_percentage_401k = max_contribution_percentage_401k
 
         #
         # This will contain a table with all of our math.
@@ -201,7 +210,7 @@ class Simulation:
         self.table.add_column("Trad IRA", justify="right")
         self.table.add_column("Diff", justify="right")
         self.table.add_column("RMD", justify="right")
-        self.table.add_column("MAGI", justify="right")
+        self.table.add_column("Income", justify="right")
         self.table.add_column("Spending", justify="right")
         self.table.add_column("Deps", justify="center")
         self.table.add_column("State", justify="center")
@@ -409,7 +418,9 @@ class Simulation:
         if self.do_mega_backdoor_roth():
             space += self.get_401k_total_contribution_limit()
         else:
-            space += self.get_401k_normal_contribution_limit()
+            space_401k = self.get_401k_normal_contribution_limit()
+            space_401k += self.get_income() * self.employer_match_401k
+            space += min(space_401k, self.get_401k_total_contribution_limit())
         return space
 
     def get_total_assets(self):
@@ -492,6 +503,7 @@ class Simulation:
         roth_ira_contribution = 0
         trad_401k_contribution = 0
         trad_ira_contribution = 0
+        employer_401k_contribution = 0
 
         #
         # These variables are used to binary search the maximum contribution.
@@ -519,6 +531,7 @@ class Simulation:
                 roth_ira_contribution = 0
                 trad_401k_contribution = 0
                 trad_ira_contribution = 0
+                employer_401k_contribution = 0
 
                 def whats_left_to_contribute():
                     return (
@@ -531,8 +544,42 @@ class Simulation:
                     )
 
                 #
-                # Since HSAs are the ultimate retirement account, contribute to
-                # them first.
+                # Before anything else, we must get the employer 401k match.
+                # This is free money.
+                #
+                if self.prefer_roth():
+                    roth_401k_contribution += min(
+                        min(min(
+                            self.get_income() * self.employer_match_401k,
+                            self.get_401k_total_contribution_limit()
+                        ), whats_left_to_contribute()),
+                        self.get_income() * self.max_contribution_percentage_401k
+                    )
+                else:
+                    trad_401k_contribution += min(
+                        min(min(
+                            self.get_income() * self.employer_match_401k,
+                            self.get_401k_total_contribution_limit()
+                        ), whats_left_to_contribute()),
+                        self.get_income() * self.max_contribution_percentage_401k
+                    )
+
+                #
+                # Add in the employer contribution. Normally, this is always
+                # going to the pre-tax (traditional) bucket.
+                #
+                employer_401k_contribution = min(
+                        min(min(
+                            self.get_income() * self.employer_match_401k,
+                            self.get_401k_total_contribution_limit()
+                        ), whats_left_to_contribute()),
+                        self.get_income() * self.max_contribution_percentage_401k
+                    )
+                trad_401k_contribution += employer_401k_contribution
+
+                #
+                # Next, contribute to your HSA since it is the ultimate
+                # retirement account.
                 #
                 # https://www.madfientist.com/ultimate-retirement-account/
                 #
@@ -542,18 +589,31 @@ class Simulation:
                 ), whats_left_to_contribute())
 
                 #
-                # Calculate 401k contribution.
+                # Calculate 401k contribution. Employer match does not count
+                # towards the normal 401k limit.
                 #
                 if self.prefer_roth():
-                    roth_401k_contribution += min(min(
-                        this_years_income,
-                        self.get_401k_normal_contribution_limit()
-                    ), whats_left_to_contribute())
+                    roth_401k_contribution += min(
+                        min(min(
+                            this_years_income,
+                            self.get_401k_normal_contribution_limit() - employer_401k_contribution
+                        ), whats_left_to_contribute()),
+                        self.get_income() * (
+                            self.max_contribution_percentage_401k
+                            - self.employer_match_401k
+                        )
+                    )
                 else:
-                    trad_401k_contribution += min(min(
-                        this_years_income,
-                        self.get_401k_normal_contribution_limit()
-                    ), whats_left_to_contribute())
+                    trad_401k_contribution += min(
+                        min(min(
+                            this_years_income,
+                            self.get_401k_normal_contribution_limit() - employer_401k_contribution
+                        ), whats_left_to_contribute()),
+                        self.get_income() * (
+                            self.max_contribution_percentage_401k
+                            - self.employer_match_401k
+                        )
+                    )
 
                 #
                 # Calculate IRA contribution. If there are no tax deductions for
@@ -569,6 +629,7 @@ class Simulation:
                     this_years_income
                     - hsa_contribution
                     - trad_401k_contribution
+                    + employer_401k_contribution # Employer match doesn't lower AGI.
                     - would_be_ira_contribution
                 )
 
@@ -595,6 +656,7 @@ class Simulation:
                 tax_deductions = (
                     hsa_contribution
                     + trad_401k_contribution
+                    - employer_401k_contribution
                     + trad_ira_contribution
                 )
 
@@ -602,7 +664,7 @@ class Simulation:
                 # We know about all of our tax deductions, we can accurately
                 # calculate our taxes now. HSAs are not taxed by FICA.
                 #
-                taxable_income = this_years_income - tax_deductions
+                taxable_income = max(this_years_income - tax_deductions, 0)
                 fica_tax = federal_taxes.calculate_fica_tax(
                     this_years_income - hsa_contribution,
                     self.is_married()
@@ -620,6 +682,7 @@ class Simulation:
                         #
                         roth_401k_contribution
                         + trad_401k_contribution
+                        - employer_401k_contribution
                         + roth_ira_contribution
                         + trad_ira_contribution
                     ),
@@ -647,6 +710,7 @@ class Simulation:
                     - hsa_contribution
                     - roth_401k_contribution
                     - trad_401k_contribution
+                    + employer_401k_contribution
                     - roth_ira_contribution
                     - trad_ira_contribution
                 )
@@ -656,7 +720,7 @@ class Simulation:
                 # result to be zero, which will happen when there is no leftover
                 # money after taxes.
                 #
-                if result > 0:
+                if round(result, 5) > 0:
                     if total_contribution_limit == self.get_tax_advantaged_space():
                         break
                     minimum_contribution = total_contribution_limit
@@ -664,7 +728,7 @@ class Simulation:
                         minimum_contribution
                         + maximum_contribution
                     )/2
-                elif result < 0:
+                elif round(result, 5) < 0:
                     if total_contribution_limit == 0:
                         break
                     maximum_contribution = total_contribution_limit
@@ -961,7 +1025,7 @@ class Simulation:
                     dry_run=True
                 ).get_gains()
 
-            taxable_income = round(
+            taxable_income = max(round(
                 this_years_income
                 + trad_401k_withdrawal
                 + trad_ira_withdrawal
@@ -969,7 +1033,7 @@ class Simulation:
                 + (0 if self.can_make_hsa_withdrawal_penalty_free() else hsa_withdrawal)
                 - tax_deductions,
                 2
-            )
+            ), 0)
 
             #
             # Now that we know our taxable income, we can calculate LTCG tax.
@@ -1047,6 +1111,7 @@ class Simulation:
             #
             result = (
                 this_years_income
+                + employer_401k_contribution
                 - this_years_taxes
                 - self.get_spending()
                 - hsa_contribution
@@ -1144,28 +1209,28 @@ class Simulation:
             f"{self.get_current_age()}",
             ":heart_eyes:" if self.is_married() else "",
             ":tada:" if self.is_retired() else "",
-            f"{self.accounts.hsa.get_value():,.2f}",
+            f"{self.accounts.hsa.get_value():,.2f}" if self.accounts.hsa.get_value() else "",
             f"{self.accounts.hsa.get_yearly_diff()}",
-            f"{self.accounts.roth_401k.get_value():,.2f}",
+            f"{self.accounts.roth_401k.get_value():,.2f}" if self.accounts.roth_401k.get_value() else "",
             f"{self.accounts.roth_401k.get_yearly_diff()}",
-            f"{self.accounts.roth_ira.get_value():,.2f}",
+            f"{self.accounts.roth_ira.get_value():,.2f}" if self.accounts.roth_ira.get_value() else "",
             f"{self.accounts.roth_ira.get_yearly_diff()}",
-            f"{self.accounts.taxable.get_value():,.2f}",
+            f"{self.accounts.taxable.get_value():,.2f}" if self.accounts.taxable.get_value() else "",
             f"{self.accounts.taxable.get_yearly_diff()}",
-            f"{self.accounts.trad_401k.get_value():,.2f}",
+            f"{self.accounts.trad_401k.get_value():,.2f}" if self.accounts.trad_401k.get_value() else "",
             f"{self.accounts.trad_401k.get_yearly_diff()}",
             f"[yellow]{trad_401k_rmd:,.2f}[/yellow]" if trad_401k_rmd else "",
-            f"{self.accounts.trad_ira.get_value():,.2f}",
+            f"{self.accounts.trad_ira.get_value():,.2f}" if self.accounts.trad_ira.get_value() else "",
             f"{self.accounts.trad_ira.get_yearly_diff()}",
             f"[yellow]{trad_ira_rmd:,.2f}[/yellow]" if trad_ira_rmd else "",
-            f"[cyan]{taxable_income:,.2f}[/cyan]",
-            f"[red]{self.get_spending():,.2f}[/red]",
-            f"{self.get_num_dependents():d}",
+            f"[cyan]{self.get_income():,.2f}[/cyan]" if self.get_income() else "",
+            f"[red]{self.get_spending():,.2f}[/red]" if self.get_spending() else "",
+            f"{self.get_num_dependents():d}" if self.get_num_dependents() else "",
             f"{self.get_current_state()}",
-            f"[red]{state_tax:,.2f}[/red]" if round(state_tax, 2) else "",
-            f"[red]{penalty_fees:,.2f}[/red]" if round(penalty_fees, 2) else "",
-            f"[red]{this_years_federal_taxes:,.2f}[/red]" if round(this_years_federal_taxes, 2) else "",
-            f"[purple]{self.get_total_taxes():,.2f}[/purple]",
+            f"[red]{state_tax:,.2f}[/red]" if state_tax else "",
+            f"[red]{penalty_fees:,.2f}[/red]" if penalty_fees else "",
+            f"[red]{this_years_federal_taxes:,.2f}[/red]" if this_years_federal_taxes else "",
+            f"[purple]{self.get_total_taxes():,.2f}[/purple]" if self.get_total_taxes() else "",
         )
 
     def increment_year(self):
@@ -1360,6 +1425,20 @@ def main():
         default=50
     )
     parser.add_argument(
+        "--employer-match-401k",
+        help="How much does your employer match your contribution? (0.0 - 1.0)",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
+        "--max-contribution-percentage-401k",
+        help="Does your employer restrict how much of your paycheck you can contribute? (0.0 - 1.0)",
+        required=False,
+        type=float,
+        default=1.0
+    )
+    parser.add_argument(
         "--contribution-limit-ira",
         help="What is the IRA contribution limit?",
         required=False,
@@ -1537,7 +1616,9 @@ def main():
                     args.work_state,
                     args.retirement_state,
                     args.add_dependent,
-                    args.public_safety_employee
+                    args.public_safety_employee,
+                    args.employer_match_401k,
+                    args.max_contribution_percentage_401k
                 )
 
                 live.update("Simulating with Roth conversion: "
@@ -1592,7 +1673,9 @@ def main():
             args.work_state,
             args.retirement_state,
             args.add_dependent,
-            args.public_safety_employee
+            args.public_safety_employee,
+            args.employer_match_401k,
+            args.max_contribution_percentage_401k
         )
         simulation.simulate()
     except KeyboardInterrupt:
