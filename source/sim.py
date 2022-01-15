@@ -11,9 +11,9 @@ import ult
 from account import Account
 
 def calculate_assets(
-        taxable,
-        traditional,
-        roth,
+        starting_taxable_balance,
+        starting_traditional_balance,
+        starting_roth_balance,
         rate_of_return,
         years_until_transition_to_pretax_contributions,
         current_age,
@@ -66,9 +66,9 @@ def calculate_assets(
     params_table.append(["Max Income", f"${max_income:,.2f}" if max_income else None])
     params_table.append(["Yearly Rate of Return", f"{(rate_of_return-1)*100:.2f}%"])
     params_table.append(["Yearly Income Raise", f"{(yearly_income_raise-1)*100:.2f}%"])
-    params_table.append(["Starting Taxable Balance", f"${taxable:,.2f}"])
-    params_table.append(["Starting Roth Balance", f"${roth:,.2f}"])
-    params_table.append(["Starting Traditional Balance", f"${traditional:,.2f}"])
+    params_table.append(["Starting Taxable Balance", f"${starting_taxable_balance:,.2f}"])
+    params_table.append(["Starting Roth Balance", f"${starting_roth_balance:,.2f}"])
+    params_table.append(["Starting Traditional Balance", f"${starting_traditional_balance:,.2f}"])
     params_table.append(["Yearly Roth Conversion Amount", f"${roth_conversion_amount:,.2f}"])
     params_table.append(["Years to Prefer Roth Contributions", years_until_transition_to_pretax_contributions])
     params_table.append(["Yearly Spending", f"${spending:,.2f}"])
@@ -423,13 +423,26 @@ def calculate_assets(
             roth_ira_withdrawal = 0
             trad_401k_withdrawal = 0
             trad_ira_withdrawal = 0
+            roth_401k_with_interest_withdrawal = 0
+            roth_ira_with_interest_withdrawal = 0
 
             penalty_fees = 0
 
+            #
+            # TODO: Order withdrawals based on situation.
+            #
             this_years_income = _this_years_income
             taxable_withdrawal = min(
                 taxable_account.get_value(),
-                total_withdrawal
+                (
+                    total_withdrawal
+                    - roth_401k_withdrawal
+                    - roth_ira_withdrawal
+                    - roth_401k_with_interest_withdrawal
+                    - roth_ira_with_interest_withdrawal
+                    - trad_401k_withdrawal
+                    - trad_ira_withdrawal
+                )
             )
 
             ltcg_taxes = 0
@@ -442,7 +455,15 @@ def calculate_assets(
 
             roth_401k_withdrawal = min(
                 roth_401k.get_contributions(),
-                total_withdrawal - taxable_withdrawal
+                (
+                    total_withdrawal
+                    - taxable_withdrawal
+                    - roth_ira_withdrawal
+                    - roth_401k_with_interest_withdrawal
+                    - roth_ira_with_interest_withdrawal
+                    - trad_401k_withdrawal
+                    - trad_ira_withdrawal
+                )
             )
 
             roth_ira_withdrawal = min(
@@ -457,6 +478,9 @@ def calculate_assets(
                     - taxable_withdrawal
                     - roth_401k_withdrawal
                     - roth_ira_withdrawal
+                    - roth_ira_with_interest_withdrawal
+                    - trad_401k_withdrawal
+                    - trad_ira_withdrawal
                 )
             )
 
@@ -468,6 +492,8 @@ def calculate_assets(
                     - roth_401k_withdrawal
                     - roth_ira_withdrawal
                     - roth_401k_with_interest_withdrawal
+                    - trad_401k_withdrawal
+                    - trad_ira_withdrawal
                 )
             )
 
@@ -477,25 +503,24 @@ def calculate_assets(
             # extra time to access their qualified retirement plans. For them,
             # the rule applies in the calendar year in which they turn 50.
             #
-            # TODO: This does not apply to IRA withdrawals. Right now, this
-            # calculator is 401k/IRA agnostic. Until then, just assume the
-            # person has the funds in the 401k.
+            # TODO: Check that these are right.
             #
-            #
-            """
             rule_of_55_age = 50 if public_safety_employee else 55
             if current_age < 60:
                 if not current_age >= rule_of_55_age >= age_of_retirement:
-                    penalty_fees += roth_with_interest_withdrawal * 0.10
-            """
+                    penalty_fees += roth_401k_with_interest_withdrawal * 0.10
+                    penalty_fees += roth_ira_with_interest_withdrawal * 0.10
 
             roth_gains = 0
-            """
-            if current_age < 72 and roth_with_interest_withdrawal:
-                earnings = roth - total_contributions_roth
-                earnings_ratio = earnings/roth
-                roth_gains = roth_with_interest_withdrawal * earnings_ratio
-            """
+            if current_age < 72:
+                roth_gains += roth_401k.withdrawal(
+                    roth_401k_with_interest_withdrawal,
+                    dry_run=True
+                ).get_gains()
+                roth_gains += roth_ira.withdrawal(
+                    roth_ira_with_interest_withdrawal,
+                    dry_run=True
+                ).get_gains()
 
             trad_401k_withdrawal += max(min(
                 trad_401k.get_value(),
@@ -506,6 +531,7 @@ def calculate_assets(
                     - roth_ira_withdrawal
                     - roth_401k_with_interest_withdrawal
                     - roth_ira_with_interest_withdrawal
+                    - trad_ira_withdrawal
                 )
             ), trad_401k_rmd)
 
@@ -527,7 +553,6 @@ def calculate_assets(
             # some rollovers from our traditional to Roth accounts. This will
             # allow the money to grow tax free in Roth accounts.
             #
-            """
             if retired and current_age < age_to_start_rmds:
                 trad_401k_withdrawal += min(
                     (
@@ -543,13 +568,18 @@ def calculate_assets(
                     ),
                     roth_conversion_amount
                 )
-            """
 
-            """
+            #
+            # TODO: Check that these are right.
+            #
+            if current_age < 60:
+                penalty_fees += roth_ira_withdrawal * 0.10
+                penalty_fees += trad_ira_withdrawal * 0.10
+
             if current_age < 60:
                 if not current_age >= rule_of_55_age >= age_of_retirement:
-                    penalty_fees += traditional_withdrawal * 0.10
-            """
+                    penalty_fees += roth_401k_withdrawal * 0.10
+                    penalty_fees += trad_401k_withdrawal * 0.10
 
             this_years_income += (
                 trad_401k_withdrawal
@@ -759,9 +789,11 @@ def calculate_assets(
         if current_age > age_of_death:
             break
 
-        traditional *= rate_of_return
-        roth *= rate_of_return
-        taxable *= rate_of_return
+        taxable_account.increment()
+        roth_401k.increment()
+        roth_ira.increment()
+        trad_401k.increment()
+        trad_ira.increment()
 
         if current_age < age_of_retirement:
             income *= yearly_income_raise
@@ -789,7 +821,14 @@ def calculate_assets(
     # basis changes. The heir will only be responsible for gains after
     # inheritance.
     #
-    total_assets = roth + traditional + taxable
+    total_assets = (
+        taxable_account.get_value()
+        + trad_ira.get_value()
+        + trad_401k.get_value()
+        + roth_ira.get_value()
+        + roth_401k.get_value()
+    )
+
     estate_tax = federal_taxes.calculate_estate_tax(total_assets)
 
     #
@@ -801,7 +840,7 @@ def calculate_assets(
     # calculation, we can assume everything goes to the eldest child.
     #
     taxes_for_heir = federal_taxes.calculate_minimum_remaining_tax_for_heir(
-        traditional,
+        trad_401k.get_value() + trad_ira.get_value(),
         age_of_death - 30
     )
 
@@ -841,7 +880,10 @@ def calculate_assets(
             )
         )
 
-    return total_assets - total_taxes, traditional
+    return total_assets - total_taxes, (
+        trad_401k.get_value()
+        + trad_ira.get_value()
+    )
 
 def main():
     parser = argparse.ArgumentParser(
