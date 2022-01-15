@@ -35,22 +35,36 @@ def main():
         default=0
     )
     parser.add_argument(
-        "--principal-taxable",
-        help="Starting balance for taxable (after-tax) accounts?",
+        "--starting-balance-taxable",
+        help="Starting balance for taxable account?",
         required=False,
         type=float,
         default=0
     )
     parser.add_argument(
-        "--principal-traditional",
-        help="Starting balance for traditional (pre-tax) accounts?",
+        "--starting-balance-trad-401k",
+        help="Starting balance for traditional 401k?",
         required=False,
         type=float,
         default=0
     )
     parser.add_argument(
-        "--principal-roth",
-        help="Starting balance for Roth (after-tax) accounts?",
+        "--starting-balance-trad-ira",
+        help="Starting balance for traditional IRA?",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
+        "--starting-balance-roth-401k",
+        help="Starting balance for Roth 401k?",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
+        "--starting-balance-roth-ira",
+        help="Starting balance for Roth IRA?",
         required=False,
         type=float,
         default=0
@@ -169,6 +183,13 @@ def main():
         default=False
     )
     parser.add_argument(
+        "--roth-conversion-unit",
+        help="To what level of detail do you want to calculate the best Roth conversion?",
+        required=False,
+        type=float,
+        default=1000
+    )
+    parser.add_argument(
         "--verbose",
         help="Do things and talk more",
         action="store_true"
@@ -187,9 +208,11 @@ def main():
         if args.age_of_death > args.age_of_retirement:
             while True:
                 assets, traditional = sim.calculate_assets(
-                    args.principal_taxable,
-                    args.principal_traditional,
-                    args.principal_roth,
+                    args.starting_balance_taxable,
+                    args.starting_balance_trad_401k,
+                    args.starting_balance_trad_ira,
+                    args.starting_balance_roth_401k,
+                    args.starting_balance_roth_ira,
                     rate_of_return,
                     years_to_wait,
                     args.current_age,
@@ -217,14 +240,16 @@ def main():
                 if assets > most_assets:
                     best_roth_conversion_amount = roth_conversion_amount
                     most_assets = assets
-                if not traditional:
+                if round(traditional, 2) == 0:
                     break
-                roth_conversion_amount += 1000
+                roth_conversion_amount += args.roth_conversion_unit
 
         return sim.calculate_assets(
-            args.principal_taxable,
-            args.principal_traditional,
-            args.principal_roth,
+            args.starting_balance_taxable,
+            args.starting_balance_trad_401k,
+            args.starting_balance_trad_ira,
+            args.starting_balance_roth_401k,
+            args.starting_balance_roth_ira,
             rate_of_return,
             years_to_wait,
             args.current_age,
@@ -234,7 +259,8 @@ def main():
             best_roth_conversion_amount,
             args.income,
             args.yearly_income_raise,
-            args.max_income, args.age_of_marriage,
+            args.max_income,
+            args.age_of_marriage,
             args.spending,
             args.yearly_401k_normal_contribution_limit,
             args.yearly_401k_total_contribution_limit,
@@ -315,7 +341,7 @@ def main():
     plt.title("When to Start Deferring Taxes?")
 
     cells = [
-        ["Current Age", f"{args.current_age}"],
+        ["Starting Age", f"{args.current_age}"],
         ["Age of Marriage", f"{args.age_of_marriage}"],
         ["Age of Retirement", f"{args.age_of_retirement}"],
         ["Age to Start RMDs", f"{args.age_to_start_rmds}"],
@@ -324,9 +350,11 @@ def main():
         ["Max Income", f"${args.max_income:,.2f}"],
         ["Yearly Spending", f"${args.spending:,.2f}"],
         ["Yearly Income Raise", f"{args.yearly_income_raise:.2f}"],
-        ["Starting Taxable Balance", f"${args.principal_taxable:,.2f}"],
-        ["Starting Traditional Balance", f"${args.principal_traditional:,.2f}"],
-        ["Starting Roth Balance", f"${args.principal_roth:,.2f}"],
+        ["Starting Balance Taxable", f"${args.starting_balance_taxable:,.2f}"],
+        ["Starting Balance Trad 401k", f"${args.starting_balance_trad_401k:,.2f}"],
+        ["Starting Balance Trad IRA", f"${args.starting_balance_trad_ira:,.2f}"],
+        ["Starting Balance Roth 401k", f"${args.starting_balance_roth_401k:,.2f}"],
+        ["Starting Balance Roth IRA", f"${args.starting_balance_roth_ira:,.2f}"],
         ["401k Normal Cont. Limit", f"${args.yearly_401k_normal_contribution_limit:,.2f}"],
         ["401k Total Cont. Limit", f"${args.yearly_401k_total_contribution_limit:,.2f}"],
         ["IRA Contribution Limit", f"${args.yearly_ira_contribution_limit:,.2f}"],
