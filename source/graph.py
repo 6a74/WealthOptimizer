@@ -203,7 +203,7 @@ def main():
 
         if args.age_of_death > args.age_of_retirement:
             while True:
-                assets, traditional = sim.calculate_assets(
+                results = sim.calculate_assets(
                     args.starting_balance_taxable,
                     args.starting_balance_trad_401k,
                     args.starting_balance_trad_ira,
@@ -232,10 +232,10 @@ def main():
                     args.add_dependent,
                     args.public_safety_employee
                 )
-                if round(assets, 2) >= round(most_assets, 2):
+                if round(results.assets, 2) >= round(most_assets, 2):
                     best_roth_conversion_amount = roth_conversion_amount
-                    most_assets = assets
-                if round(traditional, 2) == 0:
+                    most_assets = results.assets
+                if round(results.traditional, 2) == 0:
                     break
                 roth_conversion_amount += args.roth_conversion_unit
 
@@ -267,7 +267,7 @@ def main():
             args.retirement_state,
             args.add_dependent,
             args.public_safety_employee
-        )[0]
+        ).assets
 
     def scale(values):
         """
