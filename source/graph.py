@@ -39,25 +39,29 @@ def my_calculation(arguments):
             args.age_of_retirement,
             args.age_to_start_rmds,
             args.age_of_death,
-            roth_conversion_amount,
+            roth_conversion_amount, # this is our variable
             args.income,
             args.yearly_income_raise,
             args.max_income,
             args.age_of_marriage,
             args.spending,
-            args.yearly_hsa_contribution_limit,
-            args.hsa_contribution_catch_up,
-            args.hsa_contribution_catch_up_age,
-            args.yearly_401k_normal_contribution_limit,
-            args.yearly_401k_total_contribution_limit,
-            args.yearly_ira_contribution_limit,
-            args.ira_contribution_catch_up,
-            args.ira_contribution_catch_up_age,
+            args.contribution_limit_hsa,
+            args.contribution_catch_up_amount_hsa,
+            args.contribution_catch_up_age_hsa,
+            args.contribution_limit_401k,
+            args.contribution_limit_401k_total,
+            args.contribution_catch_up_amount_401k,
+            args.contribution_catch_up_age_401k,
+            args.contribution_limit_ira,
+            args.contribution_catch_up_amount_ira,
+            args.contribution_catch_up_age_ira,
             args.do_mega_backdoor_roth,
             args.work_state,
             args.retirement_state,
             args.add_dependent,
-            args.public_safety_employee
+            args.public_safety_employee,
+            args.employer_match_401k,
+            args.max_contribution_percentage_401k
         )
         simulation.simulate()
 
@@ -92,19 +96,23 @@ def my_calculation(arguments):
         args.max_income,
         args.age_of_marriage,
         args.spending,
-        args.yearly_hsa_contribution_limit,
-        args.hsa_contribution_catch_up,
-        args.hsa_contribution_catch_up_age,
-        args.yearly_401k_normal_contribution_limit,
-        args.yearly_401k_total_contribution_limit,
-        args.yearly_ira_contribution_limit,
-        args.ira_contribution_catch_up,
-        args.ira_contribution_catch_up_age,
+        args.contribution_limit_hsa,
+        args.contribution_catch_up_amount_hsa,
+        args.contribution_catch_up_age_hsa,
+        args.contribution_limit_401k,
+        args.contribution_limit_401k_total,
+        args.contribution_catch_up_amount_401k,
+        args.contribution_catch_up_age_401k,
+        args.contribution_limit_ira,
+        args.contribution_catch_up_amount_ira,
+        args.contribution_catch_up_age_ira,
         args.do_mega_backdoor_roth,
         args.work_state,
         args.retirement_state,
         args.add_dependent,
-        args.public_safety_employee
+        args.public_safety_employee,
+        args.employer_match_401k,
+        args.max_contribution_percentage_401k
     )
     simulation.simulate()
     return simulation.get_total_assets_after_death()
@@ -118,21 +126,21 @@ def main():
 
     parser.add_argument(
         "--current-age",
-        help="Your current age",
+        help="How old are you currently?",
         required=False,
         type=int,
         default=38
     )
     parser.add_argument(
         "--income",
-        help="Your current income",
+        help="What is your current income?",
         required=False,
         type=float,
         default=63179
     )
     parser.add_argument(
         "--max-income",
-        help="Define an income ceiling",
+        help="What will your income max out at?",
         required=False,
         type=float,
         default=0
@@ -180,56 +188,84 @@ def main():
         default=0
     )
     parser.add_argument(
-        "--yearly-hsa-contribution-limit",
+        "--contribution-limit-hsa",
         help="What is the individual HSA contribution limit?",
         required=False,
         type=float,
         default=3600
     )
     parser.add_argument(
-        "--hsa-contribution-catch-up",
+        "--contribution-catch-up-amount-hsa",
         help="How much extra can you contribute at this age?",
         required=False,
         type=float,
         default=1000
     )
     parser.add_argument(
-        "--hsa-contribution-catch-up-age",
+        "--contribution-catch-up-age-hsa",
         help="At what age can you do extra catch up contributions?",
         required=False,
         type=int,
         default=55
     )
     parser.add_argument(
-        "--yearly-401k-normal-contribution-limit",
+        "--contribution-limit-401k",
         help="What is the normal 401k contribution limit?",
         required=False,
         type=float,
         default=19500
     )
     parser.add_argument(
-        "--yearly-401k-total-contribution-limit",
+        "--contribution-limit-401k-total",
         help="What is the total 401k contribution limit?",
         required=False,
         type=float,
         default=58000
     )
     parser.add_argument(
-        "--yearly-ira-contribution-limit",
+        "--contribution-catch-up-amount-401k",
+        help="How much extra can you contribute at this age?",
+        required=False,
+        type=float,
+        default=6500
+    )
+    parser.add_argument(
+        "--contribution-catch-up-age-401k",
+        help="At what age can you do 401k catch up contributions?",
+        required=False,
+        type=float,
+        default=50
+    )
+    parser.add_argument(
+        "--employer-match-401k",
+        help="How much does your employer match your contribution? (0.0 - 1.0)",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
+        "--max-contribution-percentage-401k",
+        help="Does your employer restrict how much of your paycheck you can contribute? (0.0 - 1.0)",
+        required=False,
+        type=float,
+        default=1.0
+    )
+    parser.add_argument(
+        "--contribution-limit-ira",
         help="What is the IRA contribution limit?",
         required=False,
         type=float,
         default=6000
     )
     parser.add_argument(
-        "--ira-contribution-catch-up",
-        help="How much extra can you contribute at the age of 50?",
+        "--contribution-catch-up-amount-ira",
+        help="How much extra can you contribute at this age?",
         required=False,
         type=float,
         default=1000
     )
     parser.add_argument(
-        "--ira-contribution-catch-up-age",
+        "--contribution-catch-up-age-ira",
         help="At what age can you do extra catch up contributions?",
         required=False,
         type=int,
@@ -402,16 +438,16 @@ def main():
         ["Max Income", f"${args.max_income:,.2f}"],
         ["Yearly Spending", f"${args.spending:,.2f}"],
         ["Yearly Income Raise", f"{args.yearly_income_raise:.2f}"],
-        ["Starting Balance HSA", f"${args.starting_balance_hsa:,.2f}"],
-        ["Starting Balance Taxable", f"${args.starting_balance_taxable:,.2f}"],
-        ["Starting Balance Trad 401k", f"${args.starting_balance_trad_401k:,.2f}"],
-        ["Starting Balance Trad IRA", f"${args.starting_balance_trad_ira:,.2f}"],
-        ["Starting Balance Roth 401k", f"${args.starting_balance_roth_401k:,.2f}"],
-        ["Starting Balance Roth IRA", f"${args.starting_balance_roth_ira:,.2f}"],
-        ["HSA Contribution Limit", f"${args.yearly_hsa_contribution_limit:,.2f}"],
-        ["401k Normal Cont. Limit", f"${args.yearly_401k_normal_contribution_limit:,.2f}"],
-        ["401k Total Cont. Limit", f"${args.yearly_401k_total_contribution_limit:,.2f}"],
-        ["IRA Contribution Limit", f"${args.yearly_ira_contribution_limit:,.2f}"],
+        ["HSA Starting Balance", f"${args.starting_balance_hsa:,.2f}"],
+        ["Taxable Starting Balance", f"${args.starting_balance_taxable:,.2f}"],
+        ["Trad 401k Starting Balance", f"${args.starting_balance_trad_401k:,.2f}"],
+        ["Trad IRA Starting Balance", f"${args.starting_balance_trad_ira:,.2f}"],
+        ["Roth 401k Starting Balance", f"${args.starting_balance_roth_401k:,.2f}"],
+        ["Roth IRA Starting Balance", f"${args.starting_balance_roth_ira:,.2f}"],
+        ["HSA Contribution Limit", f"${args.contribution_limit_hsa:,.2f}"],
+        ["401k Normal Contribution Limit", f"${args.contribution_limit_401k:,.2f}"],
+        ["401k Total Contribution Limit", f"${args.contribution_limit_401k_total:,.2f}"],
+        ["IRA Contribution Limit", f"${args.contribution_limit_ira:,.2f}"],
         ["Mega-Backdoor Roth", args.do_mega_backdoor_roth],
         ["Work State", f"{args.work_state}"],
         ["Retirement State", f"{args.retirement_state}"],
