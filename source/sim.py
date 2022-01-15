@@ -470,7 +470,7 @@ def calculate_assets(
                     ), 0)
                 ), whats_left_to_withdrawal())
 
-            if current_age > 60:
+            if current_age >= 60:
                 trad_ira_withdrawal += min(min(
                     trad_ira.get_value() - trad_ira_withdrawal,
                     max((
@@ -505,6 +505,16 @@ def calculate_assets(
                 roth_ira.get_contributions() - roth_ira_withdrawal,
                 whats_left_to_withdrawal()
             )
+
+            trad_401k_withdrawal += min(
+                trad_401k.get_value() - trad_401k_withdrawal,
+                whats_left_to_withdrawal()
+            )
+            trad_ira_withdrawal += min(
+                trad_ira.get_value() - trad_ira_withdrawal,
+                whats_left_to_withdrawal()
+            )
+
             roth_401k_with_interest_withdrawal += min(
                 roth_401k.get_value() - roth_401k_withdrawal,
                 whats_left_to_withdrawal()
@@ -524,15 +534,6 @@ def calculate_assets(
                     roth_ira_with_interest_withdrawal,
                     dry_run=True
                 ).get_gains()
-
-            trad_401k_withdrawal += min(
-                trad_401k.get_value() - trad_401k_withdrawal,
-                whats_left_to_withdrawal()
-            )
-            trad_ira_withdrawal += min(
-                trad_ira.get_value() - trad_ira_withdrawal,
-                whats_left_to_withdrawal()
-            )
 
             #
             # Roth conversions. While we're retired, but before RMDs, let's do
@@ -705,8 +706,10 @@ def calculate_assets(
 
         withdrawals = [
             roth_401k.withdrawal(roth_401k_withdrawal),
+            roth_401k.withdrawal(roth_401k_with_interest_withdrawal),
             trad_401k.withdrawal(trad_401k_withdrawal),
             roth_ira.withdrawal(roth_ira_withdrawal),
+            roth_ira.withdrawal(roth_ira_with_interest_withdrawal),
             trad_ira.withdrawal(trad_ira_withdrawal),
             taxable_account.withdrawal(taxable_withdrawal)
         ]
@@ -718,9 +721,6 @@ def calculate_assets(
         #
         roth_ira_contribution += conversion_amount
         roth_ira.contribute(conversion_amount)
-
-        if stop_simulation:
-            break
 
         total_taxes += this_years_taxes
 
@@ -775,6 +775,9 @@ def calculate_assets(
             f"{tax_rate:,.2f}",
             f"[purple]{total_taxes:,.2f}[/purple]",
         )
+
+        if stop_simulation:
+            break
 
         ########################################################################
         # Preparation for New Year
