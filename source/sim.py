@@ -19,50 +19,52 @@ class Simulation:
     """
 
     def __init__(self,
-        starting_balance_hsa,
-        starting_balance_taxable,
-        starting_balance_trad_401k,
-        starting_balance_trad_ira,
-        starting_balance_roth_401k,
-        starting_balance_roth_ira,
-        rate_of_return,
-        years_to_wait,
-        current_age,
-        age_of_retirement,
-        age_to_start_rmds,
-        age_of_death,
-        roth_conversion_amount,
-        income,
-        yearly_income_raise,
-        max_income,
-        age_of_marriage,
-        spending,
-        contribution_limit_hsa,
-        contribution_catch_up_amount_hsa,
-        contribution_catch_up_age_hsa,
-        contribution_limit_401k,
-        contribution_limit_401k_total,
-        contribution_catch_up_amount_401k,
-        contribution_catch_up_age_401k,
-        contribution_limit_ira,
-        contribution_catch_up_amount_ira,
-        contribution_catch_up_age_ira,
-        mega_backdoor_roth,
-        work_state,
-        retirement_state,
-        dependents,
-        public_safety_employee,
-        employer_match_401k,
-        max_contribution_percentage_401k
+                 starting_balance_hsa,
+                 starting_balance_taxable,
+                 starting_balance_trad_401k,
+                 starting_balance_trad_ira,
+                 starting_balance_roth_401k,
+                 starting_balance_roth_ira,
+                 rate_of_return,
+                 years_to_wait,
+                 current_age,
+                 age_of_retirement,
+                 age_to_start_rmds,
+                 age_of_death,
+                 roth_conversion_amount,
+                 income,
+                 yearly_income_raise,
+                 max_income,
+                 age_of_marriage,
+                 spending,
+                 contribution_limit_hsa,
+                 contribution_catch_up_amount_hsa,
+                 contribution_catch_up_age_hsa,
+                 contribution_limit_401k,
+                 contribution_limit_401k_total,
+                 contribution_catch_up_amount_401k,
+                 contribution_catch_up_age_401k,
+                 contribution_limit_ira,
+                 contribution_catch_up_amount_ira,
+                 contribution_catch_up_age_ira,
+                 mega_backdoor_roth,
+                 work_state,
+                 retirement_state,
+                 dependents,
+                 public_safety_employee,
+                 employer_match_401k,
+                 max_contribution_percentage_401k,
+                 employer_contribution_hsa
     ):
         assert 0 <= current_age <= age_of_death <= 115
-        assert income >= 0
+        assert 0 <= income
         if max_income:
-            assert max_income >= income
-        assert contribution_limit_401k_total >= contribution_limit_401k
+            assert income <= max_income
+        assert 0 <= contribution_limit_401k <= contribution_limit_401k_total
         assert 0 <= employer_match_401k <= 1.0
         assert 0 <= max_contribution_percentage_401k <= 1.0
-        assert employer_match_401k <= max_contribution_percentage_401k
+        assert 0 <= employer_match_401k <= max_contribution_percentage_401k <= 1.0
+        assert 0 <= employer_contribution_hsa <= contribution_limit_hsa
 
         #
         # Input parameters:
@@ -101,6 +103,7 @@ class Simulation:
         self.params_table.add_row("Retirement State", retirement_state)
         self.params_table.add_row("Employer Match 401k", f"{(employer_match_401k-1)*100:.2f}%")
         self.params_table.add_row("Max Contribution Percentage 401k", f"{(max_contribution_percentage_401k-1)*100:.2f}%")
+        self.params_table.add_row("Employer Contribution HSA", f"{employer_contribution_hsa:,.2f}")
 
         class Accounts:
             """This class is just used as a container."""
@@ -188,6 +191,7 @@ class Simulation:
         self.contribution_catch_up_age_ira = contribution_catch_up_age_ira
         self.employer_match_401k = employer_match_401k
         self.max_contribution_percentage_401k = max_contribution_percentage_401k
+        self.employer_contribution_hsa = employer_contribution_hsa
 
         #
         # This will contain a table with all of our math.
@@ -403,7 +407,12 @@ class Simulation:
         return limit
 
     def get_401k_total_contribution_limit(self):
-        return self.contribution_limit_401k_total
+        """
+        For employees in 2021, the total contributions to all 401(k) accounts
+        held by the same employee (regardless of current employment status) is
+        $58,000, or 100% of compensation, whichever is less.
+        """
+        return min(self.contribution_limit_401k_total, self.get_income())
 
     def do_mega_backdoor_roth(self):
         return self.mega_backdoor_roth
@@ -544,8 +553,16 @@ class Simulation:
                     )
 
                 #
-                # Before anything else, we must get the employer 401k match.
-                # This is free money.
+                # First, we must get our employer HSA contribution. We are not
+                # required to contribute anything for this.
+                #
+                hsa_contribution += min(
+                    self.employer_contribution_hsa,
+                    whats_left_to_contribute()
+                )
+
+                #
+                # Next, we must get the employer 401k match. This is free money.
                 #
                 if self.prefer_roth():
                     roth_401k_contribution += min(
@@ -585,7 +602,7 @@ class Simulation:
                 #
                 hsa_contribution += min(min(
                     this_years_income,
-                    self.get_hsa_contribution_limit()
+                    self.get_hsa_contribution_limit() - hsa_contribution
                 ), whats_left_to_contribute())
 
                 #
@@ -718,6 +735,7 @@ class Simulation:
                     - roth_401k_contribution
                     - trad_401k_contribution
                     + employer_401k_contribution
+                    + self.employer_contribution_hsa
                     - roth_ira_contribution
                     - trad_ira_contribution
                 )
@@ -1119,6 +1137,7 @@ class Simulation:
             result = (
                 this_years_income
                 + employer_401k_contribution
+                + self.employer_contribution_hsa
                 - this_years_taxes
                 - self.get_spending()
                 - hsa_contribution
@@ -1390,6 +1409,13 @@ def main():
         default=3600
     )
     parser.add_argument(
+        "--employer-contribution-hsa",
+        help="How much does your employer contribution to your HSA?",
+        required=False,
+        type=float,
+        default=0
+    )
+    parser.add_argument(
         "--contribution-catch-up-amount-hsa",
         help="How much extra can you contribute at this age?",
         required=False,
@@ -1625,7 +1651,8 @@ def main():
                     args.add_dependent,
                     args.public_safety_employee,
                     args.employer_match_401k,
-                    args.max_contribution_percentage_401k
+                    args.max_contribution_percentage_401k,
+                    args.employer_contribution_hsa
                 )
 
                 live.update("Simulating with Roth conversion: "
@@ -1682,7 +1709,8 @@ def main():
             args.add_dependent,
             args.public_safety_employee,
             args.employer_match_401k,
-            args.max_contribution_percentage_401k
+            args.max_contribution_percentage_401k,
+            args.employer_contribution_hsa
         )
         simulation.simulate()
     except KeyboardInterrupt:
